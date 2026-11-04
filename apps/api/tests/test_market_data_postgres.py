@@ -22,6 +22,7 @@ from stockapp.modules.market_data.domain.models import (
     InstrumentStatus, InstrumentType, Market, SessionStatus, SourceType,
     TradingCalendar,
 )
+from stockapp.modules.market_data.infrastructure import ingestion_models  # noqa: F401
 from stockapp.modules.market_data.infrastructure.models import (
     DailyBarRecord, DailyBarRevisionRecord, DataSourceRecord,
     IngestionRunRecord, InstrumentRecord, MarketRecord, TradingCalendarRecord,
@@ -40,7 +41,7 @@ pytestmark = [
 API_ROOT = Path(__file__).resolve().parents[1]
 TABLES = {
     "markets", "instruments", "trading_calendars", "daily_bars", "data_sources",
-    "ingestion_runs", "daily_bar_revisions",
+    "ingestion_runs", "daily_bar_revisions", "ingestion_requests", "raw_market_payloads", "ingestion_items",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

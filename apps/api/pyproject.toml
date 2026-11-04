@@ -6,14 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "stockapp-api"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1", "pydantic-settings>=2.7,<3", "psycopg[binary]>=3.2,<4", "redis>=5.2,<7", "sqlalchemy>=2.0,<2.1", "alembic>=1.16,<2"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1", "pydantic-settings>=2.7,<3", "psycopg[binary]>=3.2,<4", "redis>=5.2,<7", "sqlalchemy>=2.0,<2.1", "alembic>=1.16,<2", "httpx>=0.28,<1"]
+
+[project.scripts]
+stockapp = "stockapp.cli:main"
 
 [project.optional-dependencies]
-test = ["pytest>=8.3,<10", "httpx>=0.28,<1"]
+test = ["pytest>=8.3,<10"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: requires live PostgreSQL and Redis"]
+markers = ["integration: requires live PostgreSQL and Redis", "network: opt-in live official provider requests"]

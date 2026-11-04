@@ -34,6 +34,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-stockapp}:${POSTGRES_PASSWORD:?Copy .env.example to .env first}@postgres:5432/${POSTGRES_DB:-stockapp}
       REDIS_URL: redis://redis:6379/0
+      INGESTION_MIN_INTERVAL_SECONDS: ${INGESTION_MIN_INTERVAL_SECONDS:-5}
+      INGESTION_MAX_ATTEMPTS: ${INGESTION_MAX_ATTEMPTS:-3}
+      INGESTION_MAX_RESPONSE_BYTES: ${INGESTION_MAX_RESPONSE_BYTES:-20000000}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     depends_on:
