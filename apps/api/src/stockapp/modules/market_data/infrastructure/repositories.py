@@ -131,6 +131,32 @@ class SqlAlchemyInstrumentRepository(_Repository):
     record = InstrumentRecord
     model = Instrument
 
+    def update_metadata(self, instrument: Instrument) -> Instrument:
+        """Refresh verified catalog metadata without changing security identity.
+
+        The ingestion caller owns the transaction; lock the row so a stale
+        catalog refresh cannot silently replace newer metadata.
+        """
+        row = self.session.execute(
+            select(self.table).where(self.table.c.id == instrument.id).with_for_update()
+        ).mappings().one_or_none()
+        existing = _entity(Instrument, row)
+        if existing is None:
+            raise ValueError("Instrument does not exist")
+        if (existing.market_id, existing.symbol, existing.created_at) != (
+            instrument.market_id, instrument.symbol, instrument.created_at
+        ):
+            raise ValueError("Instrument market, symbol and creation time are immutable")
+        if instrument.updated_at < existing.updated_at:
+            return existing
+        metadata = _values(instrument)
+        for name in ("id", "market_id", "symbol", "created_at"):
+            metadata.pop(name)
+        statement = update(self.table).where(self.table.c.id == instrument.id).values(
+            **metadata
+        ).returning(*self.table.c)
+        return _entity(Instrument, self.session.execute(statement).mappings().one())
+
     def get_by_symbol(self, market_id: UUID, symbol: str) -> Instrument | None:
         row = self.session.execute(
             select(self.table).where(

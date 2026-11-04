@@ -17,7 +17,7 @@ vi.mock("../src/lib/market-api", () => ({
 const stock: Instrument = {
   id: "00000000-0000-4000-8000-000000000001", symbol: "2330", name: "測試公司",
   market: { id: "00000000-0000-4000-8000-000000000002", code: "TWSE", name: "測試上市市場", timezone: "Asia/Taipei", currency: "TWD" },
-  instrument_type: "stock", status: "active", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+  instrument_type: "stock", quote_currency: "TWD", quantity_unit: "shares", status: "active", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
 };
 const page = (items: Instrument[] = [stock]): InstrumentPage => ({ items, total: items.length, page: 1, page_size: 20, total_pages: items.length ? 1 : 0 });
 const search = vi.mocked(searchInstruments);
@@ -151,8 +151,8 @@ describe("StockSearch", () => {
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 
-  it("does not route non-stock instruments to the stocks API", async () => {
-    search.mockResolvedValue(page([{ ...stock, instrument_type: "etf" }]));
+  it.each(["etf", "preferred_stock", "warrant", "etn", "dr", "reit", "abs"] as const)("does not route %s instruments to the stocks API", async instrument_type => {
+    search.mockResolvedValue(page([{ ...stock, instrument_type }]));
     render(<StockSearch />);
     enter("2330");
     await debounce();

@@ -93,6 +93,9 @@ docker compose down
 docker compose run --rm backend stockapp sync latest --market all
 # 或指定單一市場：--market twse / --market tpex
 
+# 包含 ETF、ETN、權證、特別股、TDR、REIT 等的最新全證券快照
+docker compose run --rm backend stockapp sync latest --market all --scope securities
+
 # 檢查匯入數量、錯誤、來源端點、原始回應時間與 SHA-256
 docker compose run --rm backend stockapp runs --limit 5
 docker compose run --rm backend stockapp runs --id <RUN_UUID>
@@ -100,6 +103,8 @@ docker compose run --rm backend stockapp runs --id <RUN_UUID>
 # 重新處理已保存的官方 raw；日期必須有對應 archive
 docker compose run --rm backend stockapp backfill --market twse --date 2026-11-03
 docker compose run --rm backend stockapp backfill --market tpex --date 2026-11-04
+# 全證券 archive 與股票 archive 分開選取；不會連網補抓歷史
+docker compose run --rm backend stockapp backfill --market twse --scope securities --date 2026-11-04
 ```
 
 `latest` 是來源提供的資料日期，不保證是執行當天。**backfill 僅支援資料庫已保存的官方原始回應，不提供未確認的遠端歷史下載**；可重複 `--date` 指定多天，無 archive 時明確失敗，絕不替換最新行情的日期。
@@ -107,6 +112,15 @@ docker compose run --rm backend stockapp backfill --market tpex --date 2026-11-0
 退出碼 0 代表成功；2 代表 partial／資料失敗。遇到個股缺價或名錄有股票但行情缺列時，run 會標 failed + Partial coverage，但有效股票仍會保留；請讀 accepted／rejected／missing 與逐筆原因。重送不產生重複 canonical bar。1 代表設定／DB 等操作錯誤。
 
 原始資料提供：臺灣證券交易所（上市個股日成交資訊／上市公司基本資料）、證券櫃檯買賣中心（上櫃股票行情／上櫃公司基本資料）。依[政府資料開放授權條款第1版](https://data.gov.tw/license)利用；本平台另做股票範圍篩選、標準化與驗證，不代表交易所背書。單位與限流查證見來源規格，預設5秒間距是專案的保守設定。
+
+`--scope securities` 使用官方 ISIN 名錄分類，TWSE 改用官方每日收盤行情「全部」匯出，TPEx 使用既有全證券行情 OpenAPI。各證券保存 `quote_currency`（例如 TWD／USD／CNY）及 `quantity_unit`（shares／units）；沿用的 `volume_shares` 欄位保存基礎股數／受益或權證單位，**不是張數**。缺 OHLC 不補價，無成交列只保留證券 metadata、raw 及處理紀錄。名錄有但來源沒有日 OHLCV 的證券僅建 metadata 並列 missing；不宣稱債券、興櫃、全部歷史或所有金融商品均已涵蓋。
+
+全證券組合來源含網站匯出與證券名錄，其完整組合的 OGDL 授權未確認，CLI 的 `license` 為 null 並附來源使用條款，不能套用上段股票 OpenData 授權。詳細端點、分類、外幣佐證、重播與維護限制見[全證券匯入規格](docs/specs/taiwan-securities-ingestion.md)。目前網站搜尋／圖表仍為股票介面；新增種類可透過 `/api/v1/instruments` 查詢 metadata，不會冒充普通股。
+
+```bash
+curl 'http://localhost:8000/api/v1/instruments?symbol=0050&instrument_type=etf&market=TWSE'
+curl 'http://localhost:8000/api/v1/instruments?instrument_type=warrant&market=TPEX&page=1&page_size=20'
+```
 
 ## 股票搜尋與 K 線（Phase 1D）
 

@@ -38,7 +38,7 @@ class MarketQueryService:
         values.pop("market_id")
         return values | {"market": asdict(entry.market)}
 
-    def search(self, *, q=None, symbol=None, name=None, market=None, page=1, page_size=50):
+    def search(self, *, q=None, symbol=None, name=None, market=None, instrument_type=None, page=1, page_size=50):
         self._positive_integer(page, MAX_PAGE, "page")
         self._positive_integer(page_size, MAX_PAGE_SIZE, "page_size")
         q, symbol, name, market = (
@@ -49,8 +49,14 @@ class MarketQueryService:
             market = market.upper()
             if not re.fullmatch(r"[A-Z0-9][A-Z0-9_.-]*", market):
                 raise InvalidQuery("invalid_market", "market must be a market code")
+        if instrument_type is not None:
+            try:
+                instrument_type = InstrumentType(instrument_type)
+            except (ValueError, TypeError) as exc:
+                raise InvalidQuery("invalid_instrument_type", "instrument_type must be a supported security type") from exc
         entries, total = self.repository.search_instruments(
             q=q, symbol=symbol, name=name, market=market,
+            instrument_type=instrument_type,
             offset=(page - 1) * page_size, limit=page_size,
         )
         return {"items": [self._instrument(entry) for entry in entries], "total": total,

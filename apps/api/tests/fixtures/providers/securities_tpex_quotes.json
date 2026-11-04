@@ -1,0 +1,7 @@
+[
+  {"Date":"1151104","SecuritiesCompanyCode":"700019","CompanyName":"測試上櫃認購權證","Open":"1.0","High":"1.2","Low":"0.9","Close":"1.1","TradingShares":"36,000","TransactionAmount":"39,600","TransactionNumber":"3"},
+  {"Date":"1151104","SecuritiesCompanyCode":"00687C","CompanyName":"測試美元基金+櫃U","Open":"9.0","High":"9.2","Low":"8.9","Close":"9.09","TradingShares":"30,000","TransactionAmount":"272,700","TransactionNumber":"3"},
+  {"Date":"1151104","SecuritiesCompanyCode":"020001","CompanyName":"測試上櫃指數債券","Open":"--","High":"--","Low":"--","Close":"--","TradingShares":"0","TransactionAmount":"0","TransactionNumber":"0"},
+  {"Date":"1151104","SecuritiesCompanyCode":"1240","CompanyName":"測試上櫃股票","Open":"10","High":"12","Low":"9","Close":"11","TradingShares":"1,000","TransactionAmount":"11,000","TransactionNumber":"2"},
+  {"Date":"1151104","SecuritiesCompanyCode":"8349A","CompanyName":"測試上櫃特別股","Open":"10","High":"12","Low":"9","Close":"11","TradingShares":"1,000","TransactionAmount":"11,000","TransactionNumber":"2"}
+]

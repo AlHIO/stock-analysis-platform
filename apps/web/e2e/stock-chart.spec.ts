@@ -4,7 +4,7 @@ import type { Instrument, LatestResponse } from "../src/lib/market-types";
 
 async function savedStock(request: APIRequestContext): Promise<Instrument> {
   const response = await request.get(
-    "/api/market/instruments?q=2330&market=TWSE",
+    "/api/market/instruments?q=2330&market=TWSE&instrument_type=stock",
   );
   expect(
     response.ok(),

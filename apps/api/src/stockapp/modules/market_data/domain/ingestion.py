@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Any, ContextManager, Protocol
 from uuid import UUID, uuid4
 
-from stockapp.modules.market_data.domain.models import DailyBar, DataSource, Instrument, IngestionRun, Market, utc_now
+from stockapp.modules.market_data.domain.models import DailyBar, DataSource, Instrument, InstrumentType, IngestionRun, Market, utc_now
 from stockapp.modules.market_data.domain.ports import DailyBarRepository, InstrumentRepository
 
 
@@ -25,6 +25,9 @@ class Security:
     symbol: str
     name: str
     listed_on: date | None = None
+    instrument_type: InstrumentType = InstrumentType.STOCK
+    quote_currency: str = "TWD"
+    quantity_unit: str = "shares"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -69,7 +72,8 @@ class IngestionStore(Protocol):
     def finish(self, run: IngestionRun) -> None: ...
     def work(self) -> ContextManager[IngestionWork]: ...
     def lock(self, market_code: str) -> ContextManager[None]: ...
-    def load_archive(self, market_code: str, trade_date: date) -> tuple[UUID, RawDocument, RawDocument] | None: ...
+    def load_archive(self, market_code: str, trade_date: date, *, source_code: str | None = None,
+                     required_resources: tuple[str, ...] = ()) -> tuple[UUID, RawDocument, RawDocument, *tuple[RawDocument, ...]] | None: ...
     def inspect(self, run_id: UUID | None = None, *, limit: int = 20) -> list[dict[str, Any]]: ...
 
 

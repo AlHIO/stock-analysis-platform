@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Literal, Protocol
 from uuid import UUID
 
-from stockapp.modules.market_data.domain.models import DailyBar, DataSource, IngestionRun, Instrument, Market, TradingCalendar
+from stockapp.modules.market_data.domain.models import DailyBar, DataSource, IngestionRun, Instrument, InstrumentType, Market, TradingCalendar
 
 Timeframe = Literal["1d", "1w", "1M"]
 MAX_RANGE_DAYS = 3660
@@ -66,7 +66,8 @@ class DataStatusSnapshot:
 
 class MarketQueryRepository(Protocol):
     def search_instruments(self, *, q: str | None, symbol: str | None, name: str | None,
-                           market: str | None, offset: int, limit: int) -> tuple[list[InstrumentEntry], int]: ...
+                           market: str | None, offset: int, limit: int,
+                           instrument_type: InstrumentType | None = None) -> tuple[list[InstrumentEntry], int]: ...
     def get_instrument(self, instrument_id: UUID) -> InstrumentEntry | None: ...
     def bars(self, instrument_id: UUID, start: date, end: date, *, limit: int) -> list[BarEntry]: ...
     def previous_bar(self, instrument_id: UUID, before: date) -> BarEntry | None: ...

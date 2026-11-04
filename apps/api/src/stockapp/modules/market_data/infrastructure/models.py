@@ -37,14 +37,18 @@ class InstrumentRecord(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     instrument_type: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    quote_currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default=text("'TWD'"))
+    quantity_unit: Mapped[str] = mapped_column(String(16), nullable=False, server_default=text("'shares'"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     __table_args__ = (
         UniqueConstraint("market_id", "symbol", name="uq_instruments_market_symbol"),
         CheckConstraint("symbol = btrim(symbol) AND symbol <> ''", name="symbol_valid"),
         CheckConstraint("name = btrim(name) AND name <> ''", name="name_valid"),
-        CheckConstraint("instrument_type IN ('stock','etf','fund','index')", name="type_valid"),
+        CheckConstraint("instrument_type IN ('stock','etf','fund','index','preferred_stock','warrant','etn','dr','reit','abs')", name="type_valid"),
         CheckConstraint("status IN ('active','suspended','delisted')", name="status_valid"),
+        CheckConstraint("quote_currency ~ '^[A-Z]{3}$'", name="quote_currency_valid"),
+        CheckConstraint("quantity_unit IN ('shares','units')", name="quantity_unit_valid"),
         CheckConstraint("updated_at >= created_at", name="timestamps_valid"),
         Index("ix_instruments_market_status", "market_id", "status"),
     )

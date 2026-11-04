@@ -71,6 +71,15 @@ def test_instrument_identity_is_independent_of_market_symbol():
     assert first.instrument_type is InstrumentType.STOCK
     assert first.status is InstrumentStatus.ACTIVE
     assert first.created_at.utcoffset() == timedelta(0)
+    assert first.quote_currency == "TWD" and first.quantity_unit == "shares"
+
+
+@pytest.mark.parametrize("instrument_type", list(InstrumentType))
+def test_instrument_supports_explicit_security_classifications(instrument_type):
+    instrument = Instrument(market_id=uuid4(), symbol="SYNTH", name="Synthetic security",
+                            instrument_type=instrument_type, quote_currency="USD", quantity_unit="units")
+    assert instrument.instrument_type == instrument_type
+    assert instrument.quote_currency == "USD" and instrument.quantity_unit == "units"
 
 
 @pytest.mark.parametrize("changes", [
@@ -78,6 +87,9 @@ def test_instrument_identity_is_independent_of_market_symbol():
     {"name": ""}, {"instrument_type": "stock"}, {"status": "active"},
     {"market_id": "bad"}, {"created_at": NOW.replace(tzinfo=None)},
     {"updated_at": NOW.replace(tzinfo=None)}, {"updated_at": NOW - timedelta(seconds=1)},
+    {"quote_currency": "usd"}, {"quote_currency": "US"}, {"quote_currency": "USDD"},
+    {"quote_currency": "123"}, {"quote_currency": None}, {"quantity_unit": "lots"},
+    {"quantity_unit": None},
 ])
 def test_instrument_rejects_invalid_metadata(changes):
     values = dict(market_id=uuid4(), symbol="SYNTH", name="Synthetic instrument", created_at=NOW, updated_at=NOW)

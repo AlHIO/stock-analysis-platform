@@ -82,7 +82,11 @@ export function searchInstruments(
   signal?: AbortSignal,
   page = 1,
 ) {
-  const params = new URLSearchParams({ q: query.trim(), page_size: "20" });
+  const params = new URLSearchParams({
+    q: query.trim(),
+    page_size: "20",
+    instrument_type: "stock",
+  });
   if (page !== 1) params.set("page", String(page));
   if (market && market !== "ALL") params.set("market", market);
   return request(`instruments?${params}`, isInstrumentPage, signal);

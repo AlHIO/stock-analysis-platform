@@ -45,6 +45,8 @@ class InstrumentSchema(ResponseSchema):
     name: str
     instrument_type: InstrumentType
     status: InstrumentStatus
+    quote_currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    quantity_unit: Literal["shares", "units"]
     created_at: AwareDatetime
     updated_at: AwareDatetime
 

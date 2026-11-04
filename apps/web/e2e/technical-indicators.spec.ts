@@ -9,7 +9,7 @@ test("real saved indicators: settings, warmup panes, timeframe and mobile", asyn
   request,
 }, testInfo) => {
   const response = await request.get(
-    "/api/market/instruments?q=2330&market=TWSE",
+    "/api/market/instruments?q=2330&market=TWSE&instrument_type=stock",
   );
   expect(response.ok()).toBeTruthy();
   const instruments = (await response.json()) as { items: Instrument[] };
@@ -91,7 +91,7 @@ test("indicator API failure preserves candles and retries independently", async 
   request,
 }) => {
   const instruments = (await (
-    await request.get("/api/market/instruments?q=2330&market=TWSE")
+    await request.get("/api/market/instruments?q=2330&market=TWSE&instrument_type=stock")
   ).json()) as { items: Instrument[] };
   const instrument = instruments.items.find(
     (item) => item.symbol === "2330" && item.instrument_type === "stock",

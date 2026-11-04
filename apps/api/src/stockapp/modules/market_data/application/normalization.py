@@ -303,7 +303,7 @@ def normalize_quote(
         with localcontext() as context:
             context.prec = max(40, len(volume_number.as_tuple().digits) + len(str(lot_size)))
             volume_number *= Decimal(lot_size)
-    elif volume_unit != "shares":
+    elif volume_unit not in {"shares", "units"}:
         return reject("unsupported_volume_unit")
     try:
         volume = _counter(volume_number)

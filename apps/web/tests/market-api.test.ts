@@ -11,13 +11,37 @@ describe("market API client", () => {
     vi.stubGlobal("fetch", fetcher);
     const result = await searchInstruments(" 測試 & 公司 ", "TWSE");
     expect(result.items[0]).toEqual(instrumentFixture);
-    expect(fetcher).toHaveBeenCalledWith("/api/market/instruments?q=%E6%B8%AC%E8%A9%A6+%26+%E5%85%AC%E5%8F%B8&page_size=20&market=TWSE", expect.objectContaining({ cache: "no-store", signal: expect.any(AbortSignal) }));
+    expect(fetcher).toHaveBeenCalledWith("/api/market/instruments?q=%E6%B8%AC%E8%A9%A6+%26+%E5%85%AC%E5%8F%B8&page_size=20&instrument_type=stock&market=TWSE", expect.objectContaining({ cache: "no-store", signal: expect.any(AbortSignal) }));
   });
   it("omits market filtering for the ALL selection", async () => {
     const fetcher = respond({ items: [], total: 0, page: 1, page_size: 20, total_pages: 0 });
     vi.stubGlobal("fetch", fetcher);
     expect((await searchInstruments("unknown", "ALL")).items).toEqual([]);
     expect(fetcher.mock.calls[0][0]).not.toContain("market=");
+    expect(fetcher.mock.calls[0][0]).toContain("instrument_type=stock");
+  });
+  it("accepts a mixed securities page without assigning the market currency to foreign-currency ETFs", async () => {
+    const types = ["stock", "etf", "preferred_stock", "warrant", "etn", "dr", "reit", "abs"] as const;
+    const items = types.map(instrument_type => ({
+      ...instrumentFixture, instrument_type,
+      quote_currency: instrument_type === "etf" ? "USD" : "TWD",
+      quantity_unit: instrument_type === "stock" || instrument_type === "preferred_stock" ? "shares" : "units",
+    }));
+    vi.stubGlobal("fetch", respond({ items, total: items.length, page: 1, page_size: 20, total_pages: 1 }));
+    const result = await searchInstruments("測試", "ALL");
+    expect(result.items.map(item => item.instrument_type)).toEqual(types);
+    expect(result.items[1]).toMatchObject({ quote_currency: "USD", quantity_unit: "units", market: { currency: "TWD" } });
+  });
+  it.each([
+    { instrument_type: "unknown" },
+    { quote_currency: "usd" },
+    { quote_currency: "" },
+    { quote_currency: undefined },
+    { quantity_unit: "lots" },
+    { quantity_unit: undefined },
+  ])("rejects unrecognized securities metadata: %j", async metadata => {
+    vi.stubGlobal("fetch", respond({ ...instrumentFixture, ...metadata }));
+    await expect(getInstrument(instrumentFixture.id)).rejects.toMatchObject({ status: 502, code: "invalid_response" });
   });
   it("reads instrument and latest while preserving financial decimal strings", async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(Response.json(instrumentFixture)).mockResolvedValueOnce(Response.json(latestFixture));

@@ -120,6 +120,9 @@ def test_search_instruments_by_symbol_name_market_and_stable_pages(session):
     assert search(repository, offset=99, limit=2) == ([], 4)
     assert repository.get_instrument(listed.id) == entries[1]
     assert repository.get_instrument(uuid4()) is None
+    assert search(repository, instrument_type=InstrumentType.STOCK)[1] == 3
+    assert search(repository, instrument_type=InstrumentType.ETF) == (
+        [repository.get_instrument(etf.id)], 1)
 
 
 @pytest.mark.parametrize("filter_name", ["q", "symbol", "name"])

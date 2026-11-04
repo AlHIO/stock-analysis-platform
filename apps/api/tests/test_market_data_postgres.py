@@ -155,6 +155,72 @@ def test_instrument_catalog_queries_and_multimarket_identity(session):
         instruments.add(replace(instrument, id=uuid4()))
 
 
+@pytest.mark.parametrize("instrument_type", list(InstrumentType))
+def test_security_classification_currency_and_units_roundtrip(session, instrument_type):
+    market, _, _ = catalog(session)
+    repository = SqlAlchemyInstrumentRepository(session)
+    instrument = Instrument(market_id=market.id, symbol="SYNTH_USD", name="Synthetic quoted security",
+                            instrument_type=instrument_type, quote_currency="USD", quantity_unit="units")
+    assert repository.add(instrument) == instrument
+    assert repository.get(instrument.id) == instrument
+
+
+def test_verified_metadata_correction_preserves_identity_and_bars(session):
+    _, instrument, source = catalog(session)
+    bars = SqlAlchemyDailyBarRepository(session)
+    expected_bar = bars.upsert(bar(instrument, source))
+    repository = SqlAlchemyInstrumentRepository(session)
+    corrected = replace(instrument, name="Synthetic depositary receipt", instrument_type=InstrumentType.DR,
+                        quantity_unit="units", updated_at=instrument.updated_at + timedelta(seconds=1))
+    assert repository.update_metadata(corrected) == corrected
+    assert repository.get_by_symbol(instrument.market_id, instrument.symbol).id == instrument.id
+    assert bars.get(instrument.id, expected_bar.trade_date) == expected_bar
+    # Catalog snapshots arriving late cannot undo a newer classification.
+    assert repository.update_metadata(instrument) == corrected
+
+
+@pytest.mark.parametrize("changes", [
+    {"id": uuid4()}, {"market_id": uuid4()}, {"symbol": "RENAMED"},
+    {"created_at": OBSERVED_AT},
+])
+def test_metadata_update_refuses_missing_or_changed_identity(session, changes):
+    _, instrument, _ = catalog(session)
+    with pytest.raises(ValueError):
+        SqlAlchemyInstrumentRepository(session).update_metadata(replace(instrument, **changes))
+
+
+@pytest.mark.parametrize("column,value", [("quote_currency", "usd"), ("quantity_unit", "lots")])
+def test_database_rejects_invalid_security_currency_and_units(session, column, value):
+    _, instrument, _ = catalog(session)
+    with pytest.raises(IntegrityError), session.begin_nested():
+        session.execute(text(f"UPDATE instruments SET {column} = :value WHERE id = :id"),
+                        {"value": value, "id": instrument.id})
+
+
+@pytest.mark.parametrize("changes", [
+    {"instrument_type": InstrumentType.WARRANT}, {"quote_currency": "USD"}, {"quantity_unit": "units"},
+])
+def test_metadata_downgrade_refuses_to_lose_security_meaning(database, changes):
+    with Session(database) as session, session.begin():
+        _, instrument, _ = catalog(session)
+        SqlAlchemyInstrumentRepository(session).update_metadata(replace(instrument, **changes))
+    with pytest.raises(RuntimeError, match="metadata.*would be lost"):
+        migrate(database, "downgrade", "0002_ingestion_audit")
+    assert {"quote_currency", "quantity_unit"} <= {column["name"] for column in inspect(database).get_columns("instruments")}
+
+
+def test_metadata_migration_backfills_legacy_market_currency(database):
+    migrate(database, "downgrade", "0002_ingestion_audit")
+    with database.begin() as connection:
+        market_id, instrument_id = uuid4(), uuid4()
+        connection.execute(text("INSERT INTO markets (id, code, name, timezone, currency) VALUES (:id, 'SYNTH_US', 'Synthetic US market', 'UTC', 'USD')"), {"id": market_id})
+        connection.execute(text("INSERT INTO instruments (id, market_id, symbol, name, instrument_type, status) VALUES (:id, :market_id, 'SYNTH', 'Synthetic US security', 'stock', 'active')"), {"id": instrument_id, "market_id": market_id})
+    migrate(database, "upgrade", "head")
+    with Session(database) as session:
+        instrument = SqlAlchemyInstrumentRepository(session).get(instrument_id)
+        assert instrument.quote_currency == "USD" and instrument.quantity_unit == "shares"
+
+
 @pytest.mark.parametrize("record,values", [
     (MarketRecord, dict(code="TEST_TW", name="Duplicate market", timezone="UTC", currency="USD")),
     (DataSourceRecord, dict(code="TEST_SOURCE", name="Duplicate source", source_type="manual")),

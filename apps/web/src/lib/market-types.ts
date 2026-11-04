@@ -1,5 +1,16 @@
 /** Phase 1C OpenAPI projections. Decimal values stay strings until chart rendering. */
 export type Timeframe = "1d" | "1w" | "1M";
+export type InstrumentType =
+  | "stock"
+  | "etf"
+  | "fund"
+  | "index"
+  | "preferred_stock"
+  | "warrant"
+  | "etn"
+  | "dr"
+  | "reit"
+  | "abs";
 export type Market = {
   id: string;
   code: string;
@@ -12,7 +23,9 @@ export type Instrument = {
   market: Market;
   symbol: string;
   name: string;
-  instrument_type: "stock" | "etf" | "fund" | "index";
+  instrument_type: InstrumentType;
+  quote_currency: string;
+  quantity_unit: "shares" | "units";
   status: "active" | "suspended" | "delisted";
   created_at: string;
   updated_at: string;
@@ -127,7 +140,21 @@ export function isInstrument(v: unknown): v is Instrument {
     ) &&
     text(v.symbol) &&
     text(v.name) &&
-    oneOf(v.instrument_type, ["stock", "etf", "fund", "index"]) &&
+    oneOf(v.instrument_type, [
+      "stock",
+      "etf",
+      "fund",
+      "index",
+      "preferred_stock",
+      "warrant",
+      "etn",
+      "dr",
+      "reit",
+      "abs",
+    ]) &&
+    text(v.quote_currency) &&
+    /^[A-Z]{3}$/.test(v.quote_currency) &&
+    oneOf(v.quantity_unit, ["shares", "units"]) &&
     oneOf(v.status, ["active", "suspended", "delisted"]) &&
     timestamp(v.created_at) &&
     timestamp(v.updated_at)

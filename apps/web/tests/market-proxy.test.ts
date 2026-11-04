@@ -10,10 +10,10 @@ describe("read-only market proxy", () => {
   it("uses the server backend origin with an explicit API path and no cache", async () => {
     vi.stubEnv("BACKEND_URL", "http://backend:8000");
     const fetcher = vi.fn().mockResolvedValue(Response.json({ items: [] })); vi.stubGlobal("fetch", fetcher);
-    const response = await call(["instruments"], "?q=2330&market=TWSE");
+    const response = await call(["instruments"], "?q=2330&market=TWSE&instrument_type=stock");
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(fetcher.mock.calls[0][0].toString()).toBe("http://backend:8000/api/v1/instruments?q=2330&market=TWSE");
+    expect(fetcher.mock.calls[0][0].toString()).toBe("http://backend:8000/api/v1/instruments?q=2330&market=TWSE&instrument_type=stock");
     expect(fetcher.mock.calls[0][1]).toMatchObject({ cache: "no-store", redirect: "error", signal: expect.any(AbortSignal) });
   });
   it.each([

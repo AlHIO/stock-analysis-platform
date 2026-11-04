@@ -1,6 +1,8 @@
 """Pure domain objects. Trading dates are market-local dates, never UTC dates.
 
-Daily bars describe unadjusted normalized prices and volumes in shares. Provider
+Daily bars describe unadjusted prices in the instrument's quote_currency. The
+legacy volume_shares field stores base shares or beneficiary/warrant units as
+declared by Instrument.quantity_unit, never lots or bond face values. Provider
 payloads and ingestion orchestration are deliberately outside this module.
 """
 
@@ -30,6 +32,12 @@ class InstrumentType(StrEnum):
     ETF = "etf"
     FUND = "fund"
     INDEX = "index"
+    PREFERRED_STOCK = "preferred_stock"
+    WARRANT = "warrant"
+    ETN = "etn"
+    DR = "dr"
+    REIT = "reit"
+    ABS = "abs"
 
 
 class InstrumentStatus(StrEnum):
@@ -132,12 +140,15 @@ class Market:
 
 @dataclass(frozen=True, kw_only=True)
 class Instrument:
+    """A market-scoped security, with quote currency and base quantity unit."""
     market_id: UUID
     symbol: str
     name: str
     id: UUID = field(default_factory=uuid4)
     instrument_type: InstrumentType = InstrumentType.STOCK
     status: InstrumentStatus = InstrumentStatus.ACTIVE
+    quote_currency: str = "TWD"
+    quantity_unit: str = "shares"
     created_at: datetime = field(default_factory=utc_now)
     updated_at: datetime = field(default_factory=utc_now)
 
@@ -148,6 +159,10 @@ class Instrument:
         _text(self.name, "name", 200)
         _enum(self.instrument_type, InstrumentType, "instrument_type")
         _enum(self.status, InstrumentStatus, "status")
+        if not isinstance(self.quote_currency, str) or not re.fullmatch(r"[A-Z]{3}", self.quote_currency):
+            raise ValueError("quote_currency must be a three-letter uppercase code")
+        if self.quantity_unit not in ("shares", "units"):
+            raise ValueError("quantity_unit must be shares or units")
         _aware(self.created_at, "created_at")
         _aware(self.updated_at, "updated_at")
         if self.updated_at < self.created_at:

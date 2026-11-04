@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from stockapp.modules.market_data.application.query_service import MarketQueryService
-from stockapp.modules.market_data.domain.models import DailyBar, DataSource, Instrument, Market, SourceType
+from stockapp.modules.market_data.domain.models import DailyBar, DataSource, Instrument, InstrumentType, Market, SourceType
 from stockapp.modules.market_data.domain.queries import (
     BarEntry, HistoryExtent, InstrumentEntry, InvalidQuery, InvalidStoredData,
     MarketQueryRepository, ResourceNotFound,
@@ -40,7 +40,8 @@ def point(instrument, source, day):
 @pytest.mark.parametrize("changes", [
     {"page": 0}, {"page": 1001}, {"page_size": 101}, {"page_size": True},
     {"q": " "}, {"q": "x" * 101}, {"symbol": "x" * 33}, {"name": "x" * 201},
-    {"market": "TWSE%"},
+    {"market": "TWSE%"}, {"instrument_type": "unknown"}, {"instrument_type": "STOCK"},
+    {"instrument_type": ""}, {"instrument_type": 1},
 ])
 def test_bad_search_is_rejected_before_storage(setup, changes):
     service, repo, *_ = setup
@@ -54,7 +55,15 @@ def test_search_normalizes_market_and_returns_stable_pagination(setup):
     repo.search_instruments.return_value = ([], 101)
     result = service.search(q=" 1001 ", market=" test ", page=2, page_size=50)
     assert result["total_pages"] == 3
-    repo.search_instruments.assert_called_once_with(q="1001", symbol=None, name=None, market="TEST", offset=50, limit=50)
+    repo.search_instruments.assert_called_once_with(q="1001", symbol=None, name=None, market="TEST", instrument_type=None, offset=50, limit=50)
+
+
+@pytest.mark.parametrize("instrument_type", list(InstrumentType))
+def test_search_passes_supported_security_type_to_repository(setup, instrument_type):
+    service, repo, *_ = setup
+    repo.search_instruments.return_value = ([], 0)
+    service.search(instrument_type=instrument_type.value)
+    assert repo.search_instruments.call_args.kwargs["instrument_type"] is instrument_type
 
 
 @pytest.mark.parametrize("changes", [

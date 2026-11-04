@@ -70,6 +70,7 @@ class SqlAlchemyMarketQueryRepository:
     def search_instruments(
         self, *, q: str | None, symbol: str | None, name: str | None,
         market: str | None, offset: int, limit: int,
+        instrument_type: InstrumentType | None = None,
     ) -> tuple[list[InstrumentEntry], int]:
         statement = select(InstrumentRecord, MarketRecord).join(
             MarketRecord, InstrumentRecord.market_id == MarketRecord.id,
@@ -86,6 +87,8 @@ class SqlAlchemyMarketQueryRepository:
             statement = statement.where(InstrumentRecord.name.ilike(_contains_literal(name), escape="\\"))
         if market is not None:
             statement = statement.where(MarketRecord.code == market)
+        if instrument_type is not None:
+            statement = statement.where(InstrumentRecord.instrument_type == instrument_type.value)
         total = self._execute(select(func.count()).select_from(statement.subquery())).scalar_one()
         rows = self._execute(statement.order_by(
             MarketRecord.code, InstrumentRecord.symbol, InstrumentRecord.id,

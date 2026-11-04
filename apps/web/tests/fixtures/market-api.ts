@@ -4,7 +4,7 @@ import type { Bar, BarsResponse, Instrument, LatestResponse } from "../../src/li
 export const instrumentFixture: Instrument = {
   id: "00000000-0000-0000-0000-000000000001", symbol: "TEST", name: "測試公司",
   market: { id: "00000000-0000-0000-0000-000000000002", code: "TWSE", name: "測試上市市場", timezone: "Asia/Taipei", currency: "TWD" },
-  instrument_type: "stock", status: "active", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+  instrument_type: "stock", quote_currency: "TWD", quantity_unit: "shares", status: "active", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
 };
 export const barFixture: Bar = {
   trade_date: "2026-01-05", period_start: "2026-01-05", period_end: "2026-01-05",

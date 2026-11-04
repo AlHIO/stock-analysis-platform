@@ -8,6 +8,7 @@ const ERROR_CODES = new Set([
   "invalid_search",
   "invalid_limit",
   "invalid_market",
+  "invalid_instrument_type",
   "invalid_timeframe",
   "invalid_date",
   "invalid_range",
@@ -40,7 +41,15 @@ function failure(status: number, code: string): Response {
 }
 function allowedQuery(path: string[]): readonly string[] | null {
   if (path.length === 1 && path[0] === "instruments")
-    return ["q", "symbol", "name", "market", "page", "page_size"];
+    return [
+      "q",
+      "symbol",
+      "name",
+      "market",
+      "instrument_type",
+      "page",
+      "page_size",
+    ];
   if (path.length === 2 && path[0] === "instruments" && UUID.test(path[1]))
     return [];
   if (path.length === 3 && path[0] === "stocks" && UUID.test(path[1])) {

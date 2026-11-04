@@ -90,6 +90,35 @@ def test_http_search_detail_and_decimal_contract(client, records):
     assert latest.json()["bar"]["previous_session_verified"] is True
 
 
+@pytest.mark.parametrize("query", ["2330", "台積"])
+def test_stock_type_filter_precedes_pagination_and_count_with_many_matching_warrants(client, records, database, query):
+    """Synthetic warrants must not displace the stock from the first results page."""
+    market = records[0]
+    with Session(database) as session, session.begin():
+        repository = SqlAlchemyInstrumentRepository(session)
+        target = repository.add(Instrument(market_id=market.id, symbol="2330", name="合成台積股票"))
+        for index in range(40):
+            repository.add(Instrument(
+                market_id=market.id, symbol=f"{index:06d}", name=f"合成台積2330權證{index}",
+                instrument_type=InstrumentType.WARRANT, quantity_unit="units"))
+    unfiltered = client.get("/api/v1/instruments", params={"q": query, "page_size": 2}).json()
+    assert unfiltered["total"] == 41
+    assert all(item["instrument_type"] == "warrant" for item in unfiltered["items"])
+    filtered = client.get("/api/v1/instruments", params={
+        "q": query, "instrument_type": "stock", "page_size": 2})
+    assert filtered.status_code == 200
+    body = filtered.json()
+    assert body["total"] == body["total_pages"] == 1
+    assert [item["id"] for item in body["items"]] == [str(target.id)]
+    next_page = client.get("/api/v1/instruments", params={
+        "q": query, "instrument_type": "stock", "page_size": 2, "page": 2}).json()
+    assert next_page["total"] == 1 and next_page["items"] == []
+    warrants = client.get("/api/v1/instruments", params={
+        "q": query, "instrument_type": "warrant", "page_size": 2}).json()
+    assert warrants["total"] == 40 and warrants["total_pages"] == 20
+    assert all(item["instrument_type"] == "warrant" for item in warrants["items"])
+
+
 def test_weekly_complete_and_clipped_periods(client, records):
     identifier = records[2].id
     response = client.get(f"/api/v1/stocks/{identifier}/bars", params={"timeframe": "1w", "from": "2026-11-02", "to": "2026-11-06"})

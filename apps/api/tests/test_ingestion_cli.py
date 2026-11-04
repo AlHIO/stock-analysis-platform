@@ -69,3 +69,57 @@ def test_invalid_database_configuration_is_sanitized(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert "SECRET_DATABASE_CREDENTIALS" not in output
     assert json.loads(output)["error"] == "ValueError"
+
+
+def test_securities_identity_is_distinct_without_duplicate_market():
+    for key in ("twse", "tpex"):
+        stock_market, stock_source = cli.identity(key)
+        market, source = cli.identity(key, "securities")
+        assert market.code == stock_market.code
+        assert source.code == key.upper() + "_SECURITIES"
+        assert source.code != stock_source.code
+        provenance = cli._provenance(key, "securities")
+        assert provenance["license"] is None  # No unverified blanket OGDL grant.
+        assert cli.TERMS["twse"] in provenance["terms"]
+
+
+def test_securities_sync_dispatches_separate_adapters_and_scope(monkeypatch):
+    calls = []
+    class Adapter:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+    class Service:
+        def __init__(self, key, scope): self.key, self.scope = key, scope
+        async def sync_latest(self, provider):
+            calls.append((self.key, self.scope))
+            return ImportReport(run_id=uuid4(), provider=self.key, trade_date=date(2026, 11, 4),
+                status=IngestionStatus.SUCCEEDED, stats={}, error_summary=None)
+    monkeypatch.setattr(cli, "SECURITIES_PROVIDERS", {"twse": Adapter, "tpex": Adapter})
+    monkeypatch.setattr(cli, "PROVIDERS", {"twse": lambda **kwargs: pytest.fail("Wrong scope")})
+    monkeypatch.setattr(cli, "_service", lambda store, key, scope: Service(key, scope))
+    args = cli._parser().parse_args(["sync", "latest", "--market", "all", "--scope", "securities"])
+    settings = SimpleNamespace(ingestion_min_interval_seconds=5, ingestion_max_attempts=3,
+                               ingestion_max_response_bytes=20_000_000)
+    reports = asyncio.run(cli._execute(args, object(), settings))
+    assert calls == [("twse", "securities"), ("tpex", "securities")]
+    assert all(report["scope"] == "securities" and report["license"] is None for report in reports)
+
+
+def test_securities_backfill_has_no_network_and_cannot_fall_back_to_stock_scope(monkeypatch):
+    calls = []
+    class Service:
+        async def replay(self, key, day):
+            calls.append((key, day))
+            return ImportReport(run_id=uuid4(), provider=key, trade_date=day,
+                status=IngestionStatus.FAILED, stats={}, error_summary="archive_unavailable_remote_history_unsupported")
+    def make_service(store, key, scope):
+        assert scope == "securities"
+        return Service()
+    monkeypatch.setattr(cli, "_service", make_service)
+    monkeypatch.setattr(cli, "SECURITIES_PROVIDERS", {"twse": lambda **kwargs: pytest.fail("No remote backfill")})
+    args = cli._parser().parse_args(["backfill", "--market", "twse", "--scope", "securities",
+                                     "--date", "2026-11-04"])
+    reports = asyncio.run(cli._execute(args, object(), object()))
+    assert calls == [("twse", date(2026, 11, 4))]
+    assert reports[0]["scope"] == "securities"

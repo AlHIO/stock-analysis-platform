@@ -15,6 +15,7 @@ from stockapp.modules.market_data.api import dependencies
 from stockapp.modules.market_data.api.dependencies import get_query_service
 from stockapp.modules.market_data.api.routes import install_error_handlers, router
 from stockapp.modules.market_data.api.schemas import BarSchema, BarsResponse, FreshnessSchema
+from stockapp.modules.market_data.domain.models import InstrumentType
 from stockapp.modules.market_data.domain.queries import InvalidQuery, InvalidStoredData, ResourceNotFound
 
 
@@ -39,6 +40,7 @@ def synthetic_instrument():
     return {
         "id": INSTRUMENT_ID, "market": synthetic_market(), "symbol": "TEST123", "name": "測試股票",
         "instrument_type": "stock", "status": "active", "created_at": INGESTED, "updated_at": INGESTED,
+        "quote_currency": "TWD", "quantity_unit": "shares",
     }
 
 
@@ -138,7 +140,7 @@ def test_search_filters_pagination_and_unicode_response(api):
     client, service = api
     response = client.get("/api/v1/instruments", params={"q": "測試", "symbol": "TEST", "name": "股票", "market": "TEST", "page": 2, "page_size": 10})
     assert response.status_code == 200
-    assert service.calls == [("search", (), {"q": "測試", "symbol": "TEST", "name": "股票", "market": "TEST", "page": 2, "page_size": 10})]
+    assert service.calls == [("search", (), {"q": "測試", "symbol": "TEST", "name": "股票", "market": "TEST", "instrument_type": None, "page": 2, "page_size": 10})]
     assert response.json()["items"][0]["name"] == "測試股票"
     assert response.json()["items"][0]["market"]["timezone"] == "Asia/Taipei"
     assert response.json()["page"] == 2
@@ -150,7 +152,15 @@ def test_search_defaults_and_empty_result(api):
     response = client.get("/api/v1/instruments")
     assert response.status_code == 200
     assert response.json() == {"items": [], "total": 0, "page": 1, "page_size": 50, "total_pages": 0}
-    assert service.calls[0][2] == {"q": None, "symbol": None, "name": None, "market": None, "page": 1, "page_size": 50}
+    assert service.calls[0][2] == {"q": None, "symbol": None, "name": None, "market": None, "instrument_type": None, "page": 1, "page_size": 50}
+
+
+@pytest.mark.parametrize("instrument_type", list(InstrumentType))
+def test_search_accepts_supported_security_type(api, instrument_type):
+    client, service = api
+    response = client.get("/api/v1/instruments", params={"instrument_type": instrument_type.value})
+    assert response.status_code == 200
+    assert service.calls[0][2]["instrument_type"] is instrument_type
 
 
 def test_get_instrument_uses_uuid_identity(api):
@@ -231,6 +241,8 @@ def test_unknown_instrument_is_404(api, path):
     ("instruments", {"page_size": 0}), ("instruments", {"page_size": 101}),
     ("instruments", {"q": "x" * 101}), ("instruments", {"symbol": "x" * 33}),
     ("instruments", {"name": "x" * 201}), ("instruments", {"market": "x" * 33}),
+    ("instruments", {"instrument_type": "unknown"}), ("instruments", {"instrument_type": "STOCK"}),
+    ("instruments", {"instrument_type": ""}),
     (f"stocks/{INSTRUMENT_ID}/bars", {"timeframe": "1m"}),
     (f"stocks/{INSTRUMENT_ID}/bars", {"from": "2026-02-30"}),
     (f"stocks/{INSTRUMENT_ID}/bars", {"to": "invalid-date"}),

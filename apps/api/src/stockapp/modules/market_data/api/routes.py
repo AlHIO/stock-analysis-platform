@@ -19,6 +19,7 @@ from stockapp.modules.market_data.api.schemas import (
     SearchResponse,
 )
 from stockapp.modules.market_data.application.query_service import MarketQueryService
+from stockapp.modules.market_data.domain.models import InstrumentType
 from stockapp.modules.market_data.domain.queries import (
     MAX_OUTPUT_BARS,
     MAX_PAGE,
@@ -47,11 +48,13 @@ def search_instruments(
     symbol: Annotated[str | None, Query(max_length=32)] = None,
     name: Annotated[str | None, Query(max_length=200)] = None,
     market: Annotated[str | None, Query(max_length=32)] = None,
+    instrument_type: Annotated[InstrumentType | None, Query(description="Filter security type before pagination; omit for all types.")] = None,
     page: Annotated[int, Query(ge=1, le=MAX_PAGE)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = 50,
 ) -> dict:
     """Search stored securities; filters combine with AND and q matches symbol or name."""
-    return service.search(q=q, symbol=symbol, name=name, market=market, page=page, page_size=page_size)
+    return service.search(q=q, symbol=symbol, name=name, market=market,
+                          instrument_type=instrument_type, page=page, page_size=page_size)
 
 
 @router.get("/instruments/{id}", response_model=InstrumentSchema, responses=ERROR_RESPONSES)

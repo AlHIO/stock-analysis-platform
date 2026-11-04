@@ -816,6 +816,19 @@
             "title": "Name",
             "type": "string"
           },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "quote_currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Quote Currency",
+            "type": "string"
+          },
           "status": {
             "$ref": "#/components/schemas/InstrumentStatus"
           },
@@ -836,6 +849,8 @@
           "name",
           "instrument_type",
           "status",
+          "quote_currency",
+          "quantity_unit",
           "created_at",
           "updated_at"
         ],
@@ -856,7 +871,13 @@
           "stock",
           "etf",
           "fund",
-          "index"
+          "index",
+          "preferred_stock",
+          "warrant",
+          "etn",
+          "dr",
+          "reit",
+          "abs"
         ],
         "title": "InstrumentType",
         "type": "string"
@@ -1440,6 +1461,24 @@
                 }
               ],
               "title": "Market"
+            }
+          },
+          {
+            "description": "Filter security type before pagination; omit for all types.",
+            "in": "query",
+            "name": "instrument_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/InstrumentType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter security type before pagination; omit for all types.",
+              "title": "Instrument Type"
             }
           },
           {

@@ -78,6 +78,18 @@ def test_audit_downgrade_protects_request_and_raw_data(prepared, database):
         assert session.scalar(select(func.count()).select_from(RawMarketPayloadRecord)) == 2
 
 
+@pytest.mark.parametrize("resource", ["fund_catalog", "currency_catalog"])
+def test_extra_catalog_archives_are_retained_and_block_unsafe_downgrade(prepared, database, resource):
+    store, market, source = prepared
+    run = store.start(source.id, market.id)
+    raw = document(resource)
+    store.save_raw(run.id, raw)
+    with pytest.raises(RuntimeError, match="archives would be lost"):
+        migrate(database, "downgrade", "0002_ingestion_audit")
+    with Session(database) as session:
+        assert bytes(session.get(RawMarketPayloadRecord, raw.id).body) == raw.body
+
+
 def test_prepare_is_idempotent_and_validates_existing_identity(prepared, database):
     store, market, source = prepared
     again = store.prepare(replace(market, id=uuid4()), replace(source, id=uuid4()))

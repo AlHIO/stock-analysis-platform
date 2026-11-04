@@ -46,7 +46,7 @@ class RawMarketPayloadRecord(Base):
     __table_args__ = (
         UniqueConstraint("run_id", "resource", name="uq_raw_market_payloads_run_resource"),
         UniqueConstraint("id", "run_id", name="uq_raw_market_payloads_id_run"),
-        CheckConstraint("resource IN ('quotes','catalog')", name="resource_valid"),
+        CheckConstraint("resource IN ('quotes','catalog','fund_catalog','currency_catalog')", name="resource_valid"),
         CheckConstraint("status_code BETWEEN 100 AND 599", name="status_valid"),
         CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name="hash_valid"),
         CheckConstraint("endpoint <> ''", name="endpoint_nonempty"),

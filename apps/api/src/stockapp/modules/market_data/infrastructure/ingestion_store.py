@@ -157,12 +157,15 @@ class SqlAlchemyIngestionStore:
                     connection.invalidate()
                     raise
 
-    def load_archive(self, market_code: str, trade_date: date) -> tuple[UUID, RawDocument, RawDocument] | None:
+    def load_archive(self, market_code: str, trade_date: date, *, source_code: str | None = None,
+                     required_resources: tuple[str, ...] = ()) -> tuple[UUID, RawDocument, RawDocument, *tuple[RawDocument, ...]] | None:
         quotes = aliased(RawMarketPayloadRecord)
         catalog = aliased(RawMarketPayloadRecord)
         statement = (
             select(IngestionRequestRecord.run_id, quotes, catalog)
             .join(MarketRecord, MarketRecord.id == IngestionRequestRecord.market_id)
+            .join(IngestionRunRecord, IngestionRunRecord.id == IngestionRequestRecord.run_id)
+            .join(DataSourceRecord, DataSourceRecord.id == IngestionRunRecord.source_id)
             .join(quotes, (quotes.run_id == IngestionRequestRecord.run_id) & (quotes.resource == "quotes"))
             .join(catalog, (catalog.run_id == IngestionRequestRecord.run_id) & (catalog.resource == "catalog"))
             .where(MarketRecord.code == market_code, IngestionRequestRecord.mode == "sync",
@@ -170,11 +173,23 @@ class SqlAlchemyIngestionStore:
             .order_by(quotes.fetched_at.desc(), quotes.id.desc())
             .limit(1)
         )
+        if source_code is not None:
+            statement = statement.where(DataSourceRecord.code == source_code)
+        for resource in required_resources:
+            extra = aliased(RawMarketPayloadRecord)
+            statement = statement.where(select(extra.id).where(
+                extra.run_id == IngestionRequestRecord.run_id,
+                extra.resource == resource, extra.status_code == 200,
+            ).exists())
         with Session(self.engine) as session:
             row = session.execute(statement).one_or_none()
             if row is None:
                 return None
-            return row[0], _document(row[1]), _document(row[2])
+            extras = session.scalars(select(RawMarketPayloadRecord).where(
+                RawMarketPayloadRecord.run_id == row[0],
+                RawMarketPayloadRecord.resource.in_(required_resources),
+            ).order_by(RawMarketPayloadRecord.resource)).all() if required_resources else []
+            return row[0], _document(row[1]), _document(row[2]), *(_document(item) for item in extras)
 
     def inspect(self, run_id: UUID | None = None, *, limit: int = 20) -> list[dict[str, Any]]:
         if type(limit) is not int or not 1 <= limit <= 100:
