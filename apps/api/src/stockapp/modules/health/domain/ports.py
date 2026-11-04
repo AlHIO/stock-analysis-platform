@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class DependencyProbe(Protocol):
+    async def postgres(self) -> bool: ...
+    async def redis(self) -> bool: ...

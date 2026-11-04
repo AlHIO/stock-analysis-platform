@@ -1,0 +1,13 @@
+{
+  "name": "stock-analysis-platform",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @stockapp/web",
+    "build": "npm run build --workspace @stockapp/web",
+    "test": "npm run test --workspace @stockapp/web",
+    "typecheck": "npm run typecheck --workspace @stockapp/web"
+  }
+}
