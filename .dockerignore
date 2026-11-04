@@ -8,3 +8,5 @@
 **/.pytest_cache
 .tools
 **/*.egg-info
+**/test-results
+**/playwright-report

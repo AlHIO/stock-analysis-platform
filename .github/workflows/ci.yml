@@ -30,7 +30,8 @@ jobs:
       - run: |
           curl --fail http://localhost:8000/health
           curl --fail http://localhost:8000/health/ready
-          curl --fail http://localhost:3000 | grep '股票分析平台'
+          curl --fail http://localhost:3000 | grep '尋找你的研究標的'
+          curl --fail 'http://localhost:3000/api/market/instruments?page_size=1'
       - if: always()
         run: docker compose logs --no-color
       - if: always()

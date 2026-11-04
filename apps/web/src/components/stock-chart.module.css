@@ -1,0 +1,124 @@
+.figure {
+  margin: 0;
+  min-width: 0;
+}
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 18px;
+  padding: 16px 20px;
+  min-height: 58px;
+  color: #8798ae;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid #263243;
+}
+.legend b {
+  font-weight: 500;
+  color: #e2e8f0;
+  margin-left: 4px;
+}
+.legendDate {
+  color: #cbd5e1;
+  font-family: ui-monospace, monospace;
+}
+.stage {
+  position: relative;
+  background: #111a25;
+}
+.canvas {
+  width: 100%;
+  height: 430px;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #111a25e8;
+  color: #a4b2c5;
+  font-size: 14px;
+  text-align: center;
+}
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  top: 12px;
+  left: 18px;
+  display: grid;
+  gap: 6px;
+  max-width: calc(100% - 80px);
+  padding: 12px 15px;
+  border: 1px solid #35475a;
+  border-radius: 7px;
+  background: #172333ed;
+  box-shadow: 0 6px 20px #0003;
+  color: #a6b7ca;
+  font-size: 11px;
+}
+.tooltip strong {
+  color: #e2e8f0;
+  font-family: ui-monospace, monospace;
+}
+.caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #263243;
+  padding: 13px 20px;
+  color: #a0aec0;
+  font-size: 11px;
+}
+.notes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 20px;
+  padding: 0 20px 16px;
+  color: #76879d;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.notes a {
+  color: #9eb6c8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.empty {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  color: #a6b7ca;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .canvas {
+    height: 350px;
+  }
+  .legend {
+    padding: 13px;
+    gap: 8px 13px;
+    font-size: 11px;
+  }
+  .caption {
+    padding: 13px;
+  }
+  .caption span:last-child {
+    display: none;
+  }
+  .notes {
+    padding: 0 13px 13px;
+  }
+  .tooltip {
+    top: 8px;
+    left: 8px;
+    max-width: calc(100% - 75px);
+    padding: 9px;
+    font-size: 10px;
+  }
+}

@@ -12,3 +12,5 @@ __pycache__/
 .ruff_cache/
 *.tsbuildinfo
 .tools/
+apps/web/test-results/
+apps/web/playwright-report/
