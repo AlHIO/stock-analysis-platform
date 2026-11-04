@@ -16,8 +16,8 @@ apps/
     tests/               Pytest 單元與真實服務整合測試
 workers/                 Data Workers 預留邊界，目前不啟動 worker
 packages/contracts/      API 合約／未來產生的 client
-docs/architecture/      架構決策
-docs/specs/             範圍與驗收
+docs/architecture/       架構決策
+docs/specs/              範圍與驗收
 compose.yaml             PostgreSQL、Redis、API、Web
 ```
 
@@ -25,12 +25,12 @@ compose.yaml             PostgreSQL、Redis、API、Web
 
 ## Docker 啟動（建議）
 
-需求：Docker Engine／Docker Desktop 正常啟動、Docker Compose v2（支援 `up --wait`）。WSL 必須在 Docker Desktop 開啟此 distro 的 WSL integration。
+需求：Docker Engine／Docker Desktop 正常啟動、Docker Compose v2 以上（支援 `up --wait`）。WSL 必須在 Docker Desktop 開啟此 distro 的 WSL integration。
 
 以下指令皆從本 README 所在的 repository 根目錄執行：
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 # .env 使用本機開發佔位密碼；請勿用於公開部署，也不要提交 .env。
 docker compose config --quiet
 docker compose up --build --wait --wait-timeout 300
@@ -40,6 +40,8 @@ curl --fail http://localhost:8000/health/ready
 ```
 
 開啟 <http://localhost:3000>。API 文件：<http://localhost:8000/docs>。
+
+使用 WSL Ubuntu 時，請在 Windows 的 Chrome／Edge 開啟以上網址。若 Docker 不可用，在 Docker Desktop 的 Settings → Resources → WSL Integration 啟用使用中的 Ubuntu，並以 `docker version` 確認 Client 與 Server 都可連線。若 Compose 回報 port 已占用，先在原本的開發終端按 Ctrl+C 停止本機 Next.js／Uvicorn，再重新啟動 Compose。
 
 - `/health`：API 存活時回傳 HTTP 200、`{"status":"ok","service":"stockapp-api"}`，不要求資料庫在線。
 - `/health/ready`：實際執行 PostgreSQL `SELECT 1` 與 Redis `PING`，全部成功回傳 HTTP 200；失敗回傳 HTTP 503，`status=degraded` 及各服務狀態，不揭露連線字串。
@@ -67,12 +69,14 @@ docker compose down
 需求：Node.js 22 LTS、npm、Python 3.11+（建議 3.12）、venv/pip、Docker。
 
 ```bash
-cp .env.example .env
+test -f .env || cp .env.example .env
 npm ci
-python3 -m venv .venv
+python3.12 -m venv .venv
 .venv/bin/python -m pip install -e './apps/api[test]'
 docker compose up -d --wait postgres redis
 ```
+
+請先確認 `python3.12 --version` 可用；若使用其他受支援版本，改用對應的 Python 3.11+ 執行檔建立 venv。Ubuntu 預設的 `python3` 可能仍是 3.10，既有 venv 也不會自動升級。
 
 終端一（backend；由 `apps/api` 載入根目錄 `.env`）：
 

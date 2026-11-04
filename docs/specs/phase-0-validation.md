@@ -1,45 +1,66 @@
 # Phase 0 驗證紀錄
 
-日期：2026-11-04（Asia/Taipei）。只涵蓋 Foundation，不實作任何股票功能。
+日期：2026-11-04（Asia/Taipei）。Foundation 必要驗收已通過；只涵蓋服務基礎建設，不實作股票功能。
 
-## 已執行
+## 驗證環境
+
+- WSL Ubuntu，Docker Desktop WSL integration 已啟用。
+- Docker Engine 29.9.2、Docker Compose v5.6.1。
+- API image：Python 3.12.16；前端 image：Node.js 22、Next.js 16.4.5。
+- `.env` 由開發範本建立，已確認被 `.gitignore` 排除且未受 Git 追蹤。
+
+## 實際結果
 
 | 驗證 | 結果 |
 | --- | --- |
-| Pytest：`python -m pytest apps/api/tests -vv` | 6 passed、1 skipped；使用隔離的 Python 3.12 環境 |
-| Vitest：`npm test` | 2 個測試檔、7 項測試通過 |
-| TypeScript：`npm run typecheck` | 通過 |
-| Next.js production：`npm run build` | 通過，使用 Webpack |
-| npm 安裝安全稽核 | 更新 Vitest 後回報 0 vulnerabilities |
-| 實際 HTTP `/health` | HTTP 200，`status=ok` |
-| 實際 HTTP `/health/ready`（無 PostgreSQL／Redis） | HTTP 503，`status=degraded`，符合預期 |
-| Production standalone 首頁 | HTTP 200，顯示平台標題、FastAPI 已連線及相依服務尚未就緒 |
-| Production CSS | HTTP 200 |
-| Compose YAML | 成功解析並確認四個 service；不代表 Compose runtime 驗證 |
+| `docker compose config --quiet` | 通過 |
+| `docker compose up --build --wait --wait-timeout 300` | 成功建置映像並啟動四項服務 |
+| `docker compose ps` | postgres、redis、backend、frontend 全部 healthy |
+| PostgreSQL `SELECT 1` | 成功回傳 1 |
+| Redis `PING` | 成功回傳 PONG |
+| 容器內 Pytest（含真實服務整合測試） | 7 passed，沒有略過測試 |
+| 容器內 Vitest | 2 個測試檔、7 項測試通過 |
+| 容器內 TypeScript | 通過 |
+| 本機 Vitest／TypeScript | 7 項測試及型別檢查再次通過 |
+| Next.js production build | Docker build 內成功，使用 Webpack |
+| npm ci 安全稽核 | Docker build 回報 0 vulnerabilities |
+| `/health` | HTTP 200，`status=ok` |
+| `/health/ready` | HTTP 200，postgres 與 redis 都為 ok |
+| Production 首頁與 CSS | HTTP 200；頁面顯示 FastAPI、PostgreSQL、Redis 已連線 |
+| Windows → WSL | Windows PowerShell 請求 localhost:3000 回傳 200；localhost:8000/health/ready 回傳全部 ok |
 | `git diff --check`、`git diff --cached --check` | 通過 |
 
-HTTP 驗證以本機短暫啟動 FastAPI 與 Next.js standalone server 執行，結束後已停止。沒有使用假行情或假相依服務冒充實際連線；首頁尚未執行瀏覽器視覺檢查。
+HTTP 驗證連線到實際 Compose 服務；資料庫連線另以 Pytest 整合測試及 psql 驗證。沒有使用假行情或假服務冒充連線。前次缺少 Docker 的限制已解除，先前手動啟動的 Next.js／Uvicorn 已停止，目前由 Compose 提供服務。
 
-## 環境限制與待驗收項目
+## 重現指令
 
-- 此 WSL distro 的 Docker Desktop integration 未啟用，`docker version`／`docker compose version` 均提示 Docker 不可用。因此未執行 Docker image build、`docker compose config`、Compose 四服務啟動及真正的 PostgreSQL／Redis 連線驗證。
-- 真實服務整合測試 `test_real_dependencies` 已建立，但本次略過。必須依 README 啟動服務並執行 `RUN_INTEGRATION=1` 後才能確認。
-- 初次 Turbopack build 因子程序的本機 socket 權限而失敗；production build 改用 Next.js 支援的 Webpack 模式後通過。Pytest TestClient 在沙箱內受限，沙箱外測試通過。
-- 安裝時發現 Vitest 3 的依賴漏洞，已更新為 Vitest 5 並重建 package-lock.json、重跑測試與型別檢查。
-- 目前 Python 相依使用 pyproject 版本範圍，尚無完整鎖檔。最新 Starlette 對目前 httpx TestClient 產生一項 deprecation warning，測試仍通過。
-- GitHub Actions workflow 已建立，尚未在遠端執行；包含四服務啟動與真實依賴整合測試。
-- 使用者提供的 ChatGPT 對話連結無法讀取，需求以本次訊息為準。
-
-## 環境恢復後的驗收
+從 repository 根目錄執行：
 
 ```bash
-cp .env.example .env  # 只在尚未設定 .env 時執行，避免覆蓋自己的設定
+test -f .env || cp .env.example .env
 docker compose config --quiet
 docker compose up --build --wait --wait-timeout 300
 docker compose ps
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1;"'
+docker compose exec -T redis redis-cli ping
+docker compose run --rm -e RUN_INTEGRATION=1 backend python -m pytest -vv -p no:cacheprovider
+docker build --target build -f apps/web/Dockerfile -t stockapp-web-check .
+docker run --rm stockapp-web-check npm test
+docker run --rm stockapp-web-check npm run typecheck
 curl --fail http://localhost:8000/health
 curl --fail http://localhost:8000/health/ready
 curl --fail http://localhost:3000
-docker compose run --rm -e RUN_INTEGRATION=1 backend python -m pytest -m integration
-docker compose down
 ```
+
+Windows 瀏覽器開啟 <http://localhost:3000>；API 文件在 <http://localhost:8000/docs>。服務已保留運行。完成查看後，可執行 `docker compose down` 停止服務並保留資料。
+
+## 非阻擋項目與驗證範圍
+
+- 目前 Starlette 對 httpx TestClient 產生 1 項 deprecation warning；7 項後端測試皆通過。
+- Python 相依使用 pyproject 的版本範圍，尚無完整依賴鎖檔。
+- GitHub Actions workflow 已建立，其對應建置及測試已在本機／容器執行；尚未在遠端執行 workflow。
+- 已驗證 HTTP、HTML 服務狀態與 CSS，尚未執行瀏覽器視覺檢查。
+- 初次本機 Turbopack build 受子程序 socket 權限限制；目前採用 Next.js 支援的 Webpack 模式，容器 production build 已通過。
+- 使用者提供的 ChatGPT 對話連結無法讀取，需求以本次訊息為準。
+
+以上不影響 Phase 0 必要驗收。即時行情、K 線、指標及其他股票功能仍在後續 Phase，本次停止於 Foundation。
