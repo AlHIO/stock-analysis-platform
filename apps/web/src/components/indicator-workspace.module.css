@@ -1,0 +1,180 @@
+.controls {
+  padding: 18px 24px;
+  background: #101d27;
+  border-bottom: 1px solid #263240;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 12px;
+  color: #c5d5df;
+}
+.heading small {
+  color: #849bad;
+  font-size: 10px;
+}
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 13px 0;
+}
+.toggles label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #334859;
+  border-radius: 5px;
+  color: #9bb0c3;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.toggles label.active {
+  border-color: #4c9b8c;
+  color: #8de3ce;
+  background: #21413966;
+}
+.toggles input {
+  accent-color: #61d5be;
+  width: 12px;
+  height: 12px;
+}
+.toggles small {
+  color: #7c9caa;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.settings summary {
+  font-size: 11px;
+  color: #9bb5c5;
+  cursor: pointer;
+}
+.settings form {
+  border-top: 1px solid #263b49;
+  margin-top: 12px;
+  padding-top: 14px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+.fields fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.fields legend {
+  font-size: 11px;
+  color: #b6d3dd;
+  margin-bottom: 8px;
+}
+.fields label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin-top: 7px;
+  color: #8da6b8;
+  font-size: 10px;
+}
+.fields input {
+  width: 64px;
+  background: #0c1720;
+  border: 1px solid #344b5c;
+  border-radius: 4px;
+  padding: 5px 6px;
+  color: #d7e8ef;
+  font:
+    12px ui-monospace,
+    monospace;
+}
+.formFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin-top: 18px;
+}
+.formFooter span {
+  font-size: 10px;
+  color: #849dad;
+}
+.formFooter button,
+.error button {
+  border: 1px solid #4f8c80;
+  color: #8fe6d1;
+  background: #24463e;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.hint {
+  font-size: 10px;
+  color: #8ca4b7;
+  margin: 10px 0 0;
+}
+.error {
+  font-size: 11px;
+  color: #e4b889;
+  margin: 12px 0 0;
+}
+.error button {
+  margin-left: 12px;
+}
+.result {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 10px;
+  color: #c2d5e0;
+  margin-top: 9px;
+}
+.result strong {
+  font-weight: 500;
+  color: #81cdbd;
+}
+.result small {
+  color: #819eae;
+  font-size: 9px;
+}
+@media (max-width: 700px) {
+  .controls {
+    padding: 15px;
+  }
+  .fields {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .heading {
+    align-items: flex-start;
+  }
+  .heading small {
+    font-size: 9px;
+  }
+  .toggles {
+    gap: 6px;
+  }
+  .toggles label {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+  .formFooter {
+    align-items: flex-start;
+  }
+  .formFooter span {
+    font-size: 9px;
+  }
+  .result {
+    gap: 5px 10px;
+  }
+  .error button {
+    margin-left: 7px;
+  }
+}

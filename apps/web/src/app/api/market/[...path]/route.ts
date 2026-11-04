@@ -17,6 +17,14 @@ const ERROR_CODES = new Set([
   "invalid_request",
   "invalid_stored_data",
   "database_unavailable",
+  "adjusted_price_unavailable",
+  "invalid_indicator",
+  "invalid_parameters",
+  "calculation_limit_exceeded",
+  "calculation_history_too_large",
+  "too_many_indicator_points",
+  "invalid_indicator_parameters",
+  "invalid_price_basis",
 ]);
 function failure(status: number, code: string): Response {
   const message =
@@ -38,6 +46,15 @@ function allowedQuery(path: string[]): readonly string[] | null {
   if (path.length === 3 && path[0] === "stocks" && UUID.test(path[1])) {
     if (path[2] === "bars") return ["timeframe", "from", "to", "limit"];
     if (path[2] === "latest") return [];
+    if (path[2] === "indicators")
+      return [
+        "timeframe",
+        "indicator",
+        "parameters",
+        "from",
+        "to",
+        "price_basis",
+      ];
   }
   if (path.length === 2 && path[0] === "data" && path[1] === "status")
     return ["limit"];

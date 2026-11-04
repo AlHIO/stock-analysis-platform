@@ -13,11 +13,12 @@ import {
   dateLabel,
   decimal,
   marketLabel,
+  periodAlignedRange,
   recentRange,
   shares,
   timestamp,
 } from "../lib/format";
-import { StockChart } from "./stock-chart";
+import { IndicatorWorkspace } from "./indicator-workspace";
 import { StockSearch } from "./stock-search";
 
 type Load<T> =
@@ -90,9 +91,12 @@ export function StockDetail({ id }: { id: string }) {
     if (latest.status !== "ready") return;
     const controller = new AbortController();
     setBars({ status: "loading" });
-    const range = recentRange(
-      latest.data.history.available_from,
-      latest.data.history.available_to,
+    const range = periodAlignedRange(
+      recentRange(
+        latest.data.history.available_from,
+        latest.data.history.available_to,
+      ),
+      timeframe,
     );
     getBars(id, timeframe, controller.signal, range)
       .then((data) => {
@@ -259,30 +263,33 @@ export function StockDetail({ id }: { id: string }) {
                 ))}
               </div>
             </div>
-            {bars.status === "error" ? (
-              <Failure
-                error={bars.error}
-                retry={() => setChartRefresh((n) => n + 1)}
-              />
-            ) : !validChart ? (
-              <div role="status" className="chart-loading">
-                <span className="loading-spinner" />
-                正在載入
-                {timeframes.find((item) => item.value === timeframe)?.label}…
-              </div>
-            ) : (
-              <>
-                {bars.data.bars.length ? (
-                  <StockChart bars={bars.data.bars} timeframe={timeframe} />
-                ) : (
-                  <div role="status" className="empty-state">
-                    <span className="state-icon" aria-hidden="true">
-                      ∅
-                    </span>
-                    <h3>此範圍沒有行情資料</h3>
-                    <p>不補零、不以前收價填補非交易日，也不產生示範 K 線。</p>
+            <IndicatorWorkspace
+              instrumentId={id}
+              timeframe={timeframe}
+              bars={validChart ? bars.data.bars : null}
+              range={
+                validChart
+                  ? { from: bars.data.from, to: bars.data.to }
+                  : undefined
+              }
+              placeholder={
+                bars.status === "error" ? (
+                  <Failure
+                    error={bars.error}
+                    retry={() => setChartRefresh((n) => n + 1)}
+                  />
+                ) : !validChart ? (
+                  <div role="status" className="chart-loading">
+                    <span className="loading-spinner" />
+                    正在載入
+                    {timeframes.find((item) => item.value === timeframe)?.label}
+                    …
                   </div>
-                )}
+                ) : null
+              }
+            />
+            {validChart && (
+              <>
                 <div className="chart-data-note">
                   <span>
                     查詢範圍 {dateLabel(bars.data.from)} —{" "}

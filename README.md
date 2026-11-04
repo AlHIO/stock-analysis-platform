@@ -1,6 +1,6 @@
-# Stock Analysis Platform · Phase 1D
+# Stock Analysis Platform · Phase 1E
 
-台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線與成交量頁面、多市場資料模型、TWSE／TPEx 官方日行情匯入 CLI，以及股票查詢 REST API。行情僅讀 PostgreSQL 已保存資料，非即時報價；沒有技術指標或即時交易功能。
+台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、SMA／EMA／RSI／MACD／成交量均線、官方日行情匯入 CLI 與 REST API。行情僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
 
 ## 目錄與邊界
 
@@ -13,6 +13,7 @@ apps/
       modules/market_data/ 純 Python Domain、Repository Ports、PostgreSQL mappings
         api/             股票搜尋、行情與資料狀態 REST API
         application/     日行情正規化、驗證與匯入服務
+      modules/technical/ Decimal 指標引擎、歷史輸入 Port、Application 與版本化 API
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -36,6 +37,8 @@ Phase 1B 的管線、逐筆異常與重試規則見 [匯入規格](docs/specs/ph
 Phase 1C 的 API、聚合／完整度、查詢上限與錯誤碼見 [股票查詢 API 規格](docs/specs/phase-1c-market-api.md)。此階段未修改核心資料模型，也沒有新 Migration。
 
 Phase 1D 的前端架構、圖表語意及驗收見 [股票圖表前端規格](docs/specs/phase-1d-stock-chart.md)。沿用 Next.js App Router，使用固定版本 Lightweight Charts 5.2.1；沒有改動後端核心模型或抓取新行情。
+
+Phase 1E 的公式、初始化、缺值、精度及 API 合約見 [技術指標規格](docs/specs/phase-1e-technical-indicators.md)。所有功能共用 technical Domain 引擎，沒有新增套件、Migration 或供應商請求。
 
 ## Docker 啟動（建議）
 
@@ -111,7 +114,7 @@ docker compose run --rm backend stockapp backfill --market tpex --date 2026-11-0
 2. 在 Windows Chrome／Edge 開啟 <http://localhost:3000>，輸入 `2330` 或公司名稱，可選上市／上櫃與搜尋結果分頁。
 3. 選擇股票後進入 `/stocks/<instrument UUID>`，切換日 K／週 K／月 K。圖表可拖曳、滾輪／雙指縮放，十字線顯示 OHLC、股數及期間完整度。
 
-每次圖表查詢以最新已收錄日期往前最多365天，並受已保存起日限制；不是全部歷史。無資料時明示空狀態，不產生示範行情。股數保持整數，卡片／tooltip 保留 API Decimal 精度，僅圖表繪製邊界轉換 number。
+每次圖表查詢以最新已收錄日期往前365天為基準；週／月起點向前對齊週一／月初，以便與指標使用同一完整起始期間。不是全部歷史。無資料時明示空狀態，不產生示範行情。股數保持整數，卡片／tooltip 保留 API Decimal 精度，僅圖表繪製邊界轉換 number。
 
 價格是未還原日行情。漲跌／漲跌幅若為 null，顯示 `—`，不以任意舊收盤價推算。較早資料以市場本地日期的日曆日差提示，不能把週末視為遺漏交易日；週／月完整度依後端欄位呈現。
 
@@ -129,6 +132,35 @@ BROWSER_BASE_URL=http://localhost:3001 npm run test:browser --workspace @stockap
 測試會保存桌機／手機截圖於 `apps/web/test-results/`（已忽略，不提交）。API 失敗／空資料使用測試攔截回應；不寫入資料庫、不向交易所取資料。CI 的 Vitest 不會執行需要已匯入行情的瀏覽器測試。
 
 圖表採 [TradingView Lightweight Charts™](https://www.tradingview.com/)（Apache-2.0），頁面保留 creator notice、連結與內建 attribution logo。
+
+## 技術指標（Phase 1E）
+
+在個股圖表勾選 SMA、EMA、RSI、MACD 或成交量均線，展開「指標參數」調整後按「套用參數」。期數以目前週期的 K 棒計，例如週 K 的 SMA20 是20根週 K。切換日／週／月會保留開關與參數。
+
+目前僅有少量歷史行情時，預設指標會顯示暖機中，這是正常狀態。SMA／EMA／成交量均線至少需要 N 根；RSI(N)需要 N+1 根；MACD 的 signal／histogram 需 slow+signal−1 根。資料缺值不補0，已知缺少開市 session 時重置暖機。全部結果基於未還原價格；adjusted 查詢回422，不以 raw 冒充。
+
+API：`GET /api/v1/stocks/<UUID>/indicators`。例如從搜尋結果取得 instrument UUID 後：
+
+```bash
+curl -G 'http://localhost:8000/api/v1/stocks/<UUID>/indicators' \
+  --data-urlencode 'timeframe=1d' --data-urlencode 'indicator=ema' \
+  --data-urlencode 'parameters={"period":20}' --data-urlencode 'price_basis=raw'
+curl -G 'http://localhost:8000/api/v1/stocks/<UUID>/indicators' \
+  --data-urlencode 'timeframe=1w' --data-urlencode 'indicator=macd' \
+  --data-urlencode 'parameters={"fast_period":12,"slow_period":26,"signal_period":9}'
+# 可另加 --data-urlencode 'from=YYYY-MM-DD' --data-urlencode 'to=YYYY-MM-DD'
+```
+
+`indicator`：`sma / ema / rsi / macd / volume_sma`。`parameters` 是嚴格 JSON 整數物件，期數1–250，MACD快線必須小於慢線。回應含算法版本、完整參數、raw價格基準、Decimal字串或null、每點狀態、前置歷史與精度策略。指標先從全部**已保存**歷史初始化，再篩選輸出範圍；`from` 不會重設 EMA。未核實全部歷史，不等同完整回測資料。
+
+新增指標測試可單獨執行：
+
+```bash
+docker compose run --rm backend python -m pytest tests/test_technical_engine.py tests/test_technical_api.py -q
+docker compose run --rm -e RUN_INTEGRATION=1 backend python -m pytest tests/test_technical_integration.py -q
+npm test --workspace @stockapp/web
+npm run test:browser --workspace @stockapp/web
+```
 
 ## 股票查詢 REST API（Phase 1C）
 
@@ -238,4 +270,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 1D；即時行情、技術指標、法人、大戶、基本面與篩選仍在後續 Phase。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 1E；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

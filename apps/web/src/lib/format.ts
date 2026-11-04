@@ -1,4 +1,5 @@
 import { expandDecimal } from "./decimal";
+import type { Timeframe } from "./market-types";
 
 /** Financial values stay decimal strings; grouping never rounds through Number. */
 export function decimal(value: string | null | undefined): string {
@@ -65,4 +66,17 @@ export function recentRange(
   end.setUTCDate(end.getUTCDate() - 365);
   const start = end.toISOString().slice(0, 10);
   return { from: from && from > start ? from : start, to };
+}
+
+/** Full initial calendar bucket keeps chart candles aligned with indicators. */
+export function periodAlignedRange(
+  range: { from: string; to: string } | undefined,
+  timeframe: Timeframe,
+) {
+  if (!range || timeframe === "1d") return range;
+  const start = new Date(`${range.from}T00:00:00Z`);
+  if (timeframe === "1w")
+    start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+  else start.setUTCDate(1);
+  return { ...range, from: start.toISOString().slice(0, 10) };
 }

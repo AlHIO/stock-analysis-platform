@@ -25,7 +25,7 @@ function errorMessage(status: number): string {
   return "讀取資料失敗，請稍後重試。";
 }
 
-async function request<T>(
+export async function request<T>(
   path: string,
   guard: (data: unknown) => data is T,
   signal?: AbortSignal,

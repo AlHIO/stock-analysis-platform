@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEventParams, Time } from "lightweight-charts";
 import type { Bar, Timeframe } from "../lib/market-types";
+import type { IndicatorResponse } from "../lib/technical-types";
+import { toIndicatorChartData } from "../lib/indicator-chart";
 import {
   chartPricePrecision,
   chartTimeKey,
@@ -23,13 +25,16 @@ const COMPLETENESS_LABELS = {
   incomplete: "期間資料尚未完整",
   unknown: "期間完整度未驗證",
 };
+const NO_INDICATORS: IndicatorResponse[] = [];
 
 export function StockChart({
   bars,
   timeframe,
+  indicators = NO_INDICATORS,
 }: {
   bars: Bar[];
   timeframe: Timeframe;
+  indicators?: IndicatorResponse[];
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<Bar | null>(null);
@@ -42,6 +47,20 @@ export function StockChart({
       return null;
     }
   }, [bars]);
+  const indicatorData = useMemo(() => {
+    try {
+      return {
+        data: toIndicatorChartData(indicators, bars, timeframe),
+        error: false,
+      };
+    } catch {
+      return { data: [], error: true };
+    }
+  }, [indicators, bars, timeframe]);
+  const subpanes = indicatorData.data.filter(
+    (item) =>
+      item.source.indicator === "rsi" || item.source.indicator === "macd",
+  ).length;
   const selected =
     hovered ?? (converted ? [...converted.barsByDate.values()].at(-1) : null);
 
@@ -129,6 +148,82 @@ export function StockChart({
         chart.panes()[1].setStretchFactor(1);
         candles.setData(converted.candles);
         volume.setData(converted.volume);
+        let nextPane = 2;
+        // Separate line series prevent the library bridging whitespace across a
+        // missing-input reset. Histogram gaps need no connecting segment.
+        for (const indicator of indicatorData.data) {
+          const name = indicator.source.indicator;
+          const paneIndex =
+            name === "sma" || name === "ema"
+              ? 0
+              : name === "volume_sma"
+                ? 1
+                : nextPane++;
+          let firstLine: ReturnType<typeof chart.addSeries<"Line">> | undefined;
+          for (const component of indicator.components) {
+            if (component.histogram) {
+              chart
+                .addSeries(
+                  library.HistogramSeries,
+                  {
+                    title: "MACD HIST",
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                  },
+                  paneIndex,
+                )
+                .setData(component.data);
+              continue;
+            }
+            const segments = component.segments.length
+              ? component.segments
+              : [[]];
+            for (const segment of segments) {
+              const line = chart.addSeries(
+                library.LineSeries,
+                {
+                  title: indicator.label,
+                  color: component.color,
+                  lineWidth: 2,
+                  priceLineVisible: false,
+                  lastValueVisible: false,
+                  pointMarkersVisible: segment.length === 1,
+                  autoscaleInfoProvider:
+                    name === "rsi"
+                      ? () => ({ priceRange: { minValue: 0, maxValue: 100 } })
+                      : undefined,
+                  priceFormat:
+                    name === "volume_sma"
+                      ? { type: "volume" }
+                      : {
+                          type: "price",
+                          precision: component.precision,
+                          minMove: 10 ** -component.precision,
+                        },
+                },
+                paneIndex,
+              );
+              line.setData(segment);
+              firstLine ??= line;
+            }
+          }
+          if (
+            name === "rsi" &&
+            firstLine &&
+            indicator.components.some((item) => item.segments.length)
+          ) {
+            for (const level of [30, 70])
+              firstLine.createPriceLine({
+                price: level,
+                color: "#8d739455",
+                lineWidth: 1,
+                lineStyle: library.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: String(level),
+              });
+          }
+          if (paneIndex > 1) chart.panes()[paneIndex].setStretchFactor(1.5);
+        }
         chart.timeScale().fitContent();
         onCrosshair = (event: MouseEventParams<Time>) => {
           if (
@@ -165,7 +260,7 @@ export function StockChart({
       disposed = true;
       disposeChart?.();
     };
-  }, [converted, timeframe]);
+  }, [converted, timeframe, indicatorData]);
 
   if (!bars.length)
     return (
@@ -205,7 +300,44 @@ export function StockChart({
           </span>
         </div>
       )}
-      <div className={styles.stage}>
+      {indicatorData.error && (
+        <p className={styles.indicatorWarning} role="alert">
+          部分指標數值無法安全繪圖；價格與成交量仍可檢視。
+        </p>
+      )}
+      {!!indicatorData.data.length && (
+        <div className={styles.indicatorLegend} aria-label="已顯示技術指標">
+          {indicatorData.data.map((indicator) => {
+            const point = selected
+              ? indicator.pointsByDate.get(selected.trade_date)
+              : undefined;
+            return (
+              <span key={indicator.source.indicator}>
+                <strong style={{ color: indicator.components[0].color }}>
+                  {indicator.label}
+                </strong>
+                {indicator.components.map((component) => (
+                  <span key={component.key}>
+                    {indicator.source.indicator === "macd"
+                      ? `${component.label} `
+                      : ""}
+                    {displayPrice(point?.values[component.key] ?? "")}
+                  </span>
+                ))}
+                {point?.status !== "ready" && (
+                  <em>
+                    {point?.status === "missing_input"
+                      ? "輸入缺值"
+                      : "暖機／資料不足"}
+                  </em>
+                )}
+                {point?.is_provisional && <em>暫定</em>}
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <div className={styles.stage} data-subpanes={subpanes}>
         <div ref={container} className={styles.canvas} aria-hidden="true" />
         {!ready && !chartError && (
           <div className={styles.overlay} role="status">
@@ -240,6 +372,24 @@ export function StockChart({
             </span>
             <span>{COMPLETENESS_LABELS[hovered.completeness]}</span>
             <span>{hovered.period_closed ? "期間已結束" : "期間尚未結束"}</span>
+            {indicatorData.data.map((indicator) => {
+              const point = indicator.pointsByDate.get(hovered.trade_date);
+              return (
+                <span
+                  key={indicator.source.indicator}
+                  className={styles.tooltipIndicator}
+                >
+                  <strong>{indicator.label}</strong>{" "}
+                  {indicator.components
+                    .map(
+                      (component) =>
+                        `${component.label} ${displayPrice(point?.values[component.key] ?? "")}`,
+                    )
+                    .join(" · ")}
+                  {point?.status !== "ready" ? " · 暖機／資料不足" : ""}
+                </span>
+              );
+            })}
           </div>
         )}
       </div>

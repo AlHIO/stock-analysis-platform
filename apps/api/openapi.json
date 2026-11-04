@@ -309,6 +309,64 @@
         "title": "BarsResponse",
         "type": "object"
       },
+      "CalculationSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "calendar_policy": {
+            "const": "observed_sessions_with_known_gaps",
+            "title": "Calendar Policy",
+            "type": "string"
+          },
+          "history_completeness": {
+            "const": "not_verified",
+            "title": "History Completeness",
+            "type": "string"
+          },
+          "history_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History From"
+          },
+          "input_count": {
+            "minimum": 0.0,
+            "title": "Input Count",
+            "type": "integer"
+          },
+          "missing_policy": {
+            "const": "reset_on_explicit_missing",
+            "title": "Missing Policy",
+            "type": "string"
+          },
+          "prehistory_count": {
+            "minimum": 0.0,
+            "title": "Prehistory Count",
+            "type": "integer"
+          },
+          "seed_policy": {
+            "const": "full_available_history",
+            "title": "Seed Policy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seed_policy",
+          "history_from",
+          "input_count",
+          "prehistory_count",
+          "missing_policy",
+          "calendar_policy",
+          "history_completeness"
+        ],
+        "title": "CalculationSchema",
+        "type": "object"
+      },
       "DataStatusResponse": {
         "additionalProperties": false,
         "properties": {
@@ -555,6 +613,177 @@
         "title": "HistorySchema",
         "type": "object"
       },
+      "IndicatorPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "is_provisional": {
+            "title": "Is Provisional",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "warmup",
+              "missing_input"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "trade_date",
+          "values",
+          "status",
+          "is_provisional"
+        ],
+        "title": "IndicatorPointSchema",
+        "type": "object"
+      },
+      "IndicatorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "const": "1.0.0",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "calculation": {
+            "$ref": "#/components/schemas/CalculationSchema"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "data_kind": {
+            "const": "daily_snapshot",
+            "title": "Data Kind",
+            "type": "string"
+          },
+          "field": {
+            "enum": [
+              "close",
+              "volume_shares"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/FreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "history": {
+            "$ref": "#/components/schemas/HistorySchema"
+          },
+          "indicator": {
+            "enum": [
+              "sma",
+              "ema",
+              "rsi",
+              "macd",
+              "volume_sma"
+            ],
+            "title": "Indicator",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "maximum": 250.0,
+              "minimum": 1.0,
+              "type": "integer"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/IndicatorPointSchema"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/PrecisionSchema"
+          },
+          "price_adjustment": {
+            "const": "unadjusted",
+            "title": "Price Adjustment",
+            "type": "string"
+          },
+          "price_basis": {
+            "const": "raw",
+            "title": "Price Basis",
+            "type": "string"
+          },
+          "required_samples": {
+            "minimum": 1.0,
+            "title": "Required Samples",
+            "type": "integer"
+          },
+          "timeframe": {
+            "enum": [
+              "1d",
+              "1w",
+              "1M"
+            ],
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "timeframe",
+          "indicator",
+          "algorithm_version",
+          "parameters",
+          "price_basis",
+          "field",
+          "required_samples",
+          "from",
+          "to",
+          "points",
+          "count",
+          "precision",
+          "calculation",
+          "freshness",
+          "history",
+          "price_adjustment",
+          "data_kind"
+        ],
+        "title": "IndicatorResponse",
+        "type": "object"
+      },
       "IngestionStatus": {
         "enum": [
           "running",
@@ -747,6 +976,33 @@
           "bar_count"
         ],
         "title": "MarketStateSchema",
+        "type": "object"
+      },
+      "PrecisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "internal_digits": {
+            "const": 50,
+            "title": "Internal Digits",
+            "type": "integer"
+          },
+          "output_decimal_places": {
+            "const": 12,
+            "title": "Output Decimal Places",
+            "type": "integer"
+          },
+          "rounding": {
+            "const": "ROUND_HALF_EVEN",
+            "title": "Rounding",
+            "type": "string"
+          }
+        },
+        "required": [
+          "internal_digits",
+          "output_decimal_places",
+          "rounding"
+        ],
+        "title": "PrecisionSchema",
         "type": "object"
       },
       "PreviousObservedSchema": {
@@ -1450,6 +1706,171 @@
         "summary": "Get Bars",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/indicators": {
+      "get": {
+        "description": "Compute full saved-history seeds, then filter actual output dates. No provider requests.",
+        "operationId": "indicators_api_v1_stocks__id__indicators_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "1d",
+              "enum": [
+                "1d",
+                "1w",
+                "1M"
+              ],
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "indicator",
+            "required": false,
+            "schema": {
+              "default": "sma",
+              "enum": [
+                "sma",
+                "ema",
+                "rsi",
+                "macd",
+                "volume_sma"
+              ],
+              "title": "Indicator",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strict JSON integer parameters, e.g. {\"period\":20}.",
+            "in": "query",
+            "name": "parameters",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Strict JSON integer parameters, e.g. {\"period\":20}.",
+              "title": "Parameters"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "description": "Adjusted history is currently unavailable and returns 422.",
+            "in": "query",
+            "name": "price_basis",
+            "required": false,
+            "schema": {
+              "default": "raw",
+              "description": "Adjusted history is currently unavailable and returns 422.",
+              "enum": [
+                "raw",
+                "adjusted"
+              ],
+              "title": "Price Basis",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Market data temporarily unavailable"
+          }
+        },
+        "summary": "Indicators",
+        "tags": [
+          "Technical indicators"
         ]
       }
     },
