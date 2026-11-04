@@ -9,5 +9,7 @@ USER appuser
 COPY tests ./tests
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY openapi.json ./
+COPY scripts ./scripts
 EXPOSE 8000
 CMD ["uvicorn", "stockapp.main:app", "--host", "0.0.0.0", "--port", "8000"]

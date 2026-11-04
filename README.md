@@ -1,6 +1,6 @@
-# Stock Analysis Platform · Phase 0 / Phase 1A / Phase 1B
+# Stock Analysis Platform · Phase 1C
 
-台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含服務狀態頁、多市場資料模型與 TWSE／TPEx 官方日行情手動匯入 CLI。沒有股票行情 UI、技術指標或即時交易功能；測試假資料不作正式行情。
+台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含服務狀態頁、多市場資料模型、TWSE／TPEx 官方日行情匯入 CLI，以及股票查詢 REST API。沒有股票行情 UI、技術指標或即時交易功能；測試假資料不作正式行情。
 
 ## 目錄與邊界
 
@@ -11,6 +11,7 @@ apps/
     src/stockapp/
       modules/health/     api → application → domain；infrastructure 實作 domain ports
       modules/market_data/ 純 Python Domain、Repository Ports、PostgreSQL mappings
+        api/             股票搜尋、行情與資料狀態 REST API
         application/     日行情正規化、驗證與匯入服務
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
@@ -20,6 +21,7 @@ apps/
     tests/               Pytest 單元與真實服務整合測試
     migrations/          Alembic schema revisions（啟動時不自動執行）
     requirements.lock    含雜湊的 runtime／test 依賴鎖檔
+    openapi.json         與 runtime 比對的 API contract snapshot
 workers/                 Data Workers 預留邊界，目前不啟動 worker
 packages/contracts/      API 合約／未來產生的 client
 docs/architecture/       架構決策
@@ -30,6 +32,8 @@ compose.yaml             PostgreSQL、Redis、API、Web
 資料供應商須透過 Domain 定義的 Adapter 介面接入；API 不直接呼叫外部行情來源。API 與 worker 未來共用 Python domain/application，無需先拆成微服務。Phase 1A 建立六個核心模型與獨立標準化 revision 表，未新增股票 API 或 UI；完整 schema、去重規則與安全回退方式見 [Phase 1A 規格](docs/specs/phase-1a-database.md)。
 
 Phase 1B 的管線、逐筆異常與重試規則見 [匯入規格](docs/specs/phase-1b-ingestion.md)，實際端點、欄位、授權與更新頻率見 [官方來源查證](docs/specs/phase-1b-sources.md)。
+
+Phase 1C 的 API、聚合／完整度、查詢上限與錯誤碼見 [股票查詢 API 規格](docs/specs/phase-1c-market-api.md)。此階段未修改核心資料模型，也沒有新 Migration。
 
 ## Docker 啟動（建議）
 
@@ -97,6 +101,41 @@ docker compose run --rm backend stockapp backfill --market tpex --date 2026-11-0
 退出碼 0 代表成功；2 代表 partial／資料失敗。遇到個股缺價或名錄有股票但行情缺列時，run 會標 failed + Partial coverage，但有效股票仍會保留；請讀 accepted／rejected／missing 與逐筆原因。重送不產生重複 canonical bar。1 代表設定／DB 等操作錯誤。
 
 原始資料提供：臺灣證券交易所（上市個股日成交資訊／上市公司基本資料）、證券櫃檯買賣中心（上櫃股票行情／上櫃公司基本資料）。依[政府資料開放授權條款第1版](https://data.gov.tw/license)利用；本平台另做股票範圍篩選、標準化與驗證，不代表交易所背書。單位與限流查證見來源規格，預設5秒間距是專案的保守設定。
+
+## 股票查詢 REST API（Phase 1C）
+
+查詢只讀 PostgreSQL，不會觸發官方 API 抓取；更新行情仍使用上面的匯入 CLI。
+
+```bash
+# 代碼／名稱搜尋、篩選與分頁
+curl 'http://localhost:8000/api/v1/instruments?q=2330&market=TWSE&page=1&page_size=20'
+curl -G 'http://localhost:8000/api/v1/instruments' --data-urlencode 'name=台積電'
+```
+
+從搜尋結果 `items[].id` 取得 UUID，以下 `<UUID>` 替換為實際值：
+
+```bash
+curl 'http://localhost:8000/api/v1/instruments/<UUID>'
+curl 'http://localhost:8000/api/v1/stocks/<UUID>/bars?timeframe=1d&from=2026-11-01&to=2026-11-04'
+curl 'http://localhost:8000/api/v1/stocks/<UUID>/bars?timeframe=1w&from=2026-11-01&to=2026-11-04'
+curl 'http://localhost:8000/api/v1/stocks/<UUID>/bars?timeframe=1M&from=2026-11-01&to=2026-11-04'
+curl 'http://localhost:8000/api/v1/stocks/<UUID>/latest'
+curl 'http://localhost:8000/api/v1/data/status'
+```
+
+- 價格／金額以 Decimal JSON 字串回傳，成交量單位為股。
+- 週 K 依市場本地星期一至星期日分組，月 K 依當地月份。分開回傳期間是否結束與資料完整度，未知日曆／部分歷史不宣稱完整。
+- 最新行情是已保存的日行情 snapshot，`is_realtime=false`。age_calendar_days 是日曆日差，不代表缺少交易日數。
+- 未有可核實的官方參考價時，`reference_price`／`change_percent` 為 null；previous_observed 只是最近保存的觀察，不保證是前一交易日。
+- 搜尋 page_size 上限100；行情 inclusive range 上限3660日、聚合後上限1000筆，超過回422而不截斷。未知股票回404；已存在但無行情回200空資料。
+- `/data/status` 分開顯示最新任意作業與最新外部 sync，保留 partial／failed 狀態，不讓回補掩蓋失敗。
+
+互動文件：<http://localhost:8000/docs>；runtime contract：<http://localhost:8000/openapi.json>。Snapshot 為 [apps/api/openapi.json](apps/api/openapi.json)，變更後產生與檢查：
+
+```bash
+.venv/bin/python apps/api/scripts/export_openapi.py
+.venv/bin/python apps/api/scripts/export_openapi.py --check
+```
 
 ## 本機開發
 
