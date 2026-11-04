@@ -57,7 +57,7 @@ Windows 瀏覽器開啟 <http://localhost:3000>；API 文件在 <http://localhos
 ## 非阻擋項目與驗證範圍
 
 - 目前 Starlette 對 httpx TestClient 產生 1 項 deprecation warning；7 項後端測試皆通過。
-- Python 相依使用 pyproject 的版本範圍，尚無完整依賴鎖檔。
+- Phase 0 當時 Python 相依尚無完整鎖檔；Phase 1A 已新增 requirements.lock，見對應規格。
 - GitHub Actions workflow 已建立，其對應建置及測試已在本機／容器執行；尚未在遠端執行 workflow。
 - 已驗證 HTTP、HTML 服務狀態與 CSS，尚未執行瀏覽器視覺檢查。
 - 初次本機 Turbopack build 受子程序 socket 權限限制；目前採用 Next.js 支援的 Webpack 模式，容器 production build 已通過。

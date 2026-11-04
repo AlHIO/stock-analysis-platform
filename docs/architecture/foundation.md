@@ -7,3 +7,10 @@
 - The Next.js server fetches backend readiness at request time. Docker internal URLs stay server-side; backend downtime produces a visible offline state instead of crashing the home page.
 - PostgreSQL and Redis use named volumes, localhost-only published ports and readiness checks. This Compose setup is for local foundation validation, not a public production security configuration.
 - Workers and contract generation are reserved boundaries, not empty services. Add them only with an authorized feature and operational need.
+
+Phase 1A extends this foundation with a `market_data` domain/infrastructure module,
+SQLAlchemy 2.x repositories, and explicit Alembic migrations. Canonical daily bars
+and distinct normalized observations have separate tables; no raw provider data
+or ingestion service is introduced. See [the database specification](../specs/phase-1a-database.md)
+for transaction ownership, schema constraints and revision policy. Health checks
+remain independent of schema migrations.

@@ -15,7 +15,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
-      - run: python -m pip install -e './apps/api[test]'
+      - run: python -m pip install --require-hashes -r apps/api/requirements.lock
+      - run: python -m pip install --no-deps -e './apps/api[test]'
       - run: python -m pytest apps/api/tests -m 'not integration'
       - run: npm test
       - run: npm run typecheck
@@ -23,6 +24,8 @@ jobs:
       - run: cp .env.example .env
       - run: docker compose config --quiet
       - run: docker compose up --build --wait --wait-timeout 300
+      - run: docker compose run --rm backend alembic upgrade head
+      - run: docker compose run --rm backend alembic check
       - run: docker compose run --rm -e RUN_INTEGRATION=1 backend python -m pytest -m integration
       - run: |
           curl --fail http://localhost:8000/health

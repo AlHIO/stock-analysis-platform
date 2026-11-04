@@ -1,6 +1,6 @@
-# Stock Analysis Platform · Phase 0
+# Stock Analysis Platform · Phase 0 / Phase 1A
 
-台灣上市／上櫃股票分析平台基礎建設。採 Monorepo、Modular Monolith + Data Workers；本階段只有服務狀態頁與健康檢查，**沒有行情、指標或假股票資料**。
+台灣上市／上櫃股票分析平台基礎建設。採 Monorepo、Modular Monolith + Data Workers；目前包含服務狀態頁、健康檢查與多市場資料模型／Repository／Migration，**沒有抓取行情、指標或假股票資料**。
 
 ## 目錄與邊界
 
@@ -10,10 +10,14 @@ apps/
   api/
     src/stockapp/
       modules/health/     api → application → domain；infrastructure 實作 domain ports
+      modules/market_data/ 純 Python Domain、Repository Ports、PostgreSQL mappings
       shared/domain/     資料來源 DataSource Protocol
+      shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
       main.py            FastAPI composition root
     tests/               Pytest 單元與真實服務整合測試
+    migrations/          Alembic schema revisions（啟動時不自動執行）
+    requirements.lock    含雜湊的 runtime／test 依賴鎖檔
 workers/                 Data Workers 預留邊界，目前不啟動 worker
 packages/contracts/      API 合約／未來產生的 client
 docs/architecture/       架構決策
@@ -21,7 +25,7 @@ docs/specs/              範圍與驗收
 compose.yaml             PostgreSQL、Redis、API、Web
 ```
 
-資料供應商須透過 Domain 定義的 Adapter 介面接入；API 不直接呼叫外部行情來源。API 與 worker 未來共用 Python domain/application，無需先拆成微服務。尚未建立股票資料表，因此本階段沒有 migration。
+資料供應商須透過 Domain 定義的 Adapter 介面接入；API 不直接呼叫外部行情來源。API 與 worker 未來共用 Python domain/application，無需先拆成微服務。Phase 1A 建立六個核心模型與獨立標準化 revision 表，未新增股票 API 或 UI；完整 schema、去重規則與安全回退方式見 [Phase 1A 規格](docs/specs/phase-1a-database.md)。
 
 ## Docker 啟動（建議）
 
@@ -34,6 +38,8 @@ test -f .env || cp .env.example .env
 # .env 使用本機開發佔位密碼；請勿用於公開部署，也不要提交 .env。
 docker compose config --quiet
 docker compose up --build --wait --wait-timeout 300
+docker compose run --rm backend alembic upgrade head
+docker compose run --rm backend alembic check
 docker compose ps
 curl --fail http://localhost:8000/health
 curl --fail http://localhost:8000/health/ready
@@ -72,7 +78,8 @@ docker compose down
 test -f .env || cp .env.example .env
 npm ci
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e './apps/api[test]'
+.venv/bin/python -m pip install --require-hashes -r apps/api/requirements.lock
+.venv/bin/python -m pip install --no-deps -e './apps/api[test]'
 docker compose up -d --wait postgres redis
 ```
 
@@ -124,9 +131,9 @@ docker run --rm stockapp-web-check npm test
 docker run --rm stockapp-web-check npm run typecheck
 ```
 
-Pytest 涵蓋存活、依賴失敗及例外處理；Vitest 涵蓋 API 讀取、503／離線／逾時／格式異常及畫面狀態。整合測試預設略過，明確設定 `RUN_INTEGRATION=1` 才會真正連線。npm 使用提交的 lockfile；Python 目前透過 pyproject 的版本範圍安裝，尚未建立完整依賴鎖檔。
+Pytest 涵蓋健康檢查、Domain、PostgreSQL 約束、Repository、Migration 升降版與並發重送；DB 測試使用獨立隨機 schema，不修改既有 public 資料。Vitest 涵蓋 API 讀取及畫面狀態。整合測試預設略過，明確設定 `RUN_INTEGRATION=1` 才會真正連線。npm 使用 package-lock.json；Python 使用 requirements.lock，更新方式見 Phase 1A 規格。
 
-CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟動四項服務與驗證連線。執行環境的實際驗證結果見 [Phase 0 驗證紀錄](docs/specs/phase-0-validation.md)。
+CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟動四項服務、執行 `alembic upgrade head`／`alembic check` 與整合測試。實際驗證結果見 [Phase 0 驗證紀錄](docs/specs/phase-0-validation.md) 及 [Phase 1A 規格與驗收](docs/specs/phase-1a-database.md)。
 
 ## 後續開發
 
