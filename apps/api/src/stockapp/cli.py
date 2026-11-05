@@ -3,22 +3,28 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from contextlib import AsyncExitStack
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime
 import json
 from pathlib import Path
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from stockapp.config import Settings
 from stockapp.modules.market_data.application.ingestion import DailyBarImportService
+from stockapp.modules.market_data.application.history import HistoricalImportService
 from stockapp.modules.market_data.domain.models import DataSource, Market, SourceType
 from stockapp.modules.market_data.infrastructure.ingestion_store import SqlAlchemyIngestionStore
 from stockapp.modules.market_data.infrastructure.providers import TpexAdapter, TwseAdapter
 from stockapp.modules.market_data.infrastructure.securities_providers import TpexSecuritiesAdapter, TwseSecuritiesAdapter
+from stockapp.modules.market_data.infrastructure.history_providers import TpexHistoricalAdapter, TwseHistoricalAdapter
+from stockapp.modules.market_data.infrastructure.history_store import SqlAlchemyHistoryStore
 from stockapp.shared.infrastructure.database import create_db_engine
 
 PROVIDERS = {"twse": TwseAdapter, "tpex": TpexAdapter}
 SECURITIES_PROVIDERS = {"twse": TwseSecuritiesAdapter, "tpex": TpexSecuritiesAdapter}
+HISTORY_PROVIDERS = {"twse": TwseHistoricalAdapter, "tpex": TpexHistoricalAdapter}
 ATTRIBUTION = {
     "twse": "臺灣證券交易所：上市個股日成交資訊／上市公司基本資料",
     "tpex": "證券櫃檯買賣中心：上櫃股票行情／上櫃公司基本資料",
@@ -43,6 +49,14 @@ def identity(key: str, scope: str = "stocks") -> tuple[Market, DataSource]:
 def _service(store, key, scope="stocks"):
     market, source = identity(key, scope)
     return DailyBarImportService(store, market=market, source=source, scope=scope)
+
+
+def _history_service(store, key):
+    market, _ = identity(key, "securities")
+    source = DataSource(code=key.upper() + "_HISTORY",
+        name=("臺灣證券交易所" if key == "twse" else "證券櫃檯買賣中心") + "：指定日期每日行情／目前 ISIN 名錄",
+        source_type=SourceType.EXCHANGE)
+    return DailyBarImportService(store, market=market, source=source, scope="securities")
 
 
 def _provenance(key, scope):
@@ -71,7 +85,76 @@ def _parser():
     runs = commands.add_parser("runs", help="Inspect runs, raw metadata and row-level issues")
     runs.add_argument("--id", type=UUID)
     runs.add_argument("--limit", type=int, default=20)
+    history = commands.add_parser("history", help="Plan, run and resume dated official daily exports")
+    actions = history.add_subparsers(dest="history_action", required=True)
+    plan = actions.add_parser("plan", help="Persist per-market/day checkpoints; no network requests")
+    plan.add_argument("--from", dest="start", type=date.fromisoformat,
+                      help="Inclusive YYYY-MM-DD; default is ten years before --to")
+    plan.add_argument("--to", dest="end", type=date.fromisoformat,
+                      help="Inclusive YYYY-MM-DD; default is today's Asia/Taipei date")
+    plan.add_argument("--market", choices=["twse", "tpex", "all"], default="all")
+    plan.add_argument("--max-growth-gb", type=int, default=100,
+                      help="Stop between days if database growth reaches this GiB budget (default 100)")
+    run = actions.add_parser("run", help="Process recent dates first; resume pending checkpoints")
+    run.add_argument("--job", type=UUID, required=True)
+    run.add_argument("--max-days", type=int, help="Bound this invocation by market/day tasks")
+    run.add_argument("--max-seconds", type=float, help="Bound duration between daily transactions")
+    run.add_argument("--retry-failed", action="store_true", help="Retry failed days once; partial days remain recorded")
+    status = actions.add_parser("status", help="Inspect checkpoints, counts and remaining dates")
+    status.add_argument("--job", type=UUID)
+    replay = actions.add_parser("replay", help="Reprocess an existing history archive without network")
+    replay.add_argument("--market", choices=["twse", "tpex"], required=True)
+    replay.add_argument("--date", type=date.fromisoformat, required=True)
     return parser
+
+
+def _progress(event):
+    print(json.dumps(event, ensure_ascii=False, default=str), flush=True)
+
+
+async def _execute_history(args, store, jobs, settings):
+    if args.history_action == "plan":
+        today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+        end = args.end or today
+        start = args.start
+        if start is None:
+            try:
+                start = end.replace(year=end.year - 10)
+            except ValueError:
+                start = end.replace(year=end.year - 10, day=28)
+        if end > today:
+            raise ValueError("history_end_cannot_be_future")
+        if type(args.max_growth_gb) is not int or not 1 <= args.max_growth_gb <= 1000:
+            raise ValueError("database_growth_budget_must_be_1_to_1000_gib")
+        keys = tuple(HISTORY_PROVIDERS) if args.market == "all" else (args.market,)
+        earliest = date(2007, 4, 23) if "tpex" in keys else date(2004, 2, 11)
+        if start < earliest:
+            raise ValueError("history_range_precedes_verified_source")
+        job_id = jobs.create(start=start, end=end, markets=keys,
+                             max_growth_bytes=args.max_growth_gb * 1024**3)
+        reports = jobs.inspect(job_id)
+    elif args.history_action == "status":
+        reports = jobs.inspect(args.job)
+    elif args.history_action == "replay":
+        report = await _history_service(store, args.market).replay_history(args.market, args.date)
+        return [asdict(report) | _provenance(args.market, "securities") |
+                {"canonical_coverage": "current_registry_lifetimes_only"}]
+    else:
+        job = jobs.get(args.job)
+        if job is None:
+            raise ValueError("history_job_not_found")
+        async with AsyncExitStack() as stack:
+            providers = {key: await stack.enter_async_context(HISTORY_PROVIDERS[key](
+                min_interval=settings.ingestion_min_interval_seconds,
+                max_attempts=settings.ingestion_max_attempts,
+                max_response_bytes=settings.ingestion_max_response_bytes)) for key in job.markets}
+            services = {key: _history_service(store, key) for key in job.markets}
+            return await HistoricalImportService(jobs, imports=services, providers=providers,
+                progress=_progress).run(args.job, max_days=args.max_days,
+                    max_seconds=args.max_seconds, retry_failed=args.retry_failed)
+    for report in reports:
+        report["canonical_coverage"] = "current_registry_lifetimes_only"
+    return reports
 
 
 async def _execute(args, store, settings):
@@ -104,6 +187,12 @@ def main(argv=None) -> int:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
         store = SqlAlchemyIngestionStore(engine)
+        if args.command == "history":
+            reports = asyncio.run(_execute_history(args, store, SqlAlchemyHistoryStore(engine), settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            if args.history_action in {"plan", "status"}:
+                return 0 if reports or args.history_action == "status" and args.job is None else 2
+            return 0 if reports and all(report["status"] in {"succeeded", "completed"} for report in reports) else 2
         if args.command == "runs":
             reports = store.inspect(args.id, limit=args.limit)
             print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))

@@ -51,6 +51,23 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+  history-worker:
+    profiles: [history]
+    build: ./apps/api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stockapp}:${POSTGRES_PASSWORD:?Copy .env.example to .env first}@postgres:5432/${POSTGRES_DB:-stockapp}
+      INGESTION_MIN_INTERVAL_SECONDS: ${INGESTION_MIN_INTERVAL_SECONDS:-5}
+      INGESTION_MAX_ATTEMPTS: ${INGESTION_MAX_ATTEMPTS:-3}
+      INGESTION_MAX_RESPONSE_BYTES: ${INGESTION_MAX_RESPONSE_BYTES:-20000000}
+    command: ["stockapp", "history", "run", "--job", "${HISTORY_JOB_ID:-00000000-0000-0000-0000-000000000000}"]
+    stop_signal: SIGINT
+    stop_grace_period: 5m
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
   frontend:
     build:
       context: .

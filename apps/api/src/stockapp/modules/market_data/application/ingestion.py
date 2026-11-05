@@ -19,8 +19,9 @@ from stockapp.modules.market_data.application.normalization import (
 from stockapp.modules.market_data.application.securities_normalization import (
     decode_securities_quotes, parse_securities_catalog,
 )
+from stockapp.modules.market_data.application.history_normalization import decode_history_quotes
 from stockapp.modules.market_data.domain.ingestion import (
-    DailyMarketProvider, IngestionItem, IngestionStore, NormalizationResult, ProviderError, RawDocument,
+    DailyMarketProvider, HistoricalMarketProvider, IngestionItem, IngestionStore, NormalizationResult, ProviderError, RawDocument,
 )
 from stockapp.modules.market_data.domain.models import DataSource, IngestionRun, IngestionStatus, Instrument, Market
 
@@ -48,12 +49,27 @@ class DailyBarImportService:
             raise ValueError("invalid_ingestion_scope")
         self.store, self.market, self.source = store, market, source
         self.scope = scope
+        self._catalog_documents: dict[UUID, tuple[RawDocument, ...]] = {}
+        self._catalog_securities: dict[UUID, dict] = {}
 
     def _extra_resources(self, key: str) -> tuple[str, ...]:
         return (("fund_catalog",) if key == "twse" else ("currency_catalog",)) if self.scope == "securities" else ()
 
     async def sync_latest(self, provider: DailyMarketProvider) -> ImportReport:
         return await self._execute(provider.key, provider=provider)
+
+    async def sync_date(self, provider: HistoricalMarketProvider, trade_date: date,
+                        catalog_run_id: UUID | None = None) -> ImportReport:
+        if self.scope != "securities" or type(trade_date) is not date:
+            raise ValueError("historical_securities_date_required")
+        return await self._execute(provider.key, provider=provider, requested_date=trade_date,
+            mode="history", historical=True, catalog_run_id=catalog_run_id)
+
+    async def replay_history(self, provider_key: str, trade_date: date) -> ImportReport:
+        archive = self.store.load_archive(self.market.code, trade_date,
+            source_code=self.source.code, required_resources=self._extra_resources(provider_key))
+        return await self._execute(provider_key, requested_date=trade_date, archive=archive,
+            mode="replay", historical=True)
 
     async def replay(self, provider_key: str, trade_date: date) -> ImportReport:
         # An archive is immutable. Replaying it never calls a remote historical
@@ -67,6 +83,8 @@ class DailyBarImportService:
         requested_date: date | None = None,
         archive: tuple[UUID, RawDocument, RawDocument, *tuple[RawDocument, ...]] | None = None,
         mode: str = "sync",
+        historical: bool = False,
+        catalog_run_id: UUID | None = None,
     ) -> ImportReport:
         market, source = self.store.prepare(self.market, self.source)
         run = self.store.start(source.id, market.id, requested_date=requested_date,
@@ -82,42 +100,70 @@ class DailyBarImportService:
                     catalog = replace(archive[2], id=uuid4())
                     self.store.save_raw(run.id, quotes)
                 else:
-                    quotes = await provider.fetch(identifier="quotes")
+                    quotes = (await provider.fetch_date(trade_date=requested_date)) if historical else (
+                        await provider.fetch(identifier="quotes"))
                     self.store.save_raw(run.id, quotes)
                 if quotes.status_code != 200 or quotes.resource != "quotes":
                     raise ValueError("invalid_quote_response")
-                rows = decode_securities_quotes(quotes, key) if self.scope == "securities" else decode_rows(quotes)
+                rows = decode_history_quotes(quotes, key, requested_date) if historical else (
+                    decode_securities_quotes(quotes, key) if self.scope == "securities" else decode_rows(quotes))
                 stats["received"] = len(rows)
+                if historical:
+                    stats["historical_scope_limited"] = 1
+                    if not rows:
+                        stats["no_data"] = 1
+                        return self._finish(key, run, None, stats, None)
                 trade_date = snapshot_date(key, rows)
                 if trade_date > quotes.fetched_at.astimezone(ZoneInfo(market.timezone)).date():
                     raise ValueError("future_trade_date")
                 self.store.set_raw_date(quotes.id, trade_date)
                 if requested_date is not None and trade_date != requested_date:
                     raise ValueError("archive_trade_date_mismatch")
-                if mode == "sync":
+                shared = None
+                if catalog_run_id is not None:
+                    self.store.reference_catalog(run.id, catalog_run_id)
+                    if catalog_run_id not in self._catalog_documents:
+                        self._catalog_documents[catalog_run_id] = self.store.load_catalog(catalog_run_id)
+                    shared = {item.resource: item for item in self._catalog_documents[catalog_run_id]}
+                    catalog = shared.get("catalog")
+                    if catalog is None:
+                        raise ValueError("shared_catalog_unavailable")
+                elif mode != "replay":
                     catalog = await provider.fetch(identifier="catalog")
-                self.store.save_raw(run.id, catalog)
+                if shared is None:
+                    self.store.save_raw(run.id, catalog)
                 if catalog.status_code != 200 or catalog.resource != "catalog":
                     raise ValueError("invalid_catalog_response")
                 extras = {}
                 for resource in self._extra_resources(key):
-                    extra = (await provider.fetch(identifier=resource)) if mode == "sync" else next(
-                        (item for item in archive[3:] if item.resource == resource), None)
+                    extra = shared.get(resource) if shared is not None else (
+                        (await provider.fetch(identifier=resource)) if mode != "replay" else next(
+                            (item for item in archive[3:] if item.resource == resource), None))
                     if extra is None:
                         raise ValueError("archive_metadata_unavailable")
                     if mode == "replay":
                         extra = replace(extra, id=uuid4())
-                    self.store.save_raw(run.id, extra)
+                    if shared is None:
+                        self.store.save_raw(run.id, extra)
                     if extra.status_code != 200 or extra.resource != resource:
                         raise ValueError("invalid_metadata_response")
                     extras[resource] = extra
-                securities = (parse_securities_catalog(catalog, key, next(iter(extras.values())))
-                    if self.scope == "securities" else parse_catalog(key, decode_rows(catalog)))
+                if catalog_run_id is not None and catalog_run_id in self._catalog_securities:
+                    securities = self._catalog_securities[catalog_run_id]
+                else:
+                    securities = (parse_securities_catalog(catalog, key, next(iter(extras.values())))
+                        if self.scope == "securities" else parse_catalog(key, decode_rows(catalog)))
+                    if catalog_run_id is not None:
+                        self._catalog_securities[catalog_run_id] = securities
+                if historical and shared is None:
+                    self._catalog_documents[run.id] = (catalog, *extras.values())
+                    self._catalog_securities[run.id] = securities
                 stats["catalog_total"] = len(securities)
                 stats["catalog_future"] = sum(security.listed_on is not None and security.listed_on > trade_date
                                               for security in securities.values())
                 work_started = True
-                self._import_rows(key, run, market, source, quotes, rows, securities, trade_date, stats)
+                self._import_rows(key, run, market, source, quotes, rows, securities, trade_date, stats,
+                                  historical=historical, catalog_fetched_at=catalog.fetched_at)
                 work_committed = True
         except (asyncio.CancelledError, KeyboardInterrupt):
             if work_started and not work_committed:
@@ -142,9 +188,10 @@ class DailyBarImportService:
                 self._mark_rollback(stats)
             return self._finish(key, run, trade_date, stats, "ingestion_error_" + type(exc).__name__)
         error = None
-        if stats["rejected"] or stats["missing"] or stats.get("unmapped", 0) or not stats["accepted"]:
+        if stats["rejected"] or stats["missing"] or stats.get("unmapped", 0) or stats.get("unresolved", 0) or not stats["accepted"]:
             error = (f"Partial coverage: {stats['accepted']} accepted, {stats['rejected']} rejected, "
-                     f"{stats['missing']} catalog symbols absent, {stats.get('unmapped', 0)} unmapped quote symbols; valid rows retained")
+                     f"{stats['missing']} catalog symbols absent, {stats.get('unmapped', 0)} unmapped quote symbols, "
+                     f"{stats.get('unresolved', 0)} unresolved historical identities; valid rows retained")
         return self._finish(key, run, trade_date, stats, error)
 
     @staticmethod
@@ -162,7 +209,8 @@ class DailyBarImportService:
         return ImportReport(run_id=run.id, provider=key, trade_date=trade_date,
                             status=completed.status, stats=completed.stats, error_summary=error)
 
-    def _import_rows(self, key, run, market, source, quotes, rows, securities, trade_date, stats):
+    def _import_rows(self, key, run, market, source, quotes, rows, securities, trade_date, stats,
+                     *, historical=False, catalog_fetched_at=None):
         seen: set[str] = set()
         symbols = []
         for row in rows:
@@ -195,20 +243,25 @@ class DailyBarImportService:
                     continue
                 seen.add(symbol)
                 security = securities.get(symbol)
-                if security is None or (security.listed_on is not None and security.listed_on > trade_date):
+                if (security is None or (security.listed_on is not None and security.listed_on > trade_date)
+                    or historical and security.listed_on is None):
                     stats["out_of_scope"] += 1
+                    if historical:
+                        stats["unresolved"] = stats.get("unresolved", 0) + 1
                     if security is None and self.scope == "securities":
                         stats["unmapped"] = stats.get("unmapped", 0) + 1
                     work.add_item(IngestionItem(run_id=run.id, raw_id=quotes.id, row_index=index,
                         symbol=symbol, trade_date=trade_date, disposition="out_of_scope",
-                        reason=("not_in_official_securities_catalog" if self.scope == "securities" else
-                                "not_in_official_stock_catalog") if security is None else "not_yet_listed",
+                        reason="historical_identity_unresolved" if historical else (
+                            ("not_in_official_securities_catalog" if self.scope == "securities" else
+                                "not_in_official_stock_catalog") if security is None else "not_yet_listed"),
                         raw_row=raw_row))
                     continue
                 new_instrument = False
                 try:
                     with work.savepoint():
-                        instrument, new_instrument, updated = self._register(work, market, security, quotes.fetched_at)
+                        instrument, new_instrument, updated = self._register(work, market, security,
+                            catalog_fetched_at if historical else quotes.fetched_at)
                         if instrument.instrument_type is not security.instrument_type:
                             if self.scope != "stocks":
                                 result = NormalizationResult(disposition="rejected", reason="instrument_type_mismatch")
@@ -249,6 +302,10 @@ class DailyBarImportService:
                     work.add_item(IngestionItem(run_id=run.id, raw_id=quotes.id, row_index=index,
                         symbol=symbol, trade_date=trade_date, disposition="rejected",
                         reason="row_error_" + type(exc).__name__, raw_row=raw_row))
+            if historical:
+                # Today's registry is not an authoritative historical universe.
+                # Do not invent missing rows for members absent from old reports.
+                return
             for symbol, security in securities.items():
                 if symbol not in seen and (security.listed_on is None or security.listed_on <= trade_date):
                     instrument = None

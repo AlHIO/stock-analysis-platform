@@ -2,7 +2,7 @@
 from alembic import context
 from stockapp.config import Settings
 from stockapp.shared.infrastructure.database import Base, create_db_engine
-from stockapp.modules.market_data.infrastructure import ingestion_models, models  # noqa: F401
+from stockapp.modules.market_data.infrastructure import history_models, ingestion_models, models  # noqa: F401
 
 
 def migrate(connection):

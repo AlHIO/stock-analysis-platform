@@ -20,13 +20,17 @@ class IngestionRequestRecord(Base):
     requested_date: Mapped[date | None] = mapped_column(Date)
     mode: Mapped[str] = mapped_column(String(16), nullable=False)
     replay_of_run_id: Mapped[UUID | None] = mapped_column(ForeignKey("ingestion_runs.id", ondelete="RESTRICT"))
+    catalog_run_id: Mapped[UUID | None] = mapped_column(ForeignKey("ingestion_runs.id", ondelete="RESTRICT"))
     __table_args__ = (
-        CheckConstraint("mode IN ('sync','replay')", name="mode_valid"),
+        CheckConstraint("mode IN ('sync','replay','history')", name="mode_valid"),
         CheckConstraint("(mode = 'sync' AND replay_of_run_id IS NULL) OR "
-                        "(mode = 'replay' AND requested_date IS NOT NULL)",
+                        "(mode = 'replay' AND requested_date IS NOT NULL) OR "
+                        "(mode = 'history' AND requested_date IS NOT NULL AND replay_of_run_id IS NULL)",
                         name="replay_valid"),
+        CheckConstraint("catalog_run_id IS NULL OR (catalog_run_id <> run_id AND mode = 'history')", name="catalog_ref_valid"),
         Index("ix_ingestion_requests_market_id", "market_id"),
         Index("ix_ingestion_requests_replay_of_run_id", "replay_of_run_id"),
+        Index("ix_ingestion_requests_catalog_run_id", "catalog_run_id"),
     )
 
 

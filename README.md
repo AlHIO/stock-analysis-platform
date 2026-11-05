@@ -18,12 +18,12 @@ apps/
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
       main.py            FastAPI composition root
-      cli.py             官方同步、archive 回補與匯入狀態查詢
+      cli.py             官方同步、archive 重播、歷史工作與匯入狀態查詢
     tests/               Pytest 單元與真實服務整合測試
     migrations/          Alembic schema revisions（啟動時不自動執行）
     requirements.lock    含雜湊的 runtime／test 依賴鎖檔
     openapi.json         與 runtime 比對的 API contract snapshot
-workers/                 Data Workers 預留邊界，目前不啟動 worker
+workers/                 手動歷史回補 worker 操作文件；預設不啟動
 packages/contracts/      API 合約／未來產生的 client
 docs/architecture/       架構決策
 docs/specs/              範圍與驗收
@@ -121,6 +121,38 @@ docker compose run --rm backend stockapp backfill --market twse --scope securiti
 curl 'http://localhost:8000/api/v1/instruments?symbol=0050&instrument_type=etf&market=TWSE'
 curl 'http://localhost:8000/api/v1/instruments?instrument_type=warrant&market=TPEX&page=1&page_size=20'
 ```
+
+## 最近十年歷史回補
+
+這是下載指定歷史日期的新命令；原有 `backfill` 仍只重播 archive。沿用官方來源，不包含法人、財報、持股、即時行情或還原股價。
+
+```bash
+docker compose build backend history-worker
+docker compose run --rm backend alembic upgrade head
+
+# 建立工作，不會在 plan 時下載。以下為本次要求的十年日期範圍。
+docker compose run --rm backend stockapp history plan --from 2016-11-05 --to 2026-11-05 --market all
+# 省略 --from/--to 時，使用執行主機的台北當日與往前十年。
+
+# 把 plan 回傳的 id 填入；背景執行，關閉終端不會停止容器。
+HISTORY_JOB_ID=<JOB_UUID> docker compose --profile history up -d history-worker
+docker compose --profile history logs --tail=20 history-worker
+docker compose run --rm backend stockapp history status --job <JOB_UUID>
+
+# 可改為前景分批處理；不要與同一個背景工作同時執行。
+docker compose run --rm backend stockapp history run --job <JOB_UUID> --max-days 20
+# 只在需要時重試 failed 日期；partial/no_data 不會被無限重抓。
+docker compose run --rm backend stockapp history run --job <JOB_UUID> --retry-failed
+
+# 離線重播已保存的歷史行情，保留原取得時間。
+docker compose run --rm backend stockapp history replay --market twse --date 2016-11-07
+```
+
+工作從最近日期往前跑，每個市場／日期提交後保存 checkpoint；重啟時接續未完成日期。`--max-days` 是市場／日期工作數，`--max-seconds` 在日交易之間檢查。預設以建立工作時的 DB 大小為基準，新增達 100 GiB 時停止在日界線；可在 plan 時以 `--max-growth-gb` 設定 1–1000 GiB。這是共享資料庫增量防護，不是精確的單一工作用量或磁碟可用空間保證。十年兩市場為 7,306 個市場／日曆日，需長時間執行，完成時間以實際進度為準。
+
+**歷史權證代碼可重複使用**。目前只將已核對當期官方名錄、幣別、單位及掛牌期間的證券匯入 canonical；已到期／下市、代碼重用或無法確認身分的列完整保存 raw 並標 `unresolved`，不接到今天同代碼的股票／權證。基本資料為工作建立時的官方名錄，尚非完整歷史證券身分資料庫。因此 job 的 `completed_with_gaps` 表示日期已處理，不等於十年所有證券的 K 線完整。空回應記 `no_data`，不自動宣稱休市。
+
+獨立背景 worker 只由 `history` Profile 明確啟動；不建立自動排程，不公開 port。傳輸／權限等永久錯誤會停止，預設不自動重啟。完整來源契約、限制及驗證見[歷史回補規格](docs/specs/taiwan-history-backfill.md)。
 
 ## 股票搜尋與 K 線（Phase 1D）
 

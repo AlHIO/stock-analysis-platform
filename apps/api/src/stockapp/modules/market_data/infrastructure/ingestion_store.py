@@ -125,6 +125,43 @@ class SqlAlchemyIngestionStore:
                 raise ValueError("raw_trade_date_is_immutable")
             record.trade_date = trade_date
 
+    def reference_catalog(self, run_id: UUID, catalog_run_id: UUID) -> None:
+        """Share one immutable registry snapshot, retaining origin provenance."""
+        if run_id == catalog_run_id:
+            raise ValueError("catalog_cannot_reference_self")
+        with Session(self.engine) as session, session.begin():
+            current = session.get(IngestionRequestRecord, run_id, with_for_update=True)
+            origin = session.get(IngestionRequestRecord, catalog_run_id)
+            current_run = session.get(IngestionRunRecord, run_id)
+            origin_run = session.get(IngestionRunRecord, catalog_run_id)
+            if (current is None or origin is None or current_run is None or origin_run is None
+                or current.mode != "history" or origin.mode != "history"
+                or current.market_id != origin.market_id or current_run.source_id != origin_run.source_id
+                or origin.catalog_run_id is not None):
+                raise ValueError("catalog_reference_identity_mismatch")
+            if current.catalog_run_id not in (None, catalog_run_id):
+                raise ValueError("catalog_reference_is_immutable")
+            own = session.scalar(select(RawMarketPayloadRecord.id).where(
+                RawMarketPayloadRecord.run_id == run_id, RawMarketPayloadRecord.resource == "catalog"))
+            catalog = session.scalar(select(RawMarketPayloadRecord.id).where(
+                RawMarketPayloadRecord.run_id == catalog_run_id,
+                RawMarketPayloadRecord.resource == "catalog", RawMarketPayloadRecord.status_code == 200))
+            if own is not None or catalog is None:
+                raise ValueError("invalid_shared_catalog")
+            current.catalog_run_id = catalog_run_id
+
+    def load_catalog(self, run_id: UUID) -> tuple[RawDocument, ...]:
+        with Session(self.engine) as session:
+            request = session.get(IngestionRequestRecord, run_id)
+            if request is None:
+                raise ValueError("catalog_run_not_found")
+            origin_id = request.catalog_run_id or run_id
+            records = session.scalars(select(RawMarketPayloadRecord).where(
+                RawMarketPayloadRecord.run_id == origin_id,
+                RawMarketPayloadRecord.resource != "quotes",
+            ).order_by(RawMarketPayloadRecord.resource)).all()
+            return tuple(_document(record) for record in records)
+
     def finish(self, run: IngestionRun) -> None:
         with Session(self.engine) as session, session.begin():
             SqlAlchemyIngestionRunRepository(session).update(run)
@@ -167,8 +204,9 @@ class SqlAlchemyIngestionStore:
             .join(IngestionRunRecord, IngestionRunRecord.id == IngestionRequestRecord.run_id)
             .join(DataSourceRecord, DataSourceRecord.id == IngestionRunRecord.source_id)
             .join(quotes, (quotes.run_id == IngestionRequestRecord.run_id) & (quotes.resource == "quotes"))
-            .join(catalog, (catalog.run_id == IngestionRequestRecord.run_id) & (catalog.resource == "catalog"))
-            .where(MarketRecord.code == market_code, IngestionRequestRecord.mode == "sync",
+            .join(catalog, (catalog.run_id == func.coalesce(IngestionRequestRecord.catalog_run_id,
+                                                         IngestionRequestRecord.run_id)) & (catalog.resource == "catalog"))
+            .where(MarketRecord.code == market_code, IngestionRequestRecord.mode.in_(("sync", "history")),
                    quotes.trade_date == trade_date, quotes.status_code == 200, catalog.status_code == 200)
             .order_by(quotes.fetched_at.desc(), quotes.id.desc())
             .limit(1)
@@ -178,7 +216,7 @@ class SqlAlchemyIngestionStore:
         for resource in required_resources:
             extra = aliased(RawMarketPayloadRecord)
             statement = statement.where(select(extra.id).where(
-                extra.run_id == IngestionRequestRecord.run_id,
+                extra.run_id == func.coalesce(IngestionRequestRecord.catalog_run_id, IngestionRequestRecord.run_id),
                 extra.resource == resource, extra.status_code == 200,
             ).exists())
         with Session(self.engine) as session:
@@ -186,7 +224,7 @@ class SqlAlchemyIngestionStore:
             if row is None:
                 return None
             extras = session.scalars(select(RawMarketPayloadRecord).where(
-                RawMarketPayloadRecord.run_id == row[0],
+                RawMarketPayloadRecord.run_id == row[2].run_id,
                 RawMarketPayloadRecord.resource.in_(required_resources),
             ).order_by(RawMarketPayloadRecord.resource)).all() if required_resources else []
             return row[0], _document(row[1]), _document(row[2]), *(_document(item) for item in extras)
@@ -238,6 +276,7 @@ class SqlAlchemyIngestionStore:
                     "finished_at": _timestamp(run.finished_at), "error_summary": run.error_summary,
                     "stats": run.stats, "requested_date": _timestamp(request.requested_date),
                     "mode": request.mode,
+                    "catalog_run_id": str(request.catalog_run_id) if request.catalog_run_id else None,
                     "replay_of_run_id": str(request.replay_of_run_id) if request.replay_of_run_id else None,
                     "raw": raw, "dispositions": counts, "items_count": sum(counts.values()),
                     "issue_count": sum(count for disposition, count in counts.items() if disposition != "accepted"),

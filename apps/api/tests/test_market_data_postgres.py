@@ -42,6 +42,7 @@ API_ROOT = Path(__file__).resolve().parents[1]
 TABLES = {
     "markets", "instruments", "trading_calendars", "daily_bars", "data_sources",
     "ingestion_runs", "daily_bar_revisions", "ingestion_requests", "raw_market_payloads", "ingestion_items",
+    "history_jobs", "history_days",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

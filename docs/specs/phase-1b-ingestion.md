@@ -6,6 +6,8 @@
 
 四個正式 endpoint、欄位、資料日期、單位、授權、更新頻率與限制的查證見 [官方來源紀錄](phase-1b-sources.md)。兩個日行情端點未確認歷史日期參數；本階段**沒有完成任意遠端歷史下載**。
 
+上述為原 Phase 1B 的最新快照契約。另經使用者授權新增的 `history` 命令，使用另外查證的官方日期匯出端點與持久化工作；其十年範圍、歷史身分限制及進度語意見[歷史回補規格](taiwan-history-backfill.md)，不改變原有 archive-only `backfill` 的行為。
+
 ```mermaid
 flowchart LR
   A[官方 Adapter] --> B[保存 raw bytes 與 SHA-256]
