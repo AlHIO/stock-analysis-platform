@@ -687,6 +687,119 @@ summary:focus-visible {
 .timeframe-tabs button:hover {
   color: #d5e6e2;
 }
+.timeframe-tabs button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.history-range-controls {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.history-range-topline,
+.history-range-presets,
+.history-date-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.history-range-topline {
+  justify-content: space-between;
+}
+.history-range-controls button {
+  padding: 6px 12px;
+  color: var(--muted);
+  background: #101c28;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12px;
+}
+.history-range-controls button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: #3c7b70;
+  background: #19332e;
+}
+.history-range-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.history-date-form {
+  margin-top: 14px;
+  align-items: flex-end;
+  gap: 12px;
+}
+.history-date-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.history-date-form input {
+  width: 155px;
+  max-width: 100%;
+  padding: 6px 8px;
+  color: var(--text);
+  background: #080f17;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12px;
+}
+.history-range-coverage,
+.history-range-hint,
+.history-range-error {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.history-range-hint {
+  color: #a6c9bf;
+}
+.history-range-error {
+  color: var(--up);
+}
+.history-gap-notice {
+  margin: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #6e5738;
+  border-left: 3px solid #c49b5b;
+  background: #392d1966;
+  color: #d8c49f;
+  font-size: 12px;
+}
+.history-gap-notice strong {
+  color: #f2d394;
+  font-size: 14px;
+}
+.history-gap-notice p {
+  margin: 8px 0;
+}
+.history-gap-notice ul {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.history-gap-notice li {
+  font-variant-numeric: tabular-nums;
+}
+.history-gap-notice button {
+  margin-top: 5px;
+  padding: 6px 12px;
+  border: 1px solid #967340;
+  border-radius: 5px;
+  color: #f2d394;
+  background: #392d19;
+}
+@media (max-width: 600px) {
+  .history-range-controls {
+    padding: 14px 16px;
+  }
+  .history-date-form label {
+    flex: 1 1 calc(50% - 12px);
+  }
+  .history-date-form input {
+    width: 100%;
+  }
+}
 .chart-data-note {
   display: flex;
   justify-content: space-between;

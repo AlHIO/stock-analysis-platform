@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ApiError, getBars, getLatest } from "../lib/market-api";
 import type {
@@ -13,11 +13,18 @@ import {
   dateLabel,
   decimal,
   marketLabel,
-  periodAlignedRange,
-  recentRange,
   shares,
   timestamp,
 } from "../lib/format";
+import {
+  alignedHistoryRange,
+  presetHistoryRange,
+  recommendedHistoryTimeframe,
+  validateHistoryRange,
+  type HistoryPreset,
+  type HistoryRange,
+} from "../lib/history-range";
+import { analyzeHistoryGaps } from "../lib/history-gaps";
 import { IndicatorWorkspace } from "./indicator-workspace";
 import { StockSearch } from "./stock-search";
 
@@ -30,6 +37,31 @@ const timeframes: { value: Timeframe; label: string }[] = [
   { value: "1w", label: "週 K" },
   { value: "1M", label: "月 K" },
 ];
+const presets: { value: HistoryPreset; label: string }[] = [
+  { value: "1y", label: "最近 1 年" },
+  { value: "5y", label: "最近 5 年" },
+  { value: "10y", label: "最近 10 年" },
+];
+type HistorySelection = {
+  id: string;
+  preset: HistoryPreset | null;
+  range: HistoryRange;
+};
+
+function selectedRange(
+  data: LatestResponse,
+  id: string,
+  selection: HistorySelection | null,
+) {
+  const current = selection?.id === id ? selection : null;
+  return current?.preset === null
+    ? current.range
+    : presetHistoryRange(
+        data.history.available_from,
+        data.history.available_to,
+        current?.preset ?? "1y",
+      );
+}
 
 function Failure({ error, retry }: { error: unknown; retry: () => void }) {
   const unavailable = !(error instanceof ApiError) || error.status >= 500;
@@ -69,10 +101,18 @@ export function StockDetail({ id }: { id: string }) {
   const [latest, setLatest] = useState<Load<LatestResponse>>({
     status: "loading",
   });
-  const [bars, setBars] = useState<Load<BarsResponse>>({ status: "loading" });
+  const [bars, setBars] = useState<
+    Load<BarsResponse> | { status: "range-error" }
+  >({ status: "loading" });
   const [timeframe, setTimeframe] = useState<Timeframe>("1d");
   const [refresh, setRefresh] = useState(0);
   const [chartRefresh, setChartRefresh] = useState(0);
+  const [selection, setSelection] = useState<HistorySelection | null>(null);
+  const [dateDraft, setDateDraft] = useState<HistoryRange>({
+    from: "",
+    to: "",
+  });
+  const [rangeError, setRangeError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,16 +128,31 @@ export function StockDetail({ id }: { id: string }) {
   }, [id, refresh]);
 
   useEffect(() => {
-    if (latest.status !== "ready") return;
+    if (latest.status !== "ready" || latest.data.instrument.id !== id) return;
+    setDateDraft(
+      selectedRange(latest.data, id, selection) ?? { from: "", to: "" },
+    );
+    setRangeError(null);
+  }, [id, latest, selection]);
+
+  useEffect(() => {
+    if (latest.status !== "ready" || latest.data.instrument.id !== id) return;
     const controller = new AbortController();
     setBars({ status: "loading" });
-    const range = periodAlignedRange(
-      recentRange(
-        latest.data.history.available_from,
-        latest.data.history.available_to,
-      ),
-      timeframe,
-    );
+    const requested = selectedRange(latest.data, id, selection);
+    if (
+      requested &&
+      timeframe === "1d" &&
+      recommendedHistoryTimeframe(requested) === "1w"
+    ) {
+      setTimeframe("1w");
+      return () => controller.abort();
+    }
+    const range = alignedHistoryRange(requested, timeframe);
+    if (requested && !range) {
+      setBars({ status: "range-error" });
+      return () => controller.abort();
+    }
     getBars(id, timeframe, controller.signal, range)
       .then((data) => {
         if (!controller.signal.aborted) setBars({ status: "ready", data });
@@ -106,9 +161,12 @@ export function StockDetail({ id }: { id: string }) {
         if (!controller.signal.aborted) setBars({ status: "error", error });
       });
     return () => controller.abort();
-  }, [id, timeframe, latest, chartRefresh]);
+  }, [id, timeframe, latest, selection, chartRefresh]);
 
-  const data = latest.status === "ready" ? latest.data : null;
+  const data =
+    latest.status === "ready" && latest.data.instrument.id === id
+      ? latest.data
+      : null;
   const bar = data?.bar;
   const freshness = data?.freshness;
   const older =
@@ -118,6 +176,70 @@ export function StockDetail({ id }: { id: string }) {
   const direction = changeDirection(change);
   const validChart =
     bars.status === "ready" && bars.data.timeframe === timeframe;
+  const observedHistory = useMemo(() => {
+    if (bars.status !== "ready" || bars.data.timeframe !== timeframe)
+      return { gaps: [], recentFrom: null, invalid: false };
+    try {
+      return { ...analyzeHistoryGaps(bars.data.bars), invalid: false };
+    } catch {
+      return { gaps: [], recentFrom: null, invalid: true };
+    }
+  }, [bars, timeframe]);
+  const canRenderChart = validChart && !observedHistory.invalid;
+  const requestedRange = data ? selectedRange(data, id, selection) : undefined;
+  const wideRange =
+    !!requestedRange && recommendedHistoryTimeframe(requestedRange) === "1w";
+  const alignmentError =
+    requestedRange && !alignedHistoryRange(requestedRange, timeframe)
+      ? "週／月 K 對齊後超過可查詢範圍，請縮短日期區間。"
+      : null;
+  const currentPreset = selection?.id === id ? selection.preset : "1y";
+
+  function chooseTimeframe(range: HistoryRange) {
+    setTimeframe((current) =>
+      current === "1M" ? "1M" : recommendedHistoryTimeframe(range),
+    );
+  }
+
+  function selectPreset(preset: HistoryPreset) {
+    if (!data) return;
+    const range = presetHistoryRange(
+      data.history.available_from,
+      data.history.available_to,
+      preset,
+    );
+    if (!range) return;
+    setSelection({ id, preset, range });
+    chooseTimeframe(range);
+  }
+
+  function applyDates(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const error = validateHistoryRange(dateDraft);
+    if (error) {
+      setRangeError(error);
+      return;
+    }
+    if (data && dateDraft.to > data.freshness.market_local_date) {
+      setRangeError("結束日期不可晚於市場當地日期。");
+      return;
+    }
+    setRangeError(null);
+    setSelection({ id, preset: null, range: { ...dateDraft } });
+    chooseTimeframe(dateDraft);
+  }
+
+  function showRecentSegment() {
+    if (bars.status !== "ready" || !observedHistory.recentFrom) return;
+    setSelection({
+      id,
+      preset: null,
+      range: {
+        from: observedHistory.recentFrom,
+        to: bars.data.to,
+      },
+    });
+  }
 
   return (
     <main className="page-container detail-page">
@@ -256,6 +378,10 @@ export function StockDetail({ id }: { id: string }) {
                   <button
                     key={item.value}
                     aria-pressed={timeframe === item.value}
+                    disabled={item.value === "1d" && wideRange}
+                    aria-describedby={
+                      wideRange ? "history-daily-limit" : undefined
+                    }
                     onClick={() => setTimeframe(item.value)}
                   >
                     {item.label}
@@ -263,17 +389,145 @@ export function StockDetail({ id }: { id: string }) {
                 ))}
               </div>
             </div>
+            <div className="history-range-controls">
+              <div className="history-range-topline">
+                <div
+                  role="group"
+                  aria-label="歷史資料範圍"
+                  className="history-range-presets"
+                >
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      aria-pressed={currentPreset === preset.value}
+                      disabled={!data.history.available_to}
+                      onClick={() => selectPreset(preset.value)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="history-refresh"
+                  onClick={() => setRefresh((n) => n + 1)}
+                >
+                  重新讀取資料
+                </button>
+              </div>
+              <form
+                aria-label="自訂歷史日期"
+                noValidate
+                className="history-date-form"
+                onSubmit={applyDates}
+              >
+                <label>
+                  開始日期
+                  <input
+                    type="date"
+                    value={dateDraft.from}
+                    aria-invalid={rangeError ? true : undefined}
+                    onChange={(event) => {
+                      setDateDraft((current) => ({
+                        ...current,
+                        from: event.target.value,
+                      }));
+                      setRangeError(null);
+                    }}
+                  />
+                </label>
+                <label>
+                  結束日期
+                  <input
+                    type="date"
+                    value={dateDraft.to}
+                    max={data.freshness.market_local_date}
+                    aria-invalid={rangeError ? true : undefined}
+                    onChange={(event) => {
+                      setDateDraft((current) => ({
+                        ...current,
+                        to: event.target.value,
+                      }));
+                      setRangeError(null);
+                    }}
+                  />
+                </label>
+                <button type="submit" disabled={!data.history.available_to}>
+                  套用日期
+                </button>
+              </form>
+              <p className="history-range-coverage">
+                最早／最新已收錄日期 {dateLabel(data.history.available_from)} —{" "}
+                {dateLabel(data.history.available_to)}。
+                起訖之間不一定已收錄完整；重新讀取可查看新入庫資料。
+              </p>
+              {wideRange && (
+                <p className="history-range-hint" id="history-daily-limit">
+                  日 K 每次最多顯示 1,000 根；長區間請使用週 K／月
+                  K，或縮短日期範圍。
+                </p>
+              )}
+              {(rangeError || alignmentError) && (
+                <p role="alert" className="history-range-error">
+                  {rangeError || alignmentError}
+                </p>
+              )}
+            </div>
+            {observedHistory.gaps.length > 0 && (
+              <aside
+                role="status"
+                aria-label="歷史資料日期間隔"
+                className="history-gap-notice"
+              >
+                <strong>這段歷史資料尚未連續收錄</strong>
+                <p>
+                  以下相鄰已收錄行情的觀察日期間隔超過 90
+                  個日曆日，兩者之間目前沒有可顯示的 K 棒：
+                </p>
+                <ul>
+                  {observedHistory.gaps.slice(0, 3).map((gap) => (
+                    <li key={`${gap.previousDate}-${gap.nextDate}`}>
+                      {dateLabel(gap.previousDate)} → {dateLabel(gap.nextDate)}
+                    </li>
+                  ))}
+                </ul>
+                {observedHistory.gaps.length > 3 && (
+                  <p>另有 {observedHistory.gaps.length - 3} 段日期間隔。</p>
+                )}
+                <p>
+                  圖表按已收錄 K
+                  棒排列，沒有行情的期間會壓縮顯示。最早與最新日期不代表中間資料完整，也不能據此判定哪些日期應有交易。技術指標只依已收錄行情計算，缺漏也可能影響暖機與數值。
+                </p>
+                <button type="button" onClick={showRecentSegment}>
+                  只看最近已收錄區段
+                </button>
+              </aside>
+            )}
+            {observedHistory.invalid && (
+              <p role="alert" className="history-gap-notice">
+                行情日期資訊不一致，暫時無法安全顯示圖表。請重新讀取資料。
+              </p>
+            )}
             <IndicatorWorkspace
               instrumentId={id}
               timeframe={timeframe}
-              bars={validChart ? bars.data.bars : null}
+              bars={canRenderChart ? bars.data.bars : null}
               range={
-                validChart
+                canRenderChart
                   ? { from: bars.data.from, to: bars.data.to }
                   : undefined
               }
               placeholder={
-                bars.status === "error" ? (
+                observedHistory.invalid ? (
+                  <div className="empty-state">
+                    <p>請重新讀取資料後再查看圖表。</p>
+                  </div>
+                ) : bars.status === "range-error" ? (
+                  <div className="empty-state">
+                    <p>請調整日期範圍後重新查詢。</p>
+                  </div>
+                ) : bars.status === "error" ? (
                   <Failure
                     error={bars.error}
                     retry={() => setChartRefresh((n) => n + 1)}
@@ -320,7 +574,7 @@ export function StockDetail({ id }: { id: string }) {
             </div>
             <dl>
               <div>
-                <dt>目前已保存範圍</dt>
+                <dt>最早／最新已收錄日期</dt>
                 <dd>
                   {dateLabel(data.history.available_from)} —{" "}
                   {dateLabel(data.history.available_to)}

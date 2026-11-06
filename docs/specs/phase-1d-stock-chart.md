@@ -37,7 +37,23 @@ Proxy 只接受已知 GET routes／參數，拒絕任意 URL、重複 query、�
 
 價格與成交量直接使用 FastAPI 聚合結果，前端不另行計算週／月 OHLCV。週／月時間軸以 `trade_date`（最後已觀察的交易日）定位，tooltip 列出實際觀察起訖、session 數、period_closed、completeness；不把週日／月底當作有交易的日期。
 
-查詢範圍錨定 `history.available_to`，最多往前365個日曆日，起點不早於 `available_from`。因此較舊的已保存資料仍能被閱讀，且顯示查詢範圍／K 棒數量；不是完整歷史入口。無資料日期、非交易日不補零、不延續前收、不產生假 K 棒。只有一筆就顯示一筆。
+查詢範圍預設錨定 `history.available_to` 往前一曆年，起點不早於 `available_from`。歷史回補啟用後，新增最近 1／5／10 年及自訂日期控制，讓較早的已保存資料可由網站查詢。預設區間並不代表歷史完整；自訂日期在按下「套用日期」才送出，空值、無效日期、起訖倒置或超過 3,660 日會在前端阻擋。
+
+超過 1,000 個日曆日的區間保守切換週 K（原選月 K 時保留），並停用日 K；使用者可縮短日期查看每日資料。這是在回補完成前後都能遵守單次最多 1,000 根輸出的限制，不能由目前資料稀疏就無界限抓十年日 K。週／月起點向前對齊完整 bucket，圖表與指標使用相同 from/to；若對齊導致超過 3,660 日，顯示縮短範圍提示而不截成 bucket 中途。
+
+「重新讀取資料」重新讀取 FastAPI 已提交資料；保留自訂區間，年限預設則隨 latest history extent 更新。Provider 不會因點擊而重新抓取，背景回補 worker 維持獨立。無資料日期、非交易日不補零、不延續前收、不產生假 K 棒。只有一筆就顯示一筆。`lib/history-range.ts` 封裝純日期計算，沒有加入全域狀態或新依賴。
+
+### 已觀察日期之間的長間隔
+
+Lightweight Charts 的 logical time index 只會排列提供的觀察點；只有 2016 單日加上 2026 近期行情時，兩段會相鄰顯示。這不是日期轉換，也不能把 `history.available_from/to` 解讀為連續覆蓋。
+
+`lib/history-gaps.ts` 以排序後前一 bar 的 `last_trade_date` 與下一 bar 的 `first_trade_date` 偵測超過 90 日曆日的間隔，週／月 K 不以 period_start/end 當觀察交易日。90 日只是保守的注意提示，不是交易日曆或缺漏判定。圖表上方明示日期間隔、壓縮顯示與未確認完整性，並提供最近一個長間隔之後的區段切換。原始 bars 不被填補、刪除或改值；無效、重疊或矛盾的觀察日期會阻擋圖表並提示重新讀取。
+
+最近區段按鈕保留目前週／月週期，仍由既有 API 聚合，並向前對齊完整 bucket 以維持圖表／指標一致。它不刪除 2016 真實資料，也不宣稱較近區段的交易日曆已完整。指標仍以全部已保存的前綴暖機；間隔提示說明缺漏可能影響暖機／數值，不另寫前端公式或假定缺少幾個交易日。
+
+本次實際診斷時，2330 只有 49 筆日行情：先前單日驗證的真實 2016-11-07，加上倒序回補到的 2026-08-25～2026-11-05。當時工作處理 146／7,306 個市場日期，仍持續執行；此數字僅為診斷快照，不代表現時進度。沒有移除該 2016 行情或補造中間 K 棒。
+
+間隔提示補充驗證：`npm test` 244 passed（含間隔 helper 16 項、StockDetail 22 項）；Typecheck 與 Docker production build 通過。後端離線 Pytest 683 passed、208 deselected，本次未重跑完整 DB／外網測試集。Chromium 8 passed，新增真實稀疏歷史區間提示與最近區段操作，且核對切換後最早真實觀察仍保存在 API；原有歷史日期、指標、手機及錯誤／空資料驗收保留。僅更新 frontend，history-worker 容器 ID 前後相同、持續執行。沒有新的後端 schema 或 migration。
 
 Decimal 文字在卡片與 tooltip 保留字串精度，包含 `1E-8`／`0E-8`；指數／長度受界限限制。圖表 library 以 JS number 定位像素，僅在繪製邊界轉換；金融文字與漲跌不經 float 計算。拒絕非有限／不安全價格、轉換後無法區分的 OHLC 差異、非法 OHLC、重複日期與非安全整數股數，避免靜默畫錯。上漲紅／下跌綠是**收盤對開盤**的 K 棒顏色，明示並非官方昨收漲跌。
 
@@ -80,7 +96,22 @@ npm run test:browser --workspace @stockapp/web
 
 離線測試涵蓋搜尋／市場／分頁／IME／取消亂序、錯誤與空資料、proxy allowlist／timeout／安全錯誤、Decimal 精度／指數、日期間隙／非法 OHLC／重複與危險數值、chart lifecycle、日週月切換。後端另執行 PostgreSQL／Redis 整合回歸。CI smoke 改驗收新的搜尋頁及同源 instruments proxy；不在 CI 自動下載真實交易所行情。
 
-## 實際驗收
+## 歷史日期控制補充驗收
+
+歷史回補啟用後新增的日期控制，已在同一套 Next.js App Router／FastAPI／PostgreSQL 架構下驗證：
+
+| 檢查 | 本次結果 |
+| --- | --- |
+| `npm test` | 222 passed；含日期範圍純函式 25 項及 StockDetail 16 項 |
+| `npm run typecheck` | 通過 |
+| `docker compose build frontend` | Next.js production build／TypeScript 通過 |
+| Pytest `-m 'not integration and not network'` | 683 passed，208 deselected；本次未重跑完整 PostgreSQL／外網測試集 |
+| Chromium／Playwright | 7 passed，含真實已保存 2016-11-07 的 2330 日／週／月及 SMA(1) 日期／數值一致性 |
+| Worker 保留 | 僅 `docker compose up -d --no-deps frontend` 更新前端；history-worker 容器 ID 前後相同、持續執行 |
+
+測試查詢的歷史行情來自已保存的 TWSE_HISTORY，不產生假 K 棒，也未因瀏覽器驗收觸發交易所下載。手機尺寸與無資料／API 失敗測試繼續通過。原有基本健康服務正常，沒有新增後端 route、Migration、套件或重啟資料庫。回補尚未完成，畫面中的已收錄起訖日不代表中間每個交易日皆完整。README 已補上網站操作及僅更新前端的指令。
+
+## 原 Phase 1D 實際驗收
 
 2026-11-04（Asia/Taipei）於 WSL Ubuntu + Docker Desktop 執行：
 
