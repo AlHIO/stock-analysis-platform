@@ -45,6 +45,8 @@ Phase 2B-1 新增獨立的 institutional 純 Domain，提供法人分類／完�
 
 Phase 2B-2 新增法人專用 source／raw／item audit、不可變 report revisions、原子 canonical 指標與 `0005_institutional_persistence` Migration，並提供 `market_data.public` 的 Instrument Identity Reader。完整 Schema、冪等／並發與晉升政策、獨立測試資料庫指令及非空 downgrade 保護見 [法人 Persistence 規格](docs/specs/phase-2b-persistence.md)。尚未對正式資料庫執行這個 Migration；回補中的環境請另行安排升級時機。本階段沒有 Adapter、CLI 或法人 API。
 
+Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parser 與 Normalizer，固定 Fixture／Mock HTTP 測試不接觸正式資料庫。下載預設關閉；TWSE 權限待確認，且只解析兩個已稽核日期，TPEx 為 latest-only 且自營商明細不完整。能力、使用方式、驗證及後續限制見 [法人 Adapter 規格](docs/specs/phase-2b-adapters.md)。尚未建立法人匯入 CLI 或 API。
+
 ## Docker 啟動（建議）
 
 需求：Docker Engine／Docker Desktop 正常啟動、Docker Compose v2 以上（支援 `up --wait`）。WSL 必須在 Docker Desktop 開啟此 distro 的 WSL integration。

@@ -1,0 +1,24 @@
+[
+  {
+    "Date": "1151106",
+    "SecuritiesCompanyCode": "SYNTH1",
+    "CompanyName": "SYNTHETIC institutional fixture, not real trading",
+    "Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy": "1,200",
+    " Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Sell": "200",
+    "Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Difference": "1,000",
+    "Foreign Dealers-Total Buy": "20",
+    "Foreign Dealers-TotalSell": "30",
+    "ForeignDealers-Difference": "-10",
+    "ForeignInvestorsIncludeMainlandAreaInvestors-TotalBuy": "1,220",
+    "ForeignInvestorsIncludeMainlandAreaInvestors-TotalSell": "230",
+    "ForeignInvestorsInclude MainlandAreaInvestors-Difference": "990",
+    "SecuritiesInvestmentTrustCompanies-TotalBuy": "300",
+    "SecuritiesInvestmentTrustCompanies-TotalSell": "100",
+    "SecuritiesInvestmentTrustCompanies-Difference": "200",
+    "Dealers-TotalBuy": "500",
+    "Dealers-TotalSell": "400",
+    "Dealers-Difference": "100",
+    "Dealers -TotalSell": "150",
+    "TotalDifference": "1,300"
+  }
+]
