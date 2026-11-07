@@ -1,6 +1,6 @@
 # Phase 2 — 開發依賴、工作與驗收
 
-狀態：Phase 2A 規劃，2026-11-07，Asia/Taipei。**本次結束後停止；以下2B–2F均未開始。** 不建立自動交易、Kubernetes、微服務群、排程或未授權資料採購。券商分點維持Deferred，不因Phase編號自動開工。
+狀態更新：2026-11-08，Asia/Taipei。後續已依獨立任務完成 [2B-1 純 Domain](phase-2b-institutional-domain.md) 與 [2B-2 Persistence](phase-2b-persistence.md)；2B-2 未執行正式 Migration，Adapter／CLI／API 及 2C–2F 尚未開始。以下保留 Phase 2A 原工作分解草案，編號與範圍以各次明確任務及實作規格為準。券商分點維持 Deferred，不因 Phase 編號自動開工；不建立自動交易、Kubernetes、微服務群、排程或未授權資料採購。
 
 本計畫依據[來源稽核](phase-2a-data-sources.md)、[Domain／Schema草案](phase-2-domain-model.md)、[API草案](phase-2-api-contract.md)。目前已確認「來源存在」與「小樣本可讀」，不等於所有歷史、完整分類與自動利用權皆已完成。
 
@@ -39,7 +39,7 @@ flowchart LR
 
 ## 3. Phase 2B — 共用匯入基礎與法人日報
 
-子階段範圍更新：使用者後續明確將本次 **Phase 2B-1 限定為純 Domain、必要契約與固定數值測試**，以[法人 Domain 實作規格](phase-2b-institutional-domain.md)為準。以下2B-0～2B-3保留為Phase2A原先的工作分解草案；其中audit資料表、Migration、Adapter與API均未因本次2B-1而開始，須依後續2B-2等任務另行審查範圍。
+子階段範圍更新：使用者將 **Phase 2B-1 限定為純 Domain**，再將 **Phase 2B-2 限定為 Institutional Persistence**，分別以[法人 Domain 規格](phase-2b-institutional-domain.md)與[Persistence 規格](phase-2b-persistence.md)為準。以下 2B-0～2B-3 是原先草案；其中標為「2B-2 Adapter／CLI」的工作尚未實作，不代表本次 Persistence 任務包含這些功能。
 
 ### 2B-0：來源契約與使用權收斂
 

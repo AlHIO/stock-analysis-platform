@@ -43,6 +43,7 @@ class InstrumentRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     __table_args__ = (
         UniqueConstraint("market_id", "symbol", name="uq_instruments_market_symbol"),
+        UniqueConstraint("id", "market_id", name="uq_instruments_id_market"),
         CheckConstraint("symbol = btrim(symbol) AND symbol <> ''", name="symbol_valid"),
         CheckConstraint("name = btrim(name) AND name <> ''", name="name_valid"),
         CheckConstraint("instrument_type IN ('stock','etf','fund','index','preferred_stock','warrant','etn','dr','reit','abs')", name="type_valid"),
@@ -89,6 +90,7 @@ class IngestionRunRecord(Base):
     error_summary: Mapped[str | None] = mapped_column(String(2000))
     stats: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     __table_args__ = (
+        UniqueConstraint("id", "source_id", name="uq_ingestion_runs_id_source"),
         CheckConstraint("status IN ('running','succeeded','failed')", name="status_valid"),
         CheckConstraint("finished_at IS NULL OR finished_at >= started_at", name="timestamps_valid"),
         CheckConstraint("(status = 'running' AND finished_at IS NULL AND error_summary IS NULL) OR "

@@ -43,6 +43,8 @@ TABLES = {
     "markets", "instruments", "trading_calendars", "daily_bars", "data_sources",
     "ingestion_runs", "daily_bar_revisions", "ingestion_requests", "raw_market_payloads", "ingestion_items",
     "history_jobs", "history_days",
+    "institutional_source_audits", "institutional_raw_payloads",
+    "institutional_report_revisions", "institutional_ingestion_items", "institutional_reports",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 
