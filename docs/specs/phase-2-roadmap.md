@@ -39,6 +39,8 @@ flowchart LR
 
 ## 3. Phase 2B — 共用匯入基礎與法人日報
 
+子階段範圍更新：使用者後續明確將本次 **Phase 2B-1 限定為純 Domain、必要契約與固定數值測試**，以[法人 Domain 實作規格](phase-2b-institutional-domain.md)為準。以下2B-0～2B-3保留為Phase2A原先的工作分解草案；其中audit資料表、Migration、Adapter與API均未因本次2B-1而開始，須依後續2B-2等任務另行審查範圍。
+
 ### 2B-0：來源契約與使用權收斂
 
 工作：核實I1與I3的自動利用／保存／網站公開展示條件，或確認官方授權交付方案；記錄含鉅額與原始成交統計範圍、分類生效日期。OpenAPI I2缺少完整自行／避險欄位，不能當作完整替代。未取得授權前只做離線Domain／fixture，不啟動該source自動下載。

@@ -40,6 +40,8 @@ Phase 1D 的前端架構、圖表語意及驗收見 [股票圖表前端規格](d
 
 Phase 1E 的公式、初始化、缺值、精度及 API 合約見 [技術指標規格](docs/specs/phase-1e-technical-indicators.md)。所有功能共用 technical Domain 引擎，沒有新增套件、Migration 或供應商請求。
 
+Phase 2B-1 新增獨立的 institutional 純 Domain，提供法人分類／完整度契約、5／10／20／60 確認交易日累計及連續買賣超計算，尚未接入來源、資料庫或 API。數值、缺失與來源口徑規則，以及不需 Docker 的測試指令見 [法人 Domain 規格](docs/specs/phase-2b-institutional-domain.md)。
+
 ## Docker 啟動（建議）
 
 需求：Docker Engine／Docker Desktop 正常啟動、Docker Compose v2 以上（支援 `up --wait`）。WSL 必須在 Docker Desktop 開啟此 distro 的 WSL integration。
