@@ -27,9 +27,18 @@ def _payload(document: RawDocument) -> dict[str, Any]:
     if document.resource != "quotes" or document.status_code != 200:
         raise ValueError("invalid_history_response")
     try:
-        payload = json.loads(document.body.decode("utf-8-sig"), parse_float=Decimal,
-                             parse_constant=_json_constant)
+        text = document.body.decode("utf-8-sig")
     except (ValueError, AttributeError, UnicodeDecodeError) as exc:
+        raise ValueError("invalid_history_json") from exc
+    # TWSE can serve its maintenance HTML with HTTP 200. Preserve the raw
+    # response and report the provider outage, never treat it as an empty day.
+    if (re.match(r"\s*(?:<!doctype\s+html\b|<html\b)", text, re.IGNORECASE)
+        and re.search(r"<title>\s*網站維護中\s*-\s*臺灣證券交易所\s*</title>",
+                      text, re.IGNORECASE)):
+        raise ValueError("provider_maintenance")
+    try:
+        payload = json.loads(text, parse_float=Decimal, parse_constant=_json_constant)
+    except (ValueError, TypeError) as exc:
         raise ValueError("invalid_history_json") from exc
     if not isinstance(payload, dict):
         raise ValueError("invalid_history_envelope")

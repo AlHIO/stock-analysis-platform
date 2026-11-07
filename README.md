@@ -154,6 +154,24 @@ docker compose run --rm backend stockapp history replay --market twse --date 201
 
 獨立背景 worker 只由 `history` Profile 明確啟動；不建立自動排程，不公開 port。傳輸／權限等永久錯誤會停止，預設不自動重啟。完整來源契約、限制及驗證見[歷史回補規格](docs/specs/taiwan-history-backfill.md)。
 
+`completed_with_gaps` 代表日期都已嘗試，不代表沒有下載失敗；請另外檢查 `counts.failed`。來源恢復後，可先在沒有其他同 job runner 時執行 `history run --job <JOB_UUID> --retry-failed --max-days 2` 驗證少量失敗日期，再以原 UUID 啟動背景 worker 接續剩餘 pending。不要重新 plan 同一範圍。HTTP200 的 TWSE 維護HTML會記 `provider_maintenance`，不當成空資料；同一市場連續三次失敗即停止，另一市場成功不會清零它的失敗計數。301／302／303／307／308等redirect不跟隨、停止本次工作。
+
+### 延伸到目前已確認的最早日期
+
+目前Adapter核實起點為TWSE 2004-02-11、TPEx 2007-04-23，2026-11-07另外少量實測兩日皆回HTTP200、正確日期及可解析行情（980／711列）。不代表所有日期／歷史證券身分皆已完整。
+
+單個job最多3,660日曆日，因此拆成不重疊的兩段：`2007-04-23～2016-11-04 --market all`（6,968個市場／日期）與`2004-02-11～2007-04-22 --market twse`（1,167個）。先查已有工作，**不要重複plan**。本機已建立以下順序清單：
+
+```bash
+# 更新本機手動worker，無需重建網站；勿在另一個同job runner執行時啟動。
+docker compose build history-worker
+HISTORY_JOB_IDS=efa06b94-86ec-41cf-a81a-cbf746b3ab35,0bd32fb5-b135-478f-9bc8-80e191289a61,ba1d630c-7139-4d87-96e3-361ffb58bd6f docker compose --profile history up -d history-worker
+docker compose --profile history logs --tail=10 -f history-worker
+docker compose run --rm history-worker stockapp history status
+```
+
+第一段為原十年工作的失敗日期回補，再自動接續已明確指定的早期兩段。這是一次手動批次清單，沒有排程／自動建立新工作；進度仍由每個job的PostgreSQL checkpoint保存。某段還有未完成／下載failed或遇停止條件時，queue停止，**不跳過失敗段**；partial／unresolved的coverage限制保留。Queue不隱式重試failed，必要時先明確執行原job的`--retry-failed`。`HISTORY_JOB_IDS`優先於舊的單一`HISTORY_JOB_ID`。
+
 ## 股票搜尋與 K 線（Phase 1D）
 
 1. 啟動 Compose，並先完成 Migration。若資料庫仍空，依下方 Phase 1B 指令手動匯入官方資料；開啟頁面不會自動同步。

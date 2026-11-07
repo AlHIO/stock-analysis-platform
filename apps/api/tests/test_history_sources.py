@@ -132,6 +132,25 @@ def test_non_json_scalar_array_or_nonfinite_envelope_is_rejected(key,body):
 
 
 @pytest.mark.parametrize("key", ["twse", "tpex"])
+def test_http_200_twse_maintenance_html_is_an_outage_not_an_empty_day(key):
+    # Synthetic maintenance response; contains no financial observations.
+    body = ('\ufeff <!DOCTYPE html><html><head>'
+            '<title>網站維護中 - 臺灣證券交易所</title>'
+            '</head><body>synthetic maintenance</body></html>').encode()
+    raw = document(key, body)
+    with pytest.raises(ValueError, match="^provider_maintenance$"):
+        decode_history_quotes(raw, key, DAY)
+    assert raw.body == body
+
+
+def test_arbitrary_html_or_json_text_mentioning_maintenance_is_not_reclassified():
+    for body in [b"<html><title>synthetic unknown page</title></html>",
+                 json.dumps({"stat": "網站維護中 - 臺灣證券交易所"}, ensure_ascii=False).encode()]:
+        with pytest.raises(ValueError, match="^invalid_history_(json|status)$"):
+            decode_history_quotes(document(body=body), "twse", DAY)
+
+
+@pytest.mark.parametrize("key", ["twse", "tpex"])
 def test_error_http_response_or_wrong_resource_never_imports(key):
     for changes in ({"status_code":503},{"resource":"catalog"}):
         with pytest.raises(ValueError,match="invalid_history_response"):

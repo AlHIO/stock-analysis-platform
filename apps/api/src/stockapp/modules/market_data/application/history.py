@@ -31,7 +31,8 @@ class HistoricalImportService:
             isinstance(max_seconds, bool) or not math.isfinite(max_seconds) or max_seconds <= 0
         ):
             raise ValueError("max_seconds_must_be_positive_and_finite")
-        processed, consecutive_failures = 0, 0
+        processed = 0
+        consecutive_failures: dict[str, int] = {}
         started, reason = self.clock(), None
         active = None
         with self.store.lock(job_id):
@@ -71,7 +72,9 @@ class HistoricalImportService:
                     self.store.record(active, run_id=report.run_id, status=status,
                                       error_summary=report.error_summary)
                     processed += 1
-                    consecutive_failures = consecutive_failures + 1 if status == "failed" else 0
+                    # A healthy other market must not mask a provider that is
+                    # repeatedly unavailable across interleaved daily tasks.
+                    consecutive_failures[key] = consecutive_failures.get(key, 0) + 1 if status == "failed" else 0
                     if self.progress:
                         self.progress({"event": "history_day", "job_id": str(job_id),
                             "market": key, "requested_date": str(active.trade_date),
@@ -79,11 +82,13 @@ class HistoricalImportService:
                     active = None
                     if status == "failed" and report.error_summary in {
                         "provider_http_400", "provider_http_401", "provider_http_403",
-                        "provider_http_404", "provider_http_302", "provider_response_too_large",
+                        "provider_http_404", "provider_http_301", "provider_http_302",
+                        "provider_http_303", "provider_http_307", "provider_http_308",
+                        "provider_response_too_large",
                     }:
                         reason = "permanent_provider_error"
                         break
-                    if consecutive_failures >= 3:
+                    if consecutive_failures[key] >= 3:
                         reason = "consecutive_provider_failures"
                         break
                 # The currently verified registry cannot prove all expired and

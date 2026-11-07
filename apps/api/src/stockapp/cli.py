@@ -68,6 +68,16 @@ def _provenance(key, scope):
     return {"scope": scope, "attribution": ATTRIBUTION[key], "license": LICENSE}
 
 
+def _queue_job_ids(value: str) -> tuple[UUID, ...]:
+    try:
+        ids = tuple(UUID(part.strip()) for part in value.split(","))
+    except ValueError:
+        raise argparse.ArgumentTypeError("--jobs must be a comma-separated list of UUIDs") from None
+    if not 1 <= len(ids) <= 20 or len(set(ids)) != len(ids):
+        raise argparse.ArgumentTypeError("--jobs requires 1 to 20 unique UUIDs")
+    return ids
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -100,6 +110,9 @@ def _parser():
     run.add_argument("--max-days", type=int, help="Bound this invocation by market/day tasks")
     run.add_argument("--max-seconds", type=float, help="Bound duration between daily transactions")
     run.add_argument("--retry-failed", action="store_true", help="Retry failed days once; partial days remain recorded")
+    queue = actions.add_parser("queue", help="Run existing jobs in order; stop on unfinished or failed dates")
+    queue.add_argument("--jobs", type=_queue_job_ids, required=True,
+                       help="Comma-separated existing job UUIDs in execution order, maximum 20; does not retry failed dates")
     status = actions.add_parser("status", help="Inspect checkpoints, counts and remaining dates")
     status.add_argument("--job", type=UUID)
     replay = actions.add_parser("replay", help="Reprocess an existing history archive without network")
@@ -110,6 +123,69 @@ def _parser():
 
 def _progress(event):
     print(json.dumps(event, ensure_ascii=False, default=str), flush=True)
+
+
+async def _run_history_job(args, store, jobs, settings):
+    job = jobs.get(args.job)
+    if job is None:
+        raise ValueError("history_job_not_found")
+    async with AsyncExitStack() as stack:
+        providers = {key: await stack.enter_async_context(HISTORY_PROVIDERS[key](
+            min_interval=settings.ingestion_min_interval_seconds,
+            max_attempts=settings.ingestion_max_attempts,
+            max_response_bytes=settings.ingestion_max_response_bytes)) for key in job.markets}
+        services = {key: _history_service(store, key) for key in job.markets}
+        return await HistoricalImportService(jobs, imports=services, providers=providers,
+            progress=_progress).run(args.job, max_days=args.max_days,
+                max_seconds=args.max_seconds, retry_failed=args.retry_failed)
+
+
+async def _execute_history_queue(args, store, jobs, settings):
+    # Validate the complete manual queue before the first provider request, so a
+    # typo in a later ID cannot start a partially configured download operation.
+    for job_id in args.jobs:
+        if jobs.get(job_id) is None:
+            raise ValueError("history_job_not_found")
+    reports = []
+    for index, job_id in enumerate(args.jobs):
+        snapshots = jobs.inspect(job_id)
+        if len(snapshots) != 1:
+            raise ValueError("history_job_not_found")
+        snapshot = snapshots[0]
+        already_complete = (
+            snapshot["status"] in {"completed", "completed_with_gaps"}
+            and snapshot.get("remaining_days") == 0
+            and snapshot.get("counts", {}).get("failed") == 0
+        )
+        if already_complete:
+            report = dict(snapshot, stop_reason=None,
+                          canonical_coverage="current_registry_lifetimes_only")
+        else:
+            result = await _run_history_job(argparse.Namespace(
+                job=job_id, max_days=None, max_seconds=None, retry_failed=False,
+            ), store, jobs, settings)
+            if len(result) != 1:
+                raise ValueError("invalid_history_queue_result")
+            report = dict(result[0])
+        reason = report.get("stop_reason")
+        if reason is None and report.get("remaining_days") != 0:
+            reason = "job_has_unfinished_days"
+        if reason is None and report.get("counts", {}).get("failed") != 0:
+            reason = "job_has_failed_days"
+        if reason is None and report["status"] not in {"completed", "completed_with_gaps"}:
+            reason = "job_not_complete"
+        report.update(queue_index=index + 1, queue_total_jobs=len(args.jobs),
+            queued_job_ids_remaining=[str(value) for value in args.jobs[index + 1:]],
+            queue_stop_reason=reason, queue_action="already_complete" if already_complete else "run")
+        reports.append(report)
+        _progress({"event": "history_queue_job", "job_id": str(job_id),
+            "queue_index": index + 1, "status": report["status"],
+            "remaining_days": report.get("remaining_days"),
+            "failed_days": report.get("counts", {}).get("failed"),
+            "queue_stop_reason": reason})
+        if reason is not None:
+            break
+    return reports
 
 
 async def _execute_history(args, store, jobs, settings):
@@ -139,19 +215,10 @@ async def _execute_history(args, store, jobs, settings):
         report = await _history_service(store, args.market).replay_history(args.market, args.date)
         return [asdict(report) | _provenance(args.market, "securities") |
                 {"canonical_coverage": "current_registry_lifetimes_only"}]
+    elif args.history_action == "queue":
+        return await _execute_history_queue(args, store, jobs, settings)
     else:
-        job = jobs.get(args.job)
-        if job is None:
-            raise ValueError("history_job_not_found")
-        async with AsyncExitStack() as stack:
-            providers = {key: await stack.enter_async_context(HISTORY_PROVIDERS[key](
-                min_interval=settings.ingestion_min_interval_seconds,
-                max_attempts=settings.ingestion_max_attempts,
-                max_response_bytes=settings.ingestion_max_response_bytes)) for key in job.markets}
-            services = {key: _history_service(store, key) for key in job.markets}
-            return await HistoricalImportService(jobs, imports=services, providers=providers,
-                progress=_progress).run(args.job, max_days=args.max_days,
-                    max_seconds=args.max_seconds, retry_failed=args.retry_failed)
+        return await _run_history_job(args, store, jobs, settings)
     for report in reports:
         report["canonical_coverage"] = "current_registry_lifetimes_only"
     return reports

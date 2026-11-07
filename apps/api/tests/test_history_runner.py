@@ -14,12 +14,13 @@ from stockapp.modules.market_data.domain.models import IngestionStatus
 
 
 class Jobs:
-    def __init__(self, count=4):
+    def __init__(self, count=4, markets=("twse",)):
         self.job = HistoryJob(start=date(2020, 1, 1), end=date(2020, 1, count),
-            markets=("twse",), storage_baseline_bytes=100, max_growth_bytes=1000)
-        self.days = [HistoryDay(job_id=self.job.id, market="twse",
-            trade_date=self.job.end - timedelta(days=i), attempts=1) for i in range(count)]
-        self.states = {day.trade_date: "pending" for day in self.days}
+            markets=markets, storage_baseline_bytes=100, max_growth_bytes=1000)
+        self.days = [HistoryDay(job_id=self.job.id, market=market,
+            trade_date=self.job.end - timedelta(days=i), attempts=1)
+            for i in range(count) for market in markets]
+        self.states = {(day.market, day.trade_date): "pending" for day in self.days}
         self.size, self.results, self.locked, self.retries = 100, [], False, []
 
     def get(self, job_id): return self.job
@@ -42,13 +43,14 @@ class Jobs:
     def next_day(self, job_id):
         assert self.locked
         for day in self.days:
-            if self.states[day.trade_date] == "pending":
-                self.states[day.trade_date] = "running"
+            key = day.market, day.trade_date
+            if self.states[key] == "pending":
+                self.states[key] = "running"
                 return day
         return None
 
     def record(self, day, run_id, status, error_summary=None):
-        self.states[day.trade_date] = status
+        self.states[day.market, day.trade_date] = status
         self.results.append((day, status, error_summary))
 
     def finish(self, job_id, status): self.job = replace(self.job, status=status)
@@ -58,8 +60,9 @@ class Jobs:
 
 
 class Importer:
-    def __init__(self, results=None, after=None):
+    def __init__(self, results=None, after=None, key="twse"):
         self.results, self.after, self.calls = list(results or []), after, []
+        self.key = key
 
     async def sync_date(self, provider, day, catalog_run_id=None):
         self.calls.append(day)
@@ -71,7 +74,7 @@ class Importer:
         elif outcome == "partial": error = "Partial coverage: unresolved identities"
         elif outcome != "succeeded": error = outcome
         if self.after: self.after()
-        return ImportReport(run_id=uuid4(), provider="twse", trade_date=day,
+        return ImportReport(run_id=uuid4(), provider=self.key, trade_date=day,
             status=IngestionStatus.SUCCEEDED if outcome in {"succeeded", "no_data"} else IngestionStatus.FAILED,
             stats=stats, error_summary=error)
 
@@ -137,6 +140,46 @@ def test_permission_failure_stops_without_probing_other_dates():
     jobs, importer = Jobs(), Importer(["provider_http_403"])
     result = run(jobs, importer)[0]
     assert len(importer.calls) == 1 and result["stop_reason"] == "permanent_provider_error"
+
+
+@pytest.mark.parametrize("failure", ["provider_timeout", "provider_maintenance", "invalid_history_json"])
+def test_other_market_success_does_not_reset_provider_failures(failure):
+    jobs = Jobs(markets=("twse", "tpex"))
+    twse, tpex = Importer([failure] * 3), Importer(key="tpex")
+    result = asyncio.run(HistoricalImportService(jobs,
+        imports={"twse": twse, "tpex": tpex},
+        providers={"twse": object(), "tpex": object()}).run(jobs.job.id))[0]
+
+    assert len(twse.calls) == 3 and len(tpex.calls) == 2
+    assert [day.market for day, _, _ in jobs.results] == ["twse", "tpex", "twse", "tpex", "twse"]
+    assert [state for _, state, _ in jobs.results] == ["failed", "succeeded", "failed", "succeeded", "failed"]
+    assert result["stop_reason"] == "consecutive_provider_failures"
+    assert result["status"] == "interrupted" and result["remaining_days"] == 3
+    assert not jobs.locked
+
+
+@pytest.mark.parametrize("recovered", ["succeeded", "partial", "no_data"])
+def test_provider_recovery_resets_only_its_own_failure_streak(recovered):
+    jobs = Jobs(count=5, markets=("twse", "tpex"))
+    twse = Importer(["provider_maintenance", "provider_timeout", recovered,
+                     "provider_timeout", "provider_maintenance"])
+    tpex = Importer(key="tpex")
+    result = asyncio.run(HistoricalImportService(jobs,
+        imports={"twse": twse, "tpex": tpex},
+        providers={"twse": object(), "tpex": object()}).run(jobs.job.id))[0]
+
+    assert len(twse.calls) == len(tpex.calls) == 5
+    assert result["stop_reason"] is None
+    assert result["status"] == "completed_with_gaps" and result["remaining_days"] == 0
+    assert not jobs.locked
+
+
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+def test_redirect_stops_without_requesting_other_dates(status):
+    jobs, importer = Jobs(), Importer([f"provider_http_{status}"])
+    result = run(jobs, importer)[0]
+    assert len(importer.calls) == 1 and result["stop_reason"] == "permanent_provider_error"
+    assert result["remaining_days"] == 3
 
 
 def test_cancellation_records_interrupted_attempt_and_releases_lock():

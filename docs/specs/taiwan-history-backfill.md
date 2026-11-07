@@ -56,7 +56,7 @@ Migration `0004_history_backfill` 新增兩張表、history mode 與 catalog ref
 
 日期狀態：pending、running、succeeded、partial、no_data、failed。Partial 保留有效列，預設視為該次處理的終態，避免無限下載無法確認的歷史證券；failed 日期只有明確 `--retry-failed` 才重試一次。Job 執行全程持有 schema／job 隔離的 PostgreSQL advisory lock，來源每日操作仍持市場鎖，避免同一工作或市場重疊寫入。重新啟動取得鎖後，將上次未完成 running 日期恢復 pending；原始回應與 canonical PK 保護中斷後重送。
 
-每 host 預設至少 5 秒間距、最多 3 次有限重試與既有 timeout／response-size 上限。400／401／403／404／302 等永久錯誤不跨日期反覆嘗試；連續三個日期工作失敗時停止本次 runner。沒有繞過封鎖、登入、驗證碼或使用非官方替代資料。
+每 host 預設至少 5 秒間距、最多 3 次有限重試與既有 timeout／response-size 上限。400／401／403／404及301／302／303／307／308 redirect等錯誤不跨日期反覆嘗試，也不跟隨redirect；**同一市場**連續三個日期工作失敗時停止本次 runner。兩市場交錯處理時，另一市場成功不會清零失敗市場的計數；同市場成功／partial／no_data才重置自身計數。HTTP200且含已確認TWSE維護頁title的HTML明確記 `provider_maintenance`，仍完整保存raw，不當成JSON行情或空交易日。其他未知HTML仍是格式失敗，不能猜測為無資料。沒有繞過封鎖、登入、驗證碼或使用非官方替代資料。
 
 `--max-days`／`--max-seconds` 都在日期交易之間檢查；完成的日保留，未完成日等待下次續跑。以建立工作時 `pg_database_size` 為基準，預設資料庫增量達 100 GiB 就停止，不刪資料。status 同時提供 current_database_bytes／database_growth_bytes。預算可在 plan 以 `--max-growth-gb` 設定 1–1000 GiB；它涵蓋共享 DB 的所有寫入，不是精準單一 job 配額，也不能保證 Windows 實體磁碟空間。執行時間與磁碟使用以實際進度衡量。
 
@@ -91,6 +91,25 @@ docker compose --profile history logs --tail=20 history-worker
 ```
 
 狀態與累積筆數隨背景工作變動，以 status 輸出及 PostgreSQL checkpoint 為準；不要將本文件建立時的數字當成全十年已下載完成。
+
+2026-11-07續跑檢查：原十年工作已嘗試7,306個日期工作，pending/running皆0，但仍有607個failed（489個TWSE維護HTML造成的invalid_history_json、115個TWSE timeout、1個TWSE307、1個TPEx timeout、1個TPEx520），因此不能宣稱回補完成。股票與ETF皆已有真實資料，例如2330、0050／0056及上櫃006201；上市2017–2019仍有下載缺口。先修正市場別失敗計數與維護頁分類，再以原job `--retry-failed` 回補缺口；不新建重疊範圍、不刪除先前raw。這是當次續跑前快照，後續以status為準。
+
+使用者另於2026-11-07明確要求延伸到各市場已確認可查的最早日期。本次以原有官方Adapter實測TWSE 2004-02-11（HTTP200、980列）及TPEx 2007-04-23（HTTP200、711列），核對回應日期與schema，未猜測更早舊格式。另建立兩個不重疊job：
+
+| job | 日期／市場 | checkpoint數 |
+| --- | --- | ---: |
+| `0bd32fb5-b135-478f-9bc8-80e191289a61` | 2007-04-23～2016-11-04，twse/tpex | 6,968 |
+| `ba1d630c-7139-4d87-96e3-361ffb58bd6f` | 2004-02-11～2007-04-22，twse | 1,167 |
+
+兩段各自維持DB增量100GiB預算；預算以各自建立時的共享DB大小為基準，不是三段累積只有100GiB。尚未處理的日期仍為pending，不把plan或樣本查詢當成已匯入。每個段落不超過3,660日曆日；股票、ETF等皆沿用scope=securities及既有歷史身分／單位驗證。
+
+新增`stockapp history queue --jobs UUID,UUID,...`與Compose `HISTORY_JOB_IDS`，僅依明確清單循序執行最多20個不同job，起跑前驗證全部存在。沒有排程、自動擴增範圍或新的schema。先完成原十年失敗日，再執行上述兩段；任何job尚有pending/running、下載failed或停止原因則不啟動後段。只有日期已處理且下載failed=0才往下一段；completed_with_gaps中的partial/no_data/歷史身分限制仍保留，不改成完整覆蓋。`--retry-failed`仍是原run的顯式操作，queue不自行重置failed。完整啟動／續跑清單見README；單一HISTORY_JOB_ID指令仍可使用。
+
+少量實測重試已恢復TPEx 2023-03-16與TWSE 2019-02-27，新增1,857筆有效canonical（其中175筆ETF）；其餘605個原失敗日期已恢復pending等待續跑。這是驗證快照，非全部較早歷史已完成。
+
+三段清單已於本機`stockapp-history-worker-1`背景啟動；啟動後確認TWSE 2019-02-26另新增1,018筆有效行情（其中98筆ETF），正在由原checkpoint往前補。四個網站服務仍healthy、`/health/ready`回200且PostgreSQL／Redis皆ok。後段兩份工作仍是已建立／排隊，不稱為早期資料已全部匯入。
+
+2026-11-07本次程式修正驗證：`cd apps/api && RUN_INTEGRATION=1 ../../.tools/api-venv/bin/python -m pytest -m 'not network' -q`為**918 passed、2 deselected**（獨立network tests）、1項既有Starlette/httpx deprecation warning。含真實PostgreSQL／Redis及全部Phase1回歸，DB測試用私有schema。Vitest **244 passed**；Typecheck、Production Build、OpenAPI snapshot、預設／history Profile的Compose config、worker image build與`git diff --check`通過。Frontend build產生的next-env已恢復，沒有前端功能變更。來源起點與失敗日期的真實下載驗證另記於上文，沒有以fixture當正式資料；沒有新migration、commit、push或進入Phase2B。
 
 本機已啟動 `stockapp-history-worker-1`，首個完成的 checkpoint 為 TPEx 2026-11-05：來源 13,679 列、有效新增 5,664、無成交 8,009、缺價拒絕 6、歷史身分 unresolved 0，run `b49c10ee-2a53-4982-b423-317214b08caa`。該日為 partial 並繼續下一日，非整批失敗或十年已完成。首次狀態快照為 processed 1／running 1／pending 7,304，之後會持續變動。
 

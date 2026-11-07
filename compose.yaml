@@ -59,7 +59,7 @@ services:
       INGESTION_MIN_INTERVAL_SECONDS: ${INGESTION_MIN_INTERVAL_SECONDS:-5}
       INGESTION_MAX_ATTEMPTS: ${INGESTION_MAX_ATTEMPTS:-3}
       INGESTION_MAX_RESPONSE_BYTES: ${INGESTION_MAX_RESPONSE_BYTES:-20000000}
-    command: ["stockapp", "history", "run", "--job", "${HISTORY_JOB_ID:-00000000-0000-0000-0000-000000000000}"]
+    command: ["stockapp", "history", "queue", "--jobs", "${HISTORY_JOB_IDS:-${HISTORY_JOB_ID:-00000000-0000-0000-0000-000000000000}}"]
     stop_signal: SIGINT
     stop_grace_period: 5m
     healthcheck:
