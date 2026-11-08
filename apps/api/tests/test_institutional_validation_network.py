@@ -21,6 +21,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from test_market_data_postgres import database  # noqa: F401
+from stockapp.chip_status import get_chip_status_service
 from stockapp.config import Settings
 from stockapp.modules.institutional.api.dependencies import get_institutional_service
 from stockapp.modules.institutional.api.routes import router, install_error_handlers
@@ -125,6 +126,7 @@ def test_real_tpex_raw_audit_repeat_sync_and_api_respect_canonical_gate(database
                 session.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'))
                 yield InstitutionalQueryService(SqlAlchemyInstitutionalQueryRepository(session))
         app.dependency_overrides[get_institutional_service] = dependency
+        app.dependency_overrides[get_chip_status_service] = dependency
         def forbidden_network(*args, **kwargs):
             pytest.fail('GET API fetched an external provider')
         monkeypatch.setattr(httpx.AsyncClient, 'request', forbidden_network)

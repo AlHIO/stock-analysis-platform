@@ -1,6 +1,15 @@
 {
   "components": {
     "schemas": {
+      "AdjustmentConvention": {
+        "enum": [
+          "shortfall_magnitude",
+          "signed_delta",
+          "unverified"
+        ],
+        "title": "AdjustmentConvention",
+        "type": "string"
+      },
       "AggregationRole": {
         "enum": [
           "leaf",
@@ -317,6 +326,15 @@
         ],
         "title": "BarsResponse",
         "type": "object"
+      },
+      "BucketKind": {
+        "enum": [
+          "regular",
+          "adjustment",
+          "total"
+        ],
+        "title": "BucketKind",
+        "type": "string"
       },
       "CalculationInputSchema": {
         "additionalProperties": false,
@@ -870,6 +888,103 @@
           "completeness"
         ],
         "title": "HistorySchema",
+        "type": "object"
+      },
+      "HoldingBucketSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "holder_count": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Holder Count"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BucketKind"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lower_inclusive": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lower Inclusive"
+          },
+          "missing": {
+            "default": false,
+            "title": "Missing",
+            "type": "boolean"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "reported_percent": {
+            "anyOf": [
+              {
+                "decimal_places": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Percent"
+          },
+          "upper_inclusive": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upper Inclusive"
+          }
+        },
+        "required": [
+          "code",
+          "kind",
+          "label",
+          "lower_inclusive",
+          "upper_inclusive",
+          "holder_count",
+          "quantity",
+          "reported_percent"
+        ],
+        "title": "HoldingBucketSchema",
         "type": "object"
       },
       "IndicatorPointSchema": {
@@ -2092,6 +2207,1652 @@
         "title": "NetResultSchema",
         "type": "object"
       },
+      "OwnershipAuditCountsSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "minimum": 0.0,
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "rejected": {
+            "minimum": 0.0,
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "skipped": {
+            "minimum": 0.0,
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "unresolved": {
+            "minimum": 0.0,
+            "title": "Unresolved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted",
+          "rejected",
+          "unresolved",
+          "skipped"
+        ],
+        "title": "OwnershipAuditCountsSchema",
+        "type": "object"
+      },
+      "OwnershipCapabilitiesSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "archive": {
+            "title": "Archive",
+            "type": "boolean"
+          },
+          "automated_ingestion_enabled": {
+            "const": false,
+            "title": "Automated Ingestion Enabled",
+            "type": "boolean"
+          },
+          "date_query": {
+            "title": "Date Query",
+            "type": "boolean"
+          },
+          "latest": {
+            "title": "Latest",
+            "type": "boolean"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "license_status": {
+            "enum": [
+              "verified_open",
+              "unresolved"
+            ],
+            "title": "License Status",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manual": {
+            "title": "Manual",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "latest",
+          "date_query",
+          "archive",
+          "manual",
+          "license_status",
+          "license",
+          "automated_ingestion_enabled",
+          "limitations"
+        ],
+        "title": "OwnershipCapabilitiesSchema",
+        "type": "object"
+      },
+      "OwnershipCompleteness": {
+        "enum": [
+          "complete",
+          "partial",
+          "not_verified"
+        ],
+        "title": "OwnershipCompleteness",
+        "type": "string"
+      },
+      "OwnershipCoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "enum": [
+              "not_verified",
+              "partial",
+              "verified_for_declared_scope"
+            ],
+            "title": "Completeness",
+            "type": "string"
+          },
+          "declared_scope": {
+            "title": "Declared Scope",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "known_missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Known Missing Dates",
+            "type": "array"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored_from",
+          "stored_to",
+          "completeness",
+          "declared_scope",
+          "expected_dates_known",
+          "known_missing_dates",
+          "truncated"
+        ],
+        "title": "OwnershipCoverageSchema",
+        "type": "object"
+      },
+      "OwnershipDistributionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "$ref": "#/components/schemas/OwnershipCoverageSchema"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/OwnershipFreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnershipPointSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "requested_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested As Of Date"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions",
+          "requested_as_of_date"
+        ],
+        "title": "OwnershipDistributionResponse",
+        "type": "object"
+      },
+      "OwnershipFreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "expected_frequency": {
+            "const": "1w",
+            "title": "Expected Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest As Of Date"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          }
+        },
+        "required": [
+          "latest_as_of_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "age_calendar_days",
+          "assessment",
+          "expected_frequency",
+          "is_realtime"
+        ],
+        "title": "OwnershipFreshnessSchema",
+        "type": "object"
+      },
+      "OwnershipHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/OwnershipCoverageSchema"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/OwnershipFreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipPointSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "from",
+          "to",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions"
+        ],
+        "title": "OwnershipHistoryResponse",
+        "type": "object"
+      },
+      "OwnershipLatestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "$ref": "#/components/schemas/OwnershipCoverageSchema"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/OwnershipFreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnershipPointSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions"
+        ],
+        "title": "OwnershipLatestResponse",
+        "type": "object"
+      },
+      "OwnershipMetricInputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustment_value_convention": {
+            "$ref": "#/components/schemas/AdjustmentConvention"
+          },
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "bucket_scheme_version": {
+            "title": "Bucket Scheme Version",
+            "type": "string"
+          },
+          "denominator": {
+            "const": "depository_inventory",
+            "title": "Denominator",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "identity_evidence_version": {
+            "title": "Identity Evidence Version",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "normalized_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Normalized Hash",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "as_of_date",
+          "revision_id",
+          "source_id",
+          "run_id",
+          "raw_id",
+          "source_contract_version",
+          "parser_version",
+          "bucket_scheme_version",
+          "adjustment_value_convention",
+          "quantity_unit",
+          "denominator",
+          "identity_evidence_version",
+          "promotion_policy_version",
+          "source_row_locator",
+          "normalized_hash",
+          "source_published_on",
+          "source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at"
+        ],
+        "title": "OwnershipMetricInputSchema",
+        "type": "object"
+      },
+      "OwnershipMetricParametersSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "threshold": {
+            "maxLength": 20,
+            "pattern": "^-?(?:0|[1-9][0-9]*)$",
+            "title": "Threshold",
+            "type": "string"
+          },
+          "threshold_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Threshold Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "threshold",
+          "threshold_unit"
+        ],
+        "title": "OwnershipMetricParametersSchema",
+        "type": "object"
+      },
+      "OwnershipMetricResultSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "const": "ownership-metrics-1.0.0",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "current_ratio": {
+            "anyOf": [
+              {
+                "decimal_places": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Ratio"
+          },
+          "denominator_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denominator Quantity"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_refs": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipMetricInputSchema"
+            },
+            "title": "Input Refs",
+            "type": "array"
+          },
+          "metric": {
+            "enum": [
+              "ownership_large_holder_percent",
+              "ownership_large_holder_change_pp"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Dates",
+            "type": "array"
+          },
+          "numerator_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "pattern": "^(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numerator Quantity"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/OwnershipMetricParametersSchema"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/OwnershipPrecisionSchema"
+          },
+          "previous_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous As Of Date"
+          },
+          "previous_ratio": {
+            "anyOf": [
+              {
+                "decimal_places": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Ratio"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "schedule_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Version"
+          },
+          "selected_bucket_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Bucket Codes",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OwnershipMetricStatus"
+          },
+          "threshold": {
+            "maxLength": 20,
+            "pattern": "^-?(?:0|[1-9][0-9]*)$",
+            "title": "Threshold",
+            "type": "string"
+          },
+          "threshold_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Threshold Unit",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "percent",
+              "percentage_points"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "decimal_places": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "value",
+          "status",
+          "unit",
+          "reasons",
+          "threshold",
+          "threshold_unit",
+          "as_of_date",
+          "previous_as_of_date",
+          "numerator_quantity",
+          "denominator_quantity",
+          "selected_bucket_codes",
+          "formula",
+          "input_refs",
+          "schedule_version",
+          "missing_dates",
+          "current_ratio",
+          "previous_ratio",
+          "algorithm_version",
+          "precision",
+          "parameters"
+        ],
+        "title": "OwnershipMetricResultSchema",
+        "type": "object"
+      },
+      "OwnershipMetricStatus": {
+        "enum": [
+          "complete",
+          "unsupported",
+          "unavailable",
+          "not_verified",
+          "missing_data",
+          "incompatible_data"
+        ],
+        "title": "OwnershipMetricStatus",
+        "type": "string"
+      },
+      "OwnershipMetricsPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "change_pp": {
+            "$ref": "#/components/schemas/OwnershipMetricResultSchema"
+          },
+          "ratio": {
+            "$ref": "#/components/schemas/OwnershipMetricResultSchema"
+          }
+        },
+        "required": [
+          "as_of_date",
+          "ratio",
+          "change_pp"
+        ],
+        "title": "OwnershipMetricsPointSchema",
+        "type": "object"
+      },
+      "OwnershipMetricsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "const": "ownership-metrics-1.0.0",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/OwnershipCoverageSchema"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/OwnershipFreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipMetricsPointSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/OwnershipPrecisionSchema"
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/OwnershipScheduleSchema"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "threshold": {
+            "maxLength": 20,
+            "pattern": "^-?(?:0|[1-9][0-9]*)$",
+            "title": "Threshold",
+            "type": "string"
+          },
+          "threshold_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Threshold Unit",
+            "type": "string"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "from",
+          "to",
+          "items",
+          "count",
+          "next_cursor",
+          "threshold",
+          "threshold_unit",
+          "read_at",
+          "coverage",
+          "freshness",
+          "source_contract_versions",
+          "schedule",
+          "algorithm_version",
+          "precision"
+        ],
+        "title": "OwnershipMetricsResponse",
+        "type": "object"
+      },
+      "OwnershipPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustment_value_convention": {
+            "$ref": "#/components/schemas/AdjustmentConvention"
+          },
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "bucket_scheme_version": {
+            "title": "Bucket Scheme Version",
+            "type": "string"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/HoldingBucketSchema"
+            },
+            "maxItems": 64,
+            "title": "Buckets",
+            "type": "array"
+          },
+          "denominator": {
+            "const": "depository_inventory",
+            "title": "Denominator",
+            "type": "string"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/OwnershipProvenanceSchema"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/OwnershipQualitySchema"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "source_total_holders": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Total Holders"
+          },
+          "source_total_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Total Quantity"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/OwnershipTimingSchema"
+          }
+        },
+        "required": [
+          "as_of_date",
+          "frequency",
+          "timing",
+          "provenance",
+          "quantity_unit",
+          "denominator",
+          "bucket_scheme_version",
+          "adjustment_value_convention",
+          "source_total_holders",
+          "source_total_quantity",
+          "buckets",
+          "quality"
+        ],
+        "title": "OwnershipPointSchema",
+        "type": "object"
+      },
+      "OwnershipPrecisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "internal_digits": {
+            "const": 50,
+            "title": "Internal Digits",
+            "type": "integer"
+          },
+          "output_decimal_places": {
+            "const": 12,
+            "title": "Output Decimal Places",
+            "type": "integer"
+          },
+          "rounding": {
+            "const": "ROUND_HALF_EVEN",
+            "title": "Rounding",
+            "type": "string"
+          }
+        },
+        "required": [
+          "internal_digits",
+          "output_decimal_places",
+          "rounding"
+        ],
+        "title": "OwnershipPrecisionSchema",
+        "type": "object"
+      },
+      "OwnershipProvenanceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "identity_evidence_version": {
+            "title": "Identity Evidence Version",
+            "type": "string"
+          },
+          "normalized_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Normalized Hash",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/OwnershipSourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "revision_id",
+          "run_id",
+          "raw_id",
+          "source_row_locator",
+          "parser_version",
+          "source_contract_version",
+          "promotion_policy_version",
+          "identity_evidence_version",
+          "normalized_hash"
+        ],
+        "title": "OwnershipProvenanceSchema",
+        "type": "object"
+      },
+      "OwnershipQualitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "domain_completeness": {
+            "$ref": "#/components/schemas/OwnershipCompleteness"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "missing_bucket_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Bucket Codes",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "verified",
+              "partial",
+              "not_verified"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "domain_completeness",
+          "flags",
+          "unavailable_reasons",
+          "missing_bucket_codes"
+        ],
+        "title": "OwnershipQualitySchema",
+        "type": "object"
+      },
+      "OwnershipRunSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "has_partial_data": {
+            "title": "Has Partial Data",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "safe_failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Failure Code"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "has_partial_data",
+          "safe_failure_code",
+          "counts"
+        ],
+        "title": "OwnershipRunSchema",
+        "type": "object"
+      },
+      "OwnershipScheduleSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "covered_from": {
+            "format": "date",
+            "title": "Covered From",
+            "type": "string"
+          },
+          "covered_to": {
+            "format": "date",
+            "title": "Covered To",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "covered_from",
+          "covered_to",
+          "verified",
+          "version"
+        ],
+        "title": "OwnershipScheduleSchema",
+        "type": "object"
+      },
+      "OwnershipSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "OwnershipSourceSchema",
+        "type": "object"
+      },
+      "OwnershipSourceStatusSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_counts": {
+            "$ref": "#/components/schemas/OwnershipAuditCountsSchema"
+          },
+          "candidate_count": {
+            "minimum": 0.0,
+            "title": "Candidate Count",
+            "type": "integer"
+          },
+          "canonical_count": {
+            "minimum": 0.0,
+            "title": "Canonical Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/OwnershipCapabilitiesSchema"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/OwnershipCoverageSchema"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "last_successful_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnershipRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_canonical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Canonical Date"
+          },
+          "latest_reported_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reported As Of Date"
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnershipRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "raw_count": {
+            "minimum": 0.0,
+            "title": "Raw Count",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/OwnershipStatusSourceSchema"
+          }
+        },
+        "required": [
+          "key",
+          "product",
+          "frequency",
+          "source",
+          "capabilities",
+          "latest_run",
+          "last_successful_run",
+          "latest_reported_as_of_date",
+          "latest_canonical_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "canonical_count",
+          "candidate_count",
+          "raw_count",
+          "audit_counts",
+          "coverage"
+        ],
+        "title": "OwnershipSourceStatusSchema",
+        "type": "object"
+      },
+      "OwnershipStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "const": "1w",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipSourceStatusSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "ownership_weekly",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "is_realtime"
+        ],
+        "title": "OwnershipStatusResponse",
+        "type": "object"
+      },
+      "OwnershipStatusSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "OwnershipStatusSourceSchema",
+        "type": "object"
+      },
+      "OwnershipTimingSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "timezone_name": {
+            "const": "Asia/Taipei",
+            "title": "Timezone Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of_date",
+          "source_published_on",
+          "source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at",
+          "timezone_name"
+        ],
+        "title": "OwnershipTimingSchema",
+        "type": "object"
+      },
       "PreviousObservedSchema": {
         "additionalProperties": false,
         "properties": {
@@ -3171,7 +4932,7 @@
   "paths": {
     "/api/v1/chip-data/status": {
       "get": {
-        "description": "Read saved ingestion metadata and capabilities; no public import operation.",
+        "description": "Read source/run metadata; ownership is global and rejects market filters.",
         "operationId": "institutional_source_status",
         "parameters": [
           {
@@ -3179,8 +4940,11 @@
             "name": "product",
             "required": false,
             "schema": {
-              "const": "institutional_daily",
               "default": "institutional_daily",
+              "enum": [
+                "institutional_daily",
+                "ownership_weekly"
+              ],
               "title": "Product",
               "type": "string"
             }
@@ -3257,7 +5021,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InstitutionalStatusResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/InstitutionalStatusResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OwnershipStatusResponse"
+                    }
+                  ],
+                  "title": "Response Institutional Source Status"
                 }
               }
             },
@@ -3271,7 +5043,7 @@
                 }
               }
             },
-            "description": "Stock not found or unsupported"
+            "description": "Not Found"
           },
           "422": {
             "content": {
@@ -3281,7 +5053,7 @@
                 }
               }
             },
-            "description": "Invalid or excessive institutional query"
+            "description": "Unprocessable Entity"
           },
           "503": {
             "content": {
@@ -3291,12 +5063,13 @@
                 }
               }
             },
-            "description": "Institutional data temporarily unavailable"
+            "description": "Service Unavailable"
           }
         },
-        "summary": "Institutional Status",
+        "summary": "Chip Data Status",
         "tags": [
-          "Institutional trading"
+          "Institutional trading",
+          "Chip data status"
         ]
       }
     },
@@ -4349,6 +6122,463 @@
         "summary": "Get Latest",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/ownership": {
+      "get": {
+        "description": "Return complete stored weekly snapshots without splitting a report's buckets.",
+        "operationId": "ownership_weekly_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive ownership query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Ownership data temporarily unavailable"
+          }
+        },
+        "summary": "Ownership History",
+        "tags": [
+          "Ownership distribution"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/ownership/distribution": {
+      "get": {
+        "description": "Show regular, adjustment and total rows separately for one exact snapshot.",
+        "operationId": "ownership_bucket_distribution",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact statistics date; omit for latest saved report.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact statistics date; omit for latest saved report.",
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipDistributionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive ownership query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Ownership data temporarily unavailable"
+          }
+        },
+        "summary": "Ownership Distribution",
+        "tags": [
+          "Ownership distribution"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/ownership/latest": {
+      "get": {
+        "description": "Latest saved canonical snapshot; point=null when no report is stored.",
+        "operationId": "ownership_latest_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive ownership query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Ownership data temporarily unavailable"
+          }
+        },
+        "summary": "Ownership Latest",
+        "tags": [
+          "Ownership distribution"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/ownership/metrics": {
+      "get": {
+        "description": "Exact bucket-aligned ratios and source-confirmed weekly percentage-point changes.",
+        "operationId": "ownership_large_holder_metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "description": "Inclusive threshold in base quantity. A cutoff inside a bucket is unsupported; e.g. 400001 shares is exact, 400000 is not.",
+            "in": "query",
+            "name": "threshold",
+            "required": false,
+            "schema": {
+              "default": 400001,
+              "description": "Inclusive threshold in base quantity. A cutoff inside a bucket is unsupported; e.g. 400001 shares is exact, 400000 is not.",
+              "ge": 1,
+              "le": 9223372036854775807,
+              "title": "Threshold",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "threshold_unit",
+            "required": false,
+            "schema": {
+              "default": "shares",
+              "enum": [
+                "shares",
+                "units"
+              ],
+              "title": "Threshold Unit",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive ownership query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Ownership data temporarily unavailable"
+          }
+        },
+        "summary": "Ownership Metrics",
+        "tags": [
+          "Ownership distribution"
         ]
       }
     },

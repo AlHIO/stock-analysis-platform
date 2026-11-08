@@ -1,6 +1,6 @@
 # Phase 2 — REST API Contract 草案
 
-狀態更新：2026-11-08，Asia/Taipei。Phase 2B-5 實作本文件的 institutional history／latest、產品內 metrics 與 institutional-only chip-data/status，runtime OpenAPI及snapshot隨實作更新。其餘ownership／margin／lending／泛用chip-metrics仍是未實作提案，不因本次任務開始後續階段。
+狀態更新：2026-11-08，Asia/Taipei。Phase 2B-5 實作本文件的 institutional history／latest、產品內 metrics 與 institutional-only chip-data/status，runtime OpenAPI及snapshot隨實作更新。Phase 2C-2已實作ownership history／latest／distribution／metrics及ownership status（[實作規格](phase-2c-ownership-api.md)）；margin／lending／泛用chip-metrics仍是未實作提案，不因本次任務開始後續階段。
 
 ### Phase 2B-5 與早期草案的差異
 
@@ -33,6 +33,8 @@
 | `/api/v1/stocks/{id}/institutional/latest` | trade_scope；最新**已保存**一份，不宣稱最新官方／即時資料                                                        | 2B              |
 | `/api/v1/stocks/{id}/institutional/metrics` | from/to、trade_scope、category、period=5/10/20/60或省略回四組；daily/cumulative/streak附Domain狀態與lineage | 2B-5 |
 | `/api/v1/stocks/{id}/ownership`            | from/to（統計日期）、limit/cursor/order；完整週報級距                                                            | 2C              |
+| `/api/v1/stocks/{id}/ownership/distribution` | as_of可選，指定統計日的完整分布；無資料不沿用其他日 | 2C-2 |
+| `/api/v1/stocks/{id}/ownership/metrics` | from/to、threshold整數基礎量、threshold_unit=shares/units、limit/cursor/order；ratio／change_pp | 2C-2 |
 | `/api/v1/stocks/{id}/ownership/latest`     | 最新已保存的 TDCC 統計週報                                                                                       | 2C              |
 | `/api/v1/stocks/{id}/margin`               | from/to、`balance_scope`、limit/cursor/order；融資與融券兩個 leg                                                 | 2D              |
 | `/api/v1/stocks/{id}/lending`              | from/to、`report_kind=borrowed_positions\|lending_short_sales`、trade_scope、lending_channel、limit/cursor/order | 2E              |
@@ -134,7 +136,7 @@ Phase 2B 起，每個新增 route 必須同步 runtime OpenAPI、`apps/api/opena
 5. 下游API失敗或空資料不觸發對外HTTP；使用DB repository與固定明示合成fixtures完成離線測試。
 6. 真實PostgreSQL隔離schema測試 FK/CHECK/去重／transaction、read snapshot與Phase1無退化；network smoke另獨立且只於授權端點少量執行。
 
-Institutional可執行範例見README；以下ownership示例仍未實作：
+Institutional與Ownership可執行範例見README；ownership門檻使用基礎量，400000／1000000切穿級距回unsupported，400001／1000001可計算。正式週報schedule未核實時weekly change回not_verified／null。TDCC status是global dataset，market篩選回422；未知／不支援ownership市場回404。
 
 ```bash
 curl 'http://localhost:8000/api/v1/stocks/<UUID>/ownership/latest'

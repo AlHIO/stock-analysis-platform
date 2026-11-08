@@ -69,19 +69,10 @@ def institutional_metrics(
                            category=Category(category), period=period)
 
 
-@router.get("/chip-data/status", response_model=InstitutionalStatusResponse,
-            responses=ERROR_RESPONSES, operation_id="institutional_source_status")
-def institutional_status(
-    service: Service,
-    product: Annotated[Literal["institutional_daily"], Query()] = "institutional_daily",
-    market: Annotated[Literal["TWSE", "TPEX"] | None, Query()] = None,
-    source_code: Annotated[str | None, Query(max_length=100)] = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 100,
-    cursor: Annotated[str | None, Query(max_length=2048)] = None,
-) -> dict:
-    """Read saved ingestion metadata and capabilities; no public import operation."""
-    return service.status(product=product, market=market, source_code=source_code,
-                          limit=limit, cursor=cursor)
+# Dataset status is composed once at the root; keep this nested route so the
+# existing Institutional router retains its public status path.
+from stockapp.chip_status import router as chip_status_router
+router.include_router(chip_status_router)
 
 
 def install_error_handlers(app: FastAPI) -> None:
@@ -96,8 +87,8 @@ def install_error_handlers(app: FastAPI) -> None:
     async def invalid_response(request: Request, exc: ResponseValidationError):
         path = request.url.path
         if path == "/api/v1/chip-data/status" or re.fullmatch(
-            r"/api/v1/stocks/[^/]+/institutional(?:/latest|/metrics)?", path):
+            r"/api/v1/stocks/[^/]+/(?:institutional(?:/latest|/metrics)?|ownership(?:/latest|/metrics|/distribution)?)", path):
             return JSONResponse(status_code=503, content=ErrorResponse(detail={
-                "code": "invalid_stored_chip_data", "message": "Institutional data is temporarily unavailable.",
+                "code": "invalid_stored_chip_data", "message": "Chip data is temporarily unavailable.",
                 "errors": None}).model_dump(mode="json"))
         return PlainTextResponse("Internal Server Error", status_code=500)

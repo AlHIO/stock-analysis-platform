@@ -83,7 +83,25 @@ docker compose run --rm backend stockapp ownership replay --raw <RAW_UUID>
 docker compose run --rm backend stockapp ownership replay --resume <RUN_UUID>
 ```
 
-Host安裝版可用`.tools/api-venv/bin/stockapp ownership ...`。Evidence格式見規格；本機已核對且僅適用2026-11-06的檔案在`.tools/validation/phase-2c1/identity-evidence.json`，不可當成其他週的通用證據。`sync date`不支援；replay不連外。CLI退出碼2可表示partial：2330成功保存，但其他4,114組仍unresolved。Regular／adjustment／total分開，百分比保留來源值。這次沒有新增集保REST API或前端。
+Host安裝版可用`.tools/api-venv/bin/stockapp ownership ...`。Evidence格式見規格；本機已核對且僅適用2026-11-06的檔案在`.tools/validation/phase-2c1/identity-evidence.json`，不可當成其他週的通用證據。`sync date`不支援；replay不連外。CLI退出碼2可表示partial：2330成功保存，但其他4,114組仍unresolved。Regular／adjustment／total分開，百分比保留來源值。該子階段沒有新增集保REST API或前端；API已在2C-2加入。
+
+## 集保查詢與大戶比例 API（Phase 2C-2）
+
+可查已保存的Latest／Weekly History／Distribution／大戶比例與來源狀態，完整契約與公式見 [集保 API 規格](docs/specs/phase-2c-ownership-api.md)。目前只有2330／2026-11-06一週，比例可計算，週變化因缺前一週與verified schedule回null。
+
+```bash
+INSTRUMENT_ID="$(curl --fail --silent 'http://localhost:8000/api/v1/instruments?symbol=2330&market=TWSE&instrument_type=stock' | python3 -c 'import json,sys; print(next(x["id"] for x in json.load(sys.stdin)["items"] if x["symbol"]=="2330"))')"
+curl --fail "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/ownership/latest"
+curl --fail --get "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/ownership" \
+  --data-urlencode 'from=2026-01-01' --data-urlencode 'to=2026-11-06' --data-urlencode 'limit=250'
+curl --fail "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/ownership/distribution?as_of=2026-11-06"
+curl --fail --get "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/ownership/metrics" \
+  --data-urlencode 'from=2026-01-01' --data-urlencode 'to=2026-11-06' \
+  --data-urlencode 'threshold=400001' --data-urlencode 'threshold_unit=shares'
+curl --fail 'http://localhost:8000/api/v1/chip-data/status?product=ownership_weekly'
+```
+
+`threshold`是inclusive基礎股數／受益單位，沒有張數自動轉換。400,000股／1,000,000股切穿級距會回unsupported，不估算；400,001股／1,000,001股可精確計算。Financial值是字串，週變化單位是percentage_points，缺失為null。所有GET只讀PostgreSQL canonical，不在請求時抓TDCC；status是全市場dataset，不支援market篩選。本次沒有新Migration或前端畫面，可在 <http://localhost:8000/docs> 查看契約。
 
 ## 法人查詢 API（Phase 2B-5）
 
@@ -510,4 +528,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2C-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2C-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

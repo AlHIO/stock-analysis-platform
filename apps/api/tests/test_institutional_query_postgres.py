@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from test_market_data_postgres import database  # noqa: F401
 from stockapp.main import create_app
+from stockapp.chip_status import get_chip_status_service
 from stockapp.modules.institutional.domain.calculations import InstitutionalCalculator
 from stockapp.modules.institutional.domain.models import (
     CalendarSnapshot, Category, FactLineage, InstitutionalDailyReport,
@@ -166,6 +167,7 @@ def client_for(database, *, confirmed=False):
             session.execute(text("SET TRANSACTION READ ONLY"))
             yield query_service(session, confirmed=confirmed)
     app.dependency_overrides[get_institutional_service] = dependency
+    app.dependency_overrides[get_chip_status_service] = dependency
     return TestClient(app)
 
 

@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 
 from test_institutional_query_service import START, report, service
 from stockapp.main import create_app
+from stockapp.chip_status import get_chip_status_service
 from stockapp.modules.institutional.api.dependencies import get_institutional_service
 from stockapp.modules.institutional.api.routes import install_error_handlers, router
 from stockapp.modules.institutional.api.schemas import DerivedQuantity, SourceQuantity, FactTimingSchema
@@ -28,6 +29,7 @@ def api():
     install_market_errors(app)
     install_error_handlers(app)
     app.dependency_overrides[get_institutional_service] = lambda: app_service
+    app.dependency_overrides[get_chip_status_service] = lambda: app_service
     with TestClient(app) as client:
         yield client, app_service, repository, days
 
