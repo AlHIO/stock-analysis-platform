@@ -43,11 +43,11 @@ Phase 1E 的公式、初始化、缺值、精度及 API 合約見 [技術指標�
 
 Phase 2B-1 新增獨立的 institutional 純 Domain，提供法人分類／完整度契約、5／10／20／60 確認交易日累計及連續買賣超計算，尚未接入來源、資料庫或 API。數值、缺失與來源口徑規則，以及不需 Docker 的測試指令見 [法人 Domain 規格](docs/specs/phase-2b-institutional-domain.md)。
 
-Phase 2B-2 新增法人專用 source／raw／item audit、不可變 report revisions、原子 canonical 指標與 `0005_institutional_persistence` Migration，並提供 `market_data.public` 的 Instrument Identity Reader。完整 Schema、冪等／並發與晉升政策、獨立測試資料庫指令及非空 downgrade 保護見 [法人 Persistence 規格](docs/specs/phase-2b-persistence.md)。尚未對正式資料庫執行這個 Migration；回補中的環境請另行安排升級時機。本階段沒有 Adapter、CLI 或法人 API。
+Phase 2B-2 新增法人專用 source／raw／item audit、不可變 report revisions、原子 canonical 指標與 `0005_institutional_persistence` Migration，並提供 `market_data.public` 的 Instrument Identity Reader。完整 Schema、冪等／並發與晉升政策、獨立測試資料庫指令及非空 downgrade 保護見 [法人 Persistence 規格](docs/specs/phase-2b-persistence.md)。回補中的環境請另行安排升級時機；本機後續依授權完成的升級見下方紀錄。
 
 Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parser 與 Normalizer，固定 Fixture／Mock HTTP 測試不接觸正式資料庫。下載預設關閉；TWSE 權限待確認，且只解析兩個已稽核日期，TPEx 為 latest-only 且自營商明細不完整。能力、使用方式、驗證及後續限制見 [法人 Adapter 規格](docs/specs/phase-2b-adapters.md)。尚未建立法人匯入 CLI 或 API。
 
-Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／transaction 與可續跑 checkpoint，詳見 [法人匯入規格](docs/specs/phase-2b-ingestion.md)。尚未對正式資料庫套用新 Migration；TWSE 停用、TPEx 僅最新 partial 資料，沒有法人 API／UI。
+Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／transaction 與可續跑 checkpoint，詳見 [法人匯入規格](docs/specs/phase-2b-ingestion.md)。本機 `stockapp/public` 已於2026-11-08依明確授權由0004升級至 `0006_institutional_jobs`，Schema及現有網站驗證通過，見[升級紀錄](docs/operations/institutional-migration-2026-11-08.md)。TWSE 停用、TPEx 僅最新 partial 能力；Migration沒有新增法人 API／UI或匯入法人資料。
 
 ## 法人手動匯入（Phase 2B-4）
 
@@ -305,33 +305,66 @@ curl 'http://localhost:8000/api/v1/data/status'
 .venv/bin/python apps/api/scripts/export_openapi.py --check
 ```
 
-# Phase 2 — Shared Engineering Rules
+# Phase 2 — Shared Engineering Rules (Revised)
 
-本專案採 Spec-Driven Development，請遵守以下規則：
+Repository: AlHIO/stock-analysis-platform
 
-1. 開始前閱讀 AGENTS.md、README.md、docs/specs/phase-2-roadmap.md、相關 Phase 2 規格與現有程式碼。
-2. 先檢查目前 Repository 狀態，避免重做已完成功能。
-3. 每次只完成指定子階段，不自行進入下一階段。
-4. 維持 Modular Monolith：API → Application → Domain，Infrastructure 實作 Domain Ports。
-5. Domain 不得依賴 FastAPI、SQLAlchemy、Redis 或第三方供應商 SDK。
-6. 重用既有 Instrument UUID、DataSource、IngestionRun、交易日曆與公開介面。
-7. 外部資料必須經過 Adapter、Raw、Normalization、Validation、Revision、Canonical 流程。
-8. 缺失值不得當成零；不可虛構資料、交易日、發布時間或歷史完整度。
-9. 金融計算須使用明確精度及單位規則；沿用既有 Decimal 計算策略。
-10. 官方來源必須先核實資料使用權。尚未核可的來源預設停用，不得只因 HTTP 200 就啟用自動抓取。
-11. 新資料表使用 Alembic；不得直接覆寫或破壞 Phase 1 正式資料。
-12. 新增 API 時更新 Pydantic Schema、OpenAPI Snapshot、測試與文件。
-13. 每個子階段需有固定數值測試、錯誤情境及回歸測試。
-14. 不得自行 commit、push、部署、執行 destructive migration 或刪除 Docker Volume。
-15. 完成後回報新增檔案、架構決策、實際測試結果、未執行項目與下一階段依賴。
+本專案使用 Spec-Driven Development，所有開發必須遵循既有 AGENTS.md、README.md、Architecture 與 Phase 2 Specifications。
 
-重要：Phase 1 歷史回補 Worker 可能仍正在執行。
+## Development Policy
 
-在未確認回補完成或資源已完全隔離以前，不得停止、重建或重啟正在執行的 Container，也不得修改共用正式資料庫 Schema。
+1. 開始前檢查目前 Repository 的實際狀態、已完成模組與測試。
+2. 優先沿用現有 Domain、Application、Infrastructure、API 分層。
+3. 不重新實作已完成的功能或計算公式。
+4. 可以修改 PostgreSQL Schema、建立 Alembic Migration、更新 Repository 與執行整合測試。
+5. 可以執行 Docker Compose、重新建置相關 Container、啟動必要服務。
+6. 可以使用已核實且獲准使用的真實官方金融資料進行資料匯入驗證。
+7. 可以執行 PostgreSQL、Redis、Backend、Frontend 的完整整合測試。
+8. 如果發現既有 Schema 或 API 有設計缺陷，允許提出並實作必要的向後相容修正。
 
-允許先撰寫 Migration 和獨立環境測試，但不得未經確認直接作用於正式資料庫。
+## Data Safety
 
-如果某項驗收因權限、資料授權、環境或歷史回補狀態而無法執行，請保留為明確 Blocker，不得以假資料或推測結果宣稱完成。
+- 保留 Phase 1 已匯入的真實歷史行情。
+- 不得執行 docker compose down -v。
+- 不得清空 PostgreSQL Volume。
+- 不得使用 DROP TABLE / TRUNCATE 清除既有正式資料。
+- 執行 Migration 前先檢查 Schema、Migration History、資料量及可能的資料損失。
+- 若 Migration 可能造成資料損失，先停止並提出 Migration Plan。
+- 不得使用 synthetic fixtures 冒充真實行情。
+- 外部來源授權未確認時，保持 disabled，不得繞過限制。
+
+## Testing
+
+每個階段依實際變更執行：
+
+- Pytest Unit Tests
+- PostgreSQL Integration Tests
+- Alembic Migration Tests
+- Vitest
+- TypeScript Typecheck
+- Next.js Production Build
+- OpenAPI Contract Validation
+- Playwright E2E（涉及前端時）
+- Docker Compose Health Checks
+
+優先使用現有隔離測試 Schema，避免測試污染已匯入的真實資料。
+
+## Completion
+
+每個階段完成後必須提供：
+
+1. 修改或新增的檔案。
+2. Database Migration 與 Schema 變更。
+3. 實際執行的測試及結果。
+4. 真實資料匯入與 API 驗證結果（如適用）。
+5. 發現並修正的問題。
+6. 尚未完成的功能或資料來源限制。
+7. 下一階段所需的前置條件。
+
+可以執行必要的 Migration、Docker 啟動與測試，但不得自行 commit、push、公開部署或進入下一個 Phase。
+
+只有本次指定的子階段完成後才停止。
+
 
 ## 本機開發
 

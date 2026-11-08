@@ -67,6 +67,7 @@ test("search 2330 and inspect real stored daily, weekly and monthly candles", as
   ).toBeVisible();
   const figure = page.getByLabel("日 K與成交量圖");
   expect(await figure.locator("canvas").count()).toBeGreaterThanOrEqual(4);
+  await figure.scrollIntoViewIfNeeded();
   const canvasBox = await figure.locator('[aria-hidden="true"]').boundingBox();
   expect(canvasBox).not.toBeNull();
   // Walk the actual chart until the existing candle receives the crosshair.
