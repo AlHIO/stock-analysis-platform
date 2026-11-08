@@ -78,6 +78,51 @@ def _queue_job_ids(value: str) -> tuple[UUID, ...]:
     return ids
 
 
+def _institutional_date(value: str) -> date:
+    try:
+        day = date.fromisoformat(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Use a valid YYYY-MM-DD date") from None
+    if value != day.isoformat():
+        raise argparse.ArgumentTypeError("Use a valid YYYY-MM-DD date")
+    return day
+
+
+def _institutional_limit(value: str) -> int:
+    try:
+        limit = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("--limit must be between 1 and 100") from None
+    if not 1 <= limit <= 100:
+        raise argparse.ArgumentTypeError("--limit must be between 1 and 100")
+    return limit
+
+
+def _register_institutional(commands):
+    institutional = commands.add_parser("institutional", help="Manual institutional ingestion and archive inspection")
+    actions = institutional.add_subparsers(dest="institutional_action", required=True)
+    sync = actions.add_parser("sync", help="Fetch only sources with approved download rights")
+    modes = sync.add_subparsers(dest="institutional_sync_mode", required=True)
+    for mode in ("latest", "date"):
+        command = modes.add_parser(mode)
+        command.add_argument("--market", choices=["twse", "tpex"], default="tpex")
+        command.add_argument("--identity-evidence", type=Path,
+                             help="Reviewed dated Instrument UUID evidence; missing evidence remains unresolved")
+        if mode == "date":
+            command.add_argument("--date", type=_institutional_date, required=True,
+                                 help="YYYY-MM-DD; sources without date-query capability reject this operation")
+        else:
+            command.set_defaults(date=None)
+    replay = actions.add_parser("replay", help="Replay archived bytes or resume a persisted checkpoint without network")
+    selection = replay.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--raw", type=UUID, help="Archived raw UUID; creates a new replay run")
+    selection.add_argument("--resume", type=UUID, help="Resume an existing nonterminal run using its frozen plan")
+    replay.add_argument("--identity-evidence", type=Path, help="Dated evidence for a new --raw replay only")
+    status = actions.add_parser("status", help="Read institutional run outcomes, checkpoint and item audits")
+    status.add_argument("--id", type=UUID)
+    status.add_argument("--limit", type=_institutional_limit, default=20)
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -118,6 +163,7 @@ def _parser():
     replay = actions.add_parser("replay", help="Reprocess an existing history archive without network")
     replay.add_argument("--market", choices=["twse", "tpex"], required=True)
     replay.add_argument("--date", type=date.fromisoformat, required=True)
+    _register_institutional(commands)
     return parser
 
 
@@ -246,13 +292,22 @@ async def _execute(args, store, settings):
 
 
 def main(argv=None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if (args.command == "institutional" and args.institutional_action == "replay"
+        and args.resume is not None and args.identity_evidence is not None):
+        parser.error("--identity-evidence is only valid for a new --raw replay; resume uses frozen evidence")
     # Also support running the installed CLI from the monorepo root. Docker
     # configuration comes from environment variables, not copied secret files.
     engine = None
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "institutional":
+            from stockapp.modules.institutional.infrastructure import operations
+            reports = asyncio.run(operations.execute(engine, args, settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            return operations.exit_code(args, reports)
         store = SqlAlchemyIngestionStore(engine)
         if args.command == "history":
             reports = asyncio.run(_execute_history(args, store, SqlAlchemyHistoryStore(engine), settings))
@@ -270,8 +325,16 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "institutional":
+            from stockapp.modules.institutional.domain.sources import InstitutionalSourceError
+            if isinstance(exc, InstitutionalSourceError):
+                print(json.dumps({"error": type(exc).__name__, "code": exc.code,
+                    "hint": "Inspect stockapp institutional status; unsupported sources and dates remain disabled"}))
+                return 2
         print(json.dumps({"error": type(exc).__name__,
-                          "hint": "Check database connectivity, apply alembic upgrade head, then inspect stockapp runs"}))
+                          "hint": ("Check database connectivity and approved institutional migrations, then inspect stockapp institutional status"
+                                   if args.command == "institutional" else
+                                   "Check database connectivity, apply alembic upgrade head, then inspect stockapp runs")}))
         return 1
     finally:
         if engine is not None:

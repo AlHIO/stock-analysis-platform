@@ -45,6 +45,7 @@ TABLES = {
     "history_jobs", "history_days",
     "institutional_source_audits", "institutional_raw_payloads",
     "institutional_report_revisions", "institutional_ingestion_items", "institutional_reports",
+    "institutional_ingestion_jobs",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

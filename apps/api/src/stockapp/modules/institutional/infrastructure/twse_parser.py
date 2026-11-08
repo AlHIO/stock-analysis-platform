@@ -66,6 +66,12 @@ LEGACY_FIELDS = _fields(_LEGACY_FLOW_FIELDS)
 def _identity(value, maximum):
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > maximum:
         raise InstitutionalSourceError("invalid_identity")
+    try:
+        value.encode("utf-8")
+    except UnicodeError:
+        raise InstitutionalSourceError("invalid_identity") from None
+    if "\x00" in value:
+        raise InstitutionalSourceError("invalid_identity")
     return value.strip()
 
 

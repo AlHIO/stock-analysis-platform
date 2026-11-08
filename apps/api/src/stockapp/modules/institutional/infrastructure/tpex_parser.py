@@ -68,6 +68,12 @@ _EXPECTED_COLUMNS = frozenset(field.strip() for field in TPEX_OPENAPI_FIELDS)
 def _identity_text(value, *, maximum):
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > maximum:
         raise InstitutionalSourceError("invalid_source_identity")
+    try:
+        value.encode("utf-8")
+    except UnicodeError:
+        raise InstitutionalSourceError("invalid_source_identity") from None
+    if "\x00" in value:
+        raise InstitutionalSourceError("invalid_source_identity")
     return value.strip()
 
 

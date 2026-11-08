@@ -47,6 +47,32 @@ Phase 2B-2 新增法人專用 source／raw／item audit、不可變 report revis
 
 Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parser 與 Normalizer，固定 Fixture／Mock HTTP 測試不接觸正式資料庫。下載預設關閉；TWSE 權限待確認，且只解析兩個已稽核日期，TPEx 為 latest-only 且自營商明細不完整。能力、使用方式、驗證及後續限制見 [法人 Adapter 規格](docs/specs/phase-2b-adapters.md)。尚未建立法人匯入 CLI 或 API。
 
+Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／transaction 與可續跑 checkpoint，詳見 [法人匯入規格](docs/specs/phase-2b-ingestion.md)。尚未對正式資料庫套用新 Migration；TWSE 停用、TPEx 僅最新 partial 資料，沒有法人 API／UI。
+
+## 法人手動匯入（Phase 2B-4）
+
+以下使用已安裝的 `stockapp`（安裝方式見本機開發）。先將 `DATABASE_URL` 指向核准的獨立測試資料庫並套用 `0006_institutional_jobs`；不要直接對回補中的正式資料庫執行 Migration。本機專案環境可將 `stockapp` 替換成 `.tools/api-venv/bin/stockapp`。
+
+```bash
+# 一次手動同步核准的 TPEx 最新資料；不指定或推測官方交易日
+stockapp institutional sync latest --market tpex
+stockapp institutional sync latest --market tpex --identity-evidence /path/to/reviewed-evidence.json
+
+# 語法支援日期要求；目前會明確拒絕（TPEx latest-only、TWSE使用權pending）
+stockapp institutional sync date --market tpex --date 2026-11-06
+stockapp institutional sync date --market twse --date 2026-11-06
+
+stockapp institutional status --limit 20
+stockapp institutional status --id <RUN_UUID>
+
+# 用status的selected_raw_id重播：建立新run，保留原fetched_at，不下載
+stockapp institutional replay --raw <RAW_UUID>
+# 續跑尚未結束的checkpoint，沿用凍結版本與身分證據，不下載
+stockapp institutional replay --resume <RUN_UUID>
+```
+
+沒有已核實 dated Instrument UUID 證據時，真實資料會保留 raw 並標 unresolved；evidence 檔格式見規格。TPEx 缺完整自營商分類且 scope 未確認，即使成功保存報表也只成為 candidate，不能宣稱完整 canonical。status 區分 succeeded／failed／partial／running，並列 accepted、partial、rejected、unresolved 與 promotion 數量；退出碼0／2／1分別表示成功、資料或能力未完整、基礎設施錯誤。沒有建立排程，也不會啟動 history-worker。
+
 ## Docker 啟動（建議）
 
 需求：Docker Engine／Docker Desktop 正常啟動、Docker Compose v2 以上（支援 `up --wait`）。WSL 必須在 Docker Desktop 開啟此 distro 的 WSL integration。

@@ -8,13 +8,15 @@ from typing import TYPE_CHECKING
 from .domain.identity import (
     IdentityResolution, IdentityStatus, InstrumentIdentity, InstrumentIdentityReader,
 )
+from .domain.runtime import RuntimeRegistry, RuntimeRun
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
 __all__ = (
     "IdentityResolution", "IdentityStatus", "InstrumentIdentity",
-    "InstrumentIdentityReader", "instrument_identity_reader",
+    "InstrumentIdentityReader", "instrument_identity_reader", "RuntimeRegistry", "RuntimeRun",
+    "market_data_runtime",
 )
 
 
@@ -22,3 +24,9 @@ def instrument_identity_reader(session: "Session") -> InstrumentIdentityReader:
     from .infrastructure.identity_reader import SqlAlchemyInstrumentIdentityReader
 
     return SqlAlchemyInstrumentIdentityReader(session)
+
+
+def market_data_runtime(session: "Session") -> RuntimeRegistry:
+    from .infrastructure.runtime_registry import SqlAlchemyRuntimeRegistry
+
+    return SqlAlchemyRuntimeRegistry(session)
