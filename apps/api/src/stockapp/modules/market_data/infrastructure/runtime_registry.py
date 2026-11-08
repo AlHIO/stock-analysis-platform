@@ -32,6 +32,17 @@ class SqlAlchemyRuntimeRegistry:
         self.sources = SqlAlchemyDataSourceRepository(session)
         self.runs = SqlAlchemyIngestionRunRepository(session)
 
+    def ensure_source(self, *, source_code: str, source_name: str, source_type: str = "file") -> UUID:
+        """Register a global source without inventing an exchange/market."""
+        source = DataSource(code=source_code, name=source_name, source_type=SourceType(source_type))
+        self.session.execute(pg_insert(DataSourceRecord.__table__).values(
+            **(asdict(source) | {"source_type": source.source_type.value}))
+            .on_conflict_do_nothing(index_elements=["code"]))
+        saved = self.sources.get_by_code(source_code)
+        if saved is None:
+            raise ValueError("reference_registration_failed")
+        return saved.id
+
     def ensure_market_source(self, *, market_code: str, market_name: str,
                              source_code: str, source_name: str) -> tuple[UUID, UUID]:
         market = Market(code=market_code, name=market_name, timezone="Asia/Taipei", currency="TWD")

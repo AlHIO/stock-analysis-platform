@@ -1,6 +1,6 @@
 # Stock Analysis Platform
 
-台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、SMA／EMA／RSI／MACD／成交量均線、官方日行情匯入 CLI 與 REST API。行情僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
+台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、SMA／EMA／RSI／MACD／成交量均線、官方日行情匯入 CLI、REST API 與 TDCC 集保週資料匯入管線。行情僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
 
 ## 目錄與邊界
 
@@ -15,6 +15,7 @@ apps/
         application/     日行情正規化、驗證與匯入服務
       modules/technical/ Decimal 指標引擎、歷史輸入 Port、Application 與版本化 API
       modules/institutional/ 法人 Domain、typed revisions、audit 與 PostgreSQL repositories
+      modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -50,6 +51,39 @@ Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parse
 Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／transaction 與可續跑 checkpoint，詳見 [法人匯入規格](docs/specs/phase-2b-ingestion.md)。本機 `stockapp/public` 已於2026-11-08依明確授權由0004升級至 `0006_institutional_jobs`，Schema及現有網站驗證通過，見[升級紀錄](docs/operations/institutional-migration-2026-11-08.md)。TWSE 停用、TPEx 僅最新 partial 能力；Migration沒有新增法人 API／UI或匯入法人資料。
 
 Phase 2B-5 新增法人 History／Latest／Metrics／Source Status REST API，讀取既有 PostgreSQL canonical，直接重用 Domain Calculator；完整契約、snapshot 與交易日曆限制見 [法人 API 規格](docs/specs/phase-2b-api.md)。沒有新 Migration 或法人 UI；TWSE 使用權、TPEx partial／candidate 限制繼續保留。
+
+Phase 2B-6 已完成軟體端到端與回歸驗收；已核准TPEx真實raw／audit驗證通過，但TWSE使用權、TPEx交易口徑／dated identity及verified日曆仍使真實canonical→API驗收Blocked。正式法人資料仍為0，沒有以Fixture補齊。詳見 [完整驗收報告與重跑指令](docs/specs/phase-2b-validation.md)。
+
+```bash
+# 建立獨立臨時DB執行完整離線驗收，結束只清除測試DB
+.tools/api-venv/bin/python apps/api/scripts/run_institutional_validation.py
+# 明確啟用已核准TPEx最新資料的隔離驗證；不啟用TWSE
+.tools/api-venv/bin/python apps/api/scripts/run_institutional_validation.py --live-tpex
+```
+
+## 集保週資料匯入（Phase 2C-1）
+
+新增ownership模組、TDCC官方CSV管線與`0007_ownership` Migration。完整公式、Schema、身分證據與驗證見 [集保匯入規格](docs/specs/phase-2c-ownership-ingestion.md)。目前實際canonical僅 **2330、2026-11-06一週**；完整Raw有4,115組，其餘因身分證據未核實維持unresolved，不宣稱十年歷史。
+
+```bash
+# 本機已升至0007；其他環境先檢查再執行必要升級
+docker compose build backend
+docker compose up -d --no-deps --wait backend
+docker compose exec backend alembic current
+# docker compose exec backend alembic upgrade head
+
+# 最新來源；缺少reviewed evidence時保留raw／audit，不猜市場UUID
+docker compose run --rm backend stockapp ownership sync latest
+docker compose run --rm backend stockapp ownership status --limit 20
+# 使用已審查的host evidence檔（替換絕對路徑）
+# docker compose run --rm -v /absolute/reviewed-evidence.json:/evidence.json:ro backend \
+#   stockapp ownership sync latest --identity-evidence /evidence.json
+
+docker compose run --rm backend stockapp ownership replay --raw <RAW_UUID>
+docker compose run --rm backend stockapp ownership replay --resume <RUN_UUID>
+```
+
+Host安裝版可用`.tools/api-venv/bin/stockapp ownership ...`。Evidence格式見規格；本機已核對且僅適用2026-11-06的檔案在`.tools/validation/phase-2c1/identity-evidence.json`，不可當成其他週的通用證據。`sync date`不支援；replay不連外。CLI退出碼2可表示partial：2330成功保存，但其他4,114組仍unresolved。Regular／adjustment／total分開，百分比保留來源值。這次沒有新增集保REST API或前端。
 
 ## 法人查詢 API（Phase 2B-5）
 
@@ -476,4 +510,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2B-5；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2C-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

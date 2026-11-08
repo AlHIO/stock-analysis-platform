@@ -46,6 +46,9 @@ TABLES = {
     "institutional_source_audits", "institutional_raw_payloads",
     "institutional_report_revisions", "institutional_ingestion_items", "institutional_reports",
     "institutional_ingestion_jobs",
+    "ownership_source_audits", "ownership_raw_payloads", "ownership_bucket_schemes",
+    "ownership_bucket_definitions", "ownership_weekly_revisions", "ownership_bucket_values",
+    "ownership_ingestion_items", "ownership_weekly", "ownership_ingestion_jobs",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

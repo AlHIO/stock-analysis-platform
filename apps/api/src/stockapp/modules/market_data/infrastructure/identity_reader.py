@@ -44,6 +44,14 @@ class SqlAlchemyInstrumentIdentityReader:
             )).mappings().one_or_none()
         return self._identity(row)
 
+    def find_by_symbol(self, symbol: str) -> tuple[InstrumentIdentity, ...]:
+        if not isinstance(symbol, str) or not symbol or symbol != symbol.strip() or len(symbol) > 32:
+            raise ValueError("symbol must be nonblank trimmed text of at most 32 characters")
+        with self.session.no_autoflush:
+            rows = self.session.execute(self._query().where(InstrumentRecord.symbol == symbol)
+                .order_by(MarketRecord.code, InstrumentRecord.id)).mappings().all()
+        return tuple(self._identity(row) for row in rows)
+
     def resolve(
         self, market_id: UUID, symbol: str, *, as_of: date | None = None,
     ) -> IdentityResolution:

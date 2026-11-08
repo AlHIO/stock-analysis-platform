@@ -76,6 +76,10 @@ class IdentityResolution:
 
 
 class InstrumentIdentityReader(Protocol):
+    def find_by_symbol(self, symbol: str) -> tuple[InstrumentIdentity, ...]:
+        """Return all current candidates; never silently select a market or historical identity."""
+        ...
+
     def get_by_id(self, instrument_id: UUID) -> InstrumentIdentity | None:
         """Read known UUID metadata without asserting historical symbol validity."""
         ...

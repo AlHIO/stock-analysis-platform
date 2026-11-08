@@ -7,6 +7,9 @@ from stockapp.modules.institutional.infrastructure import models as institutiona
 from stockapp.modules.institutional.infrastructure import ingestion_models as institutional_ingestion_models  # noqa: F401
 
 
+from stockapp.modules.ownership.infrastructure import models as ownership_models  # noqa: F401
+
+
 def migrate(connection):
     context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
     with context.begin_transaction():

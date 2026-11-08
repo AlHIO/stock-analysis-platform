@@ -123,6 +123,23 @@ def _register_institutional(commands):
     status.add_argument("--limit", type=_institutional_limit, default=20)
 
 
+def _register_ownership(commands):
+    ownership = commands.add_parser("ownership", help="Manual TDCC weekly ownership snapshots")
+    actions = ownership.add_subparsers(dest="ownership_action", required=True)
+    sync = actions.add_parser("sync", help="Fetch the approved latest CSV only")
+    modes = sync.add_subparsers(dest="ownership_sync_mode", required=True)
+    latest = modes.add_parser("latest")
+    latest.add_argument("--identity-evidence", type=Path, help="Reviewed market/UUID/date evidence; missing identity stays unresolved")
+    replay = actions.add_parser("replay", help="Replay archived CSV or resume a frozen checkpoint without downloading")
+    choice = replay.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--raw", type=UUID)
+    choice.add_argument("--resume", type=UUID)
+    replay.add_argument("--identity-evidence", type=Path)
+    status = actions.add_parser("status", help="Inspect ownership counts, lineage and unresolved reports")
+    status.add_argument("--id", type=UUID)
+    status.add_argument("--limit", type=_institutional_limit, default=20)
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -164,6 +181,7 @@ def _parser():
     replay.add_argument("--market", choices=["twse", "tpex"], required=True)
     replay.add_argument("--date", type=date.fromisoformat, required=True)
     _register_institutional(commands)
+    _register_ownership(commands)
     return parser
 
 
@@ -297,12 +315,20 @@ def main(argv=None) -> int:
     if (args.command == "institutional" and args.institutional_action == "replay"
         and args.resume is not None and args.identity_evidence is not None):
         parser.error("--identity-evidence is only valid for a new --raw replay; resume uses frozen evidence")
+    if (args.command == "ownership" and args.ownership_action == "replay"
+        and args.resume is not None and args.identity_evidence is not None):
+        parser.error("--identity-evidence is only valid for a new --raw replay; resume uses frozen evidence")
     # Also support running the installed CLI from the monorepo root. Docker
     # configuration comes from environment variables, not copied secret files.
     engine = None
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "ownership":
+            from stockapp.modules.ownership.infrastructure import operations
+            reports = asyncio.run(operations.execute(engine, args, settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            return operations.exit_code(args, reports)
         if args.command == "institutional":
             from stockapp.modules.institutional.infrastructure import operations
             reports = asyncio.run(operations.execute(engine, args, settings))
@@ -325,6 +351,12 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "ownership":
+            from stockapp.modules.ownership.domain.models import OwnershipError
+            if isinstance(exc, OwnershipError):
+                print(json.dumps({"error": type(exc).__name__, "code": exc.code,
+                    "hint": "Inspect stockapp ownership status; latest-only and identity gates remain enforced"}))
+                return 2
         if args.command == "institutional":
             from stockapp.modules.institutional.domain.sources import InstitutionalSourceError
             if isinstance(exc, InstitutionalSourceError):
