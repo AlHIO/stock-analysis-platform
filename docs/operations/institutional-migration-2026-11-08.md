@@ -23,6 +23,7 @@
 - 前端同源proxy可搜尋真實已保存2330；升級前後最新bar完全一致，交易日為2026-11-05。
 - 2026-10-01～2026-11-05查詢：日K23根、週K6根、月K2根，皆HTTP200且非空。不以此宣稱全部歷史完整。
 - Playwright桌機／手機驗收：**2 passed**，包含搜尋、日週月切換、十字線、zoom／pan與responsive resize。
+- 基本回歸：後端離線 **1,191 passed、299 deselected**；前端 Vitest **244 passed**；Typecheck／Production Build通過。本機build沒有部署到容器，產生的next-env.d.ts變更已還原。
 
 瀏覽器指令（使用專案既有的隔離Chromium）：
 

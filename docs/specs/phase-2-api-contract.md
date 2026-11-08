@@ -1,6 +1,16 @@
 # Phase 2 — REST API Contract 草案
 
-狀態：**設計提案，所有本文件新路由均未實作**。日期：2026-11-07，Asia/Taipei。本次沒有修改 `apps/api/openapi.json`；現有 Phase 1 routes／OpenAPI 不變。Phase 2B 起才依實作產生 Pydantic models、runtime OpenAPI 與 snapshot，不能把本文件當作目前可呼叫的 API。
+狀態更新：2026-11-08，Asia/Taipei。Phase 2B-5 實作本文件的 institutional history／latest、產品內 metrics 與 institutional-only chip-data/status，runtime OpenAPI及snapshot隨實作更新。其餘ownership／margin／lending／泛用chip-metrics仍是未實作提案，不因本次任務開始後續階段。
+
+### Phase 2B-5 與早期草案的差異
+
+- 新增 `/api/v1/stocks/{id}/institutional/metrics`，直接委派既有InstitutionalCalculator，period只允許5／10／20／60，與2F泛用metric的1–250提案分開。
+- 不支援的證券／市場依本次任務回404，而非早期草案的422；目前法人產品只支援TWSE／TPEX的stock。
+- `trade_scope` 可用code或包含五個欄位的嚴格JSON；同code不同flags／basis時須明確選完整scope，否則422。未知code視為無matching canonical的filter，回200空結果，不改接其他scope。
+- 現有trading_calendars沒有已核實範圍、來源證據與版本，預設metrics calendar.verified=false、value=null／status=not_verified；不以行情列或週一至五猜日曆。verified calendar是server-side Port，不接受query自行宣告。
+- TPEx只存在candidate時，canonical history／latest回空，source status揭露candidate及能力缺口。合法partial canonical的quality.status=partial；Domain not_verified保留獨立狀態與缺欄flags，不偽造complete。
+- source quantity為嚴格BIGINT字串；derived value可超過BIGINT，使用50位整數Decimal字串。reported totals與derived_daily分開，補充分類不重複加總。
+- 每次請求固定REPEATABLE READ READ ONLY snapshot；cursor只綁查詢條件，不宣稱跨請求revision snapshot。history單頁最多1000，metrics輸入最多1000份報表，日期區間最多3660日。
 
 依據：[領域設計](phase-2-domain-model.md)、[官方來源能力](phase-2a-data-sources.md)、[實作順序](phase-2-roadmap.md)。下列 path 的 `{id}` 一律為既有 Instrument UUID，不是股票代碼；代碼搜尋沿用 `GET /api/v1/instruments`。
 
@@ -21,6 +31,7 @@
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------- |
 | `/api/v1/stocks/{id}/institutional`        | from/to、`trade_scope`、limit/cursor/order；一個日期回完整 component 組，不以category篩選破壞對帳                | 2B              |
 | `/api/v1/stocks/{id}/institutional/latest` | trade_scope；最新**已保存**一份，不宣稱最新官方／即時資料                                                        | 2B              |
+| `/api/v1/stocks/{id}/institutional/metrics` | from/to、trade_scope、category、period=5/10/20/60或省略回四組；daily/cumulative/streak附Domain狀態與lineage | 2B-5 |
 | `/api/v1/stocks/{id}/ownership`            | from/to（統計日期）、limit/cursor/order；完整週報級距                                                            | 2C              |
 | `/api/v1/stocks/{id}/ownership/latest`     | 最新已保存的 TDCC 統計週報                                                                                       | 2C              |
 | `/api/v1/stocks/{id}/margin`               | from/to、`balance_scope`、limit/cursor/order；融資與融券兩個 leg                                                 | 2D              |
@@ -34,12 +45,12 @@ scope 使用部署中 source contract 的明確 enum；初版只有一個已批�
 
 ## 3. Response Schemas 草案
 
-Pydantic 使用 `extra="forbid"`，Decimal／BIGINT 的字串 serializer 必須有數值範圍驗證，不能只驗 regex 就接收任意長整數。以下型別是規格，尚未建立模型：
+Pydantic 使用 `extra="forbid"`，Decimal／BIGINT 的字串 serializer 必須有數值範圍驗證，不能只驗 regex 就接收任意長整數。Institutional對應模型已在2B-5建立（詳見 [實作契約](phase-2b-api.md)）；其餘產品型別仍是草案：
 
 | Model                   | 必要欄位／語意                                                                                                                                                                                                   |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChipSeriesResponse[T]` | instrument（沿用公開metadata）、product、frequency、from/to、items、count、next_cursor、read_at、freshness、coverage、source_contract_versions                                                                   |
-| `FactTiming`            | as_of_date、source_published_on nullable、source_published_at nullable、first_seen_at、last_seen_at、ingested_at；UTC aware timestamps，as_of_date保留市場當地日期                                               |
+| `FactTiming`            | as_of_date、source_published_on nullable、source_published_at nullable、first_seen_at、last_seen_at、ingested_at、timezone_name；UTC aware timestamps，as_of_date保留市場當地日期                                               |
 | `FactProvenance`        | source{id,code,name}、revision_id、run_id、raw_id、source_row_locator、parser_version、source_contract_version、promotion_policy_version、normalized_hash；不公開 raw body 或含token的endpoint                   |
 | `Quality`               | status=verified/partial/not_verified/quarantined、flags、unavailable_reasons；canonical 不回傳無效數值，quarantined 僅在status統計呈現                                                                           |
 | `Freshness`             | latest_as_of_date、latest_source_published_at nullable、last_seen_at nullable、age_calendar_days nullable、assessment=no_data/not_verified/within_expected_window/delayed、expected_frequency、is_realtime=false |
@@ -123,12 +134,9 @@ Phase 2B 起，每個新增 route 必須同步 runtime OpenAPI、`apps/api/opena
 5. 下游API失敗或空資料不觸發對外HTTP；使用DB repository與固定明示合成fixtures完成離線測試。
 6. 真實PostgreSQL隔離schema測試 FK/CHECK/去重／transaction、read snapshot與Phase1無退化；network smoke另獨立且只於授權端點少量執行。
 
-未來 curl 示例（**現在尚不可執行**）：
+Institutional可執行範例見README；以下ownership示例仍未實作：
 
 ```bash
-curl -G 'http://localhost:8000/api/v1/stocks/<UUID>/institutional' \
-  --data-urlencode 'from=YYYY-MM-DD' --data-urlencode 'to=YYYY-MM-DD' \
-  --data-urlencode 'limit=250'
 curl 'http://localhost:8000/api/v1/stocks/<UUID>/ownership/latest'
 curl 'http://localhost:8000/api/v1/chip-data/status?product=ownership_weekly'
 ```

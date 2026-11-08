@@ -1,6 +1,6 @@
 # Phase 2 — 開發依賴、工作與驗收
 
-狀態更新：2026-11-08，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。0006尚未執行正式Migration，僅完成隔離測試／核准TPEx來源隔離驗證；法人API／UI與2C–2F尚未開始。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
+狀態更新：2026-11-08，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。本機0006已依授權套用；[2B-5 法人 REST API](phase-2b-api.md) 已加入 canonical query、Domain metrics 與 source status。法人UI與2C–2F尚未開始；來源與verified calendar限制見2B-5規格。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
 
 本計畫依據[來源稽核](phase-2a-data-sources.md)、[Domain／Schema草案](phase-2-domain-model.md)、[API草案](phase-2-api-contract.md)。目前已確認「來源存在」與「小樣本可讀」，不等於所有歷史、完整分類與自動利用權皆已完成。
 
@@ -39,7 +39,7 @@ flowchart LR
 
 ## 3. Phase 2B — 共用匯入基礎與法人日報
 
-子階段範圍更新：使用者將 **Phase 2B-1 限定為純 Domain**、**2B-2 限定為 Persistence**、**2B-3 限定為 Source Adapters／Normalizer／離線契約測試**，依各實作規格為準。以下 2B-0～2B-3 是原先草案；Adapter 已在後續 2B-3 任務實作，但網路預設關閉，且未實作原草案中的手動 CLI／法人 API。
+子階段範圍更新：使用者將 **Phase 2B-1 限定為純 Domain**、**2B-2 限定為 Persistence**、**2B-3 限定為 Source Adapters／Normalizer／離線契約測試**，依各實作規格為準。以下 2B-0～2B-3 是原先草案；Adapter 已在後續 2B-3 任務實作；手動 CLI 在2B-4、法人API在2B-5完成。下載仍受來源使用權與能力限制。
 
 ### 2B-0：來源契約與使用權收斂
 

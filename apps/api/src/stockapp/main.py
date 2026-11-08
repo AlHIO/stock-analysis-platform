@@ -6,6 +6,9 @@ from stockapp.config import Settings
 from stockapp.modules.health.api.routes import router as health_router
 from stockapp.modules.market_data.api.routes import install_error_handlers, router as market_router
 from stockapp.modules.technical.api.routes import router as technical_router
+from stockapp.modules.institutional.api.routes import (
+    router as institutional_router, install_error_handlers as install_institutional_errors,
+)
 from stockapp.shared.infrastructure.database import create_db_engine
 
 
@@ -26,7 +29,9 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(market_router)
     app.include_router(technical_router)
+    app.include_router(institutional_router)
     install_error_handlers(app)
+    install_institutional_errors(app)
     return app
 
 

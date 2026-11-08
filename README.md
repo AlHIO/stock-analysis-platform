@@ -41,13 +41,50 @@ Phase 1D 的前端架構、圖表語意及驗收見 [股票圖表前端規格](d
 
 Phase 1E 的公式、初始化、缺值、精度及 API 合約見 [技術指標規格](docs/specs/phase-1e-technical-indicators.md)。所有功能共用 technical Domain 引擎，沒有新增套件、Migration 或供應商請求。
 
-Phase 2B-1 新增獨立的 institutional 純 Domain，提供法人分類／完整度契約、5／10／20／60 確認交易日累計及連續買賣超計算，尚未接入來源、資料庫或 API。數值、缺失與來源口徑規則，以及不需 Docker 的測試指令見 [法人 Domain 規格](docs/specs/phase-2b-institutional-domain.md)。
+Phase 2B-1 新增獨立的 institutional 純 Domain，提供法人分類／完整度契約、5／10／20／60 確認交易日累計及連續買賣超計算，該子階段僅含純 Domain，後續整合見2B-2至2B-5。數值、缺失與來源口徑規則，以及不需 Docker 的測試指令見 [法人 Domain 規格](docs/specs/phase-2b-institutional-domain.md)。
 
 Phase 2B-2 新增法人專用 source／raw／item audit、不可變 report revisions、原子 canonical 指標與 `0005_institutional_persistence` Migration，並提供 `market_data.public` 的 Instrument Identity Reader。完整 Schema、冪等／並發與晉升政策、獨立測試資料庫指令及非空 downgrade 保護見 [法人 Persistence 規格](docs/specs/phase-2b-persistence.md)。回補中的環境請另行安排升級時機；本機後續依授權完成的升級見下方紀錄。
 
-Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parser 與 Normalizer，固定 Fixture／Mock HTTP 測試不接觸正式資料庫。下載預設關閉；TWSE 權限待確認，且只解析兩個已稽核日期，TPEx 為 latest-only 且自營商明細不完整。能力、使用方式、驗證及後續限制見 [法人 Adapter 規格](docs/specs/phase-2b-adapters.md)。尚未建立法人匯入 CLI 或 API。
+Phase 2B-3 新增 TWSE／TPEx 法人 Adapter、版本化 Source Manifest、Parser 與 Normalizer，固定 Fixture／Mock HTTP 測試不接觸正式資料庫。下載預設關閉；TWSE 權限待確認，且只解析兩個已稽核日期，TPEx 為 latest-only 且自營商明細不完整。能力、使用方式、驗證及後續限制見 [法人 Adapter 規格](docs/specs/phase-2b-adapters.md)。該子階段未建立CLI或API；後續分別在2B-4／2B-5加入。
 
 Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／transaction 與可續跑 checkpoint，詳見 [法人匯入規格](docs/specs/phase-2b-ingestion.md)。本機 `stockapp/public` 已於2026-11-08依明確授權由0004升級至 `0006_institutional_jobs`，Schema及現有網站驗證通過，見[升級紀錄](docs/operations/institutional-migration-2026-11-08.md)。TWSE 停用、TPEx 僅最新 partial 能力；Migration沒有新增法人 API／UI或匯入法人資料。
+
+Phase 2B-5 新增法人 History／Latest／Metrics／Source Status REST API，讀取既有 PostgreSQL canonical，直接重用 Domain Calculator；完整契約、snapshot 與交易日曆限制見 [法人 API 規格](docs/specs/phase-2b-api.md)。沒有新 Migration 或法人 UI；TWSE 使用權、TPEx partial／candidate 限制繼續保留。
+
+## 法人查詢 API（Phase 2B-5）
+
+先確認目前 Backend 映像已包含新路由。已有 PostgreSQL／Redis 的環境可以只更新 Backend：
+
+```bash
+docker compose build backend
+docker compose up -d --no-deps --wait backend
+docker compose exec backend alembic current
+docker compose exec backend alembic heads
+# 僅在缺少既有 Migration 且已審查時執行；2B-5本身沒有新Migration
+# docker compose exec backend alembic upgrade head
+curl --fail http://localhost:8000/health/ready
+```
+
+從已保存主檔搜尋2330並取得 UUID（需要 curl、python3）；日期參數換成要查詢的市場本地日期，以下不會觸發下載：
+
+```bash
+INSTRUMENT_ID="$(curl --fail --silent 'http://localhost:8000/api/v1/instruments?symbol=2330&market=TWSE&instrument_type=stock' | python3 -c 'import json,sys; print(json.load(sys.stdin)["items"][0]["id"])')"
+
+curl --fail --get "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/institutional" \
+  --data-urlencode 'from=2026-01-01' --data-urlencode 'to=2026-11-06' \
+  --data-urlencode 'limit=250' --data-urlencode 'order=asc'
+curl --fail "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/institutional/latest"
+curl --fail --get "http://localhost:8000/api/v1/stocks/$INSTRUMENT_ID/institutional/metrics" \
+  --data-urlencode 'from=2026-01-01' --data-urlencode 'to=2026-11-06' \
+  --data-urlencode 'category=foreign_ex_dealers' --data-urlencode 'period=20'
+curl --fail 'http://localhost:8000/api/v1/chip-data/status?product=institutional_daily'
+```
+
+`period` 可選5／10／20／60，省略回四組；category也支援 investment_trust、dealer_proprietary、dealer_hedging、dealer_total、three_major_total。history最大1000份／頁，日期區間最多3660日；metrics最多1000份輸入。下一頁沿用原參數並傳 next_cursor。多個scope不能自動混用，需指定 trade_scope；完整JSON篩選方式見規格。
+
+所有新法人數量／計算值以字串輸出；null與`"0"`不同。已有股票但沒有canonical時history回200空、latest.point=null。TPEx未核實scope的candidate只在status揭露，缺自營商分類不填0。現有日曆沒有核實coverage／版本，所以正式累計與連買賣保守回not_verified／null；不以工作日猜測。API不宣稱即時或完整歷史，資料只來自已保存canonical。
+
+可在 <http://localhost:8000/docs> 查看四支 API；本次沒有新增法人前端畫面。測試與隔離 PostgreSQL 指令見 [法人 API 驗證](docs/specs/phase-2b-api.md#6-執行與驗證)。
 
 ## 法人手動匯入（Phase 2B-4）
 
@@ -439,4 +476,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 1E；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2B-5；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

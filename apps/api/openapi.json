@@ -1,6 +1,15 @@
 {
   "components": {
     "schemas": {
+      "AggregationRole": {
+        "enum": [
+          "leaf",
+          "subtotal",
+          "supplemental"
+        ],
+        "title": "AggregationRole",
+        "type": "string"
+      },
       "BarSchema": {
         "additionalProperties": false,
         "properties": {
@@ -165,7 +174,7 @@
           },
           "sources": {
             "items": {
-              "$ref": "#/components/schemas/SourceSchema"
+              "$ref": "#/components/schemas/stockapp__modules__market_data__api__schemas__SourceSchema"
             },
             "title": "Sources",
             "type": "array"
@@ -255,7 +264,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/FreshnessSchema"
+            "$ref": "#/components/schemas/stockapp__modules__market_data__api__schemas__FreshnessSchema"
           },
           "from": {
             "format": "date",
@@ -307,6 +316,58 @@
           "query_limit"
         ],
         "title": "BarsResponse",
+        "type": "object"
+      },
+      "CalculationInputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "lineage": {
+            "$ref": "#/components/schemas/LineageSchema"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "quantity_unit": {
+            "$ref": "#/components/schemas/QuantityUnit"
+          },
+          "report_completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/TradeScopeSchema"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/SourceTimingSchema"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "trade_date",
+          "quantity_unit",
+          "report_completeness",
+          "scope",
+          "lineage",
+          "timing",
+          "taxonomy_version"
+        ],
+        "title": "CalculationInputSchema",
         "type": "object"
       },
       "CalculationSchema": {
@@ -365,6 +426,220 @@
           "history_completeness"
         ],
         "title": "CalculationSchema",
+        "type": "object"
+      },
+      "CalculationStatus": {
+        "enum": [
+          "complete",
+          "missing_data",
+          "not_verified",
+          "insufficient_history",
+          "incompatible_data",
+          "truncated_history",
+          "no_sessions"
+        ],
+        "title": "CalculationStatus",
+        "type": "string"
+      },
+      "CalendarSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "covered_from": {
+            "format": "date",
+            "title": "Covered From",
+            "type": "string"
+          },
+          "covered_to": {
+            "format": "date",
+            "title": "Covered To",
+            "type": "string"
+          },
+          "history_start_verified": {
+            "const": false,
+            "title": "History Start Verified",
+            "type": "boolean"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "covered_from",
+          "covered_to",
+          "verified",
+          "version",
+          "history_start_verified"
+        ],
+        "title": "CalendarSchema",
+        "type": "object"
+      },
+      "Category": {
+        "enum": [
+          "foreign_ex_dealers",
+          "foreign_dealers",
+          "foreign_inclusive",
+          "investment_trust",
+          "dealer_proprietary",
+          "dealer_hedging",
+          "dealer_total",
+          "three_major_total",
+          "foreign_unspecified"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "Completeness": {
+        "enum": [
+          "complete",
+          "partial",
+          "not_verified"
+        ],
+        "title": "Completeness",
+        "type": "string"
+      },
+      "ComponentSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregation_role": {
+            "$ref": "#/components/schemas/AggregationRole"
+          },
+          "buy_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Quantity"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "mapping_status": {
+            "$ref": "#/components/schemas/MappingStatus"
+          },
+          "net_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Quantity"
+          },
+          "sell_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Quantity"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "category",
+          "mapping_status",
+          "aggregation_role",
+          "buy_quantity",
+          "sell_quantity",
+          "net_quantity",
+          "unavailable_reasons"
+        ],
+        "title": "ComponentSchema",
+        "type": "object"
+      },
+      "CoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "enum": [
+              "not_verified",
+              "partial",
+              "verified_for_declared_scope"
+            ],
+            "title": "Completeness",
+            "type": "string"
+          },
+          "declared_scope": {
+            "title": "Declared Scope",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "known_missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Known Missing Dates",
+            "type": "array"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored_from",
+          "stored_to",
+          "completeness",
+          "declared_scope",
+          "expected_dates_known",
+          "known_missing_dates",
+          "truncated"
+        ],
+        "title": "CoverageSchema",
         "type": "object"
       },
       "DataStatusResponse": {
@@ -492,40 +767,30 @@
         "title": "ErrorResponse",
         "type": "object"
       },
-      "FreshnessSchema": {
+      "FactTimingSchema": {
         "additionalProperties": false,
         "properties": {
-          "age_calendar_days": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Age Calendar Days"
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
           },
-          "as_of": {
+          "first_seen_at": {
             "format": "date-time",
-            "title": "As Of",
+            "title": "First Seen At",
             "type": "string"
           },
-          "assessment": {
-            "enum": [
-              "no_data",
-              "calendar_not_verified",
-              "future_dated"
-            ],
-            "title": "Assessment",
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
             "type": "string"
           },
-          "is_realtime": {
-            "const": false,
-            "title": "Is Realtime",
-            "type": "boolean"
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
           },
-          "last_ingested_at": {
+          "source_published_at": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -535,9 +800,9 @@
                 "type": "null"
               }
             ],
-            "title": "Last Ingested At"
+            "title": "Source Published At"
           },
-          "latest_trade_date": {
+          "source_published_on": {
             "anyOf": [
               {
                 "format": "date",
@@ -547,29 +812,23 @@
                 "type": "null"
               }
             ],
-            "title": "Latest Trade Date"
+            "title": "Source Published On"
           },
-          "market_local_date": {
-            "format": "date",
-            "title": "Market Local Date",
-            "type": "string"
-          },
-          "market_timezone": {
-            "title": "Market Timezone",
+          "timezone_name": {
+            "title": "Timezone Name",
             "type": "string"
           }
         },
         "required": [
-          "as_of",
-          "market_timezone",
-          "market_local_date",
-          "latest_trade_date",
-          "last_ingested_at",
-          "age_calendar_days",
-          "is_realtime",
-          "assessment"
+          "as_of_date",
+          "source_published_on",
+          "source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at",
+          "timezone_name"
         ],
-        "title": "FreshnessSchema",
+        "title": "FactTimingSchema",
         "type": "object"
       },
       "HistorySchema": {
@@ -688,7 +947,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/FreshnessSchema"
+            "$ref": "#/components/schemas/stockapp__modules__market_data__api__schemas__FreshnessSchema"
           },
           "from": {
             "format": "date",
@@ -729,7 +988,7 @@
             "type": "array"
           },
           "precision": {
-            "$ref": "#/components/schemas/PrecisionSchema"
+            "$ref": "#/components/schemas/stockapp__modules__technical__api__schemas__PrecisionSchema"
           },
           "price_adjustment": {
             "const": "unadjusted",
@@ -792,6 +1051,601 @@
         ],
         "title": "IngestionStatus",
         "type": "string"
+      },
+      "InstitutionalHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/stockapp__modules__institutional__api__schemas__FreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InstitutionalPointSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "institutional_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "trade_scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeScopeSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "from",
+          "to",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions",
+          "trade_scope"
+        ],
+        "title": "InstitutionalHistoryResponse",
+        "type": "object"
+      },
+      "InstitutionalLatestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/stockapp__modules__institutional__api__schemas__FreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionalPointSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "institutional_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "trade_scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeScopeSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions",
+          "trade_scope"
+        ],
+        "title": "InstitutionalLatestResponse",
+        "type": "object"
+      },
+      "InstitutionalMetricsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "const": "1.0.0",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "calendar": {
+            "$ref": "#/components/schemas/CalendarSchema"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageSchema"
+          },
+          "cumulative": {
+            "items": {
+              "$ref": "#/components/schemas/NetResultSchema"
+            },
+            "title": "Cumulative",
+            "type": "array"
+          },
+          "daily": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NetResultSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/stockapp__modules__institutional__api__schemas__FreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/stockapp__modules__institutional__api__schemas__PrecisionSchema"
+          },
+          "product": {
+            "const": "institutional_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "streak": {
+            "$ref": "#/components/schemas/StreakResultSchema"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "trade_scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TradeScopeSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "from",
+          "to",
+          "count",
+          "read_at",
+          "trade_scope",
+          "category",
+          "daily",
+          "cumulative",
+          "streak",
+          "calendar",
+          "coverage",
+          "freshness",
+          "source_contract_versions",
+          "algorithm_version",
+          "precision"
+        ],
+        "title": "InstitutionalMetricsResponse",
+        "type": "object"
+      },
+      "InstitutionalPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentSchema"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "derived_daily": {
+            "items": {
+              "$ref": "#/components/schemas/NetResultSchema"
+            },
+            "title": "Derived Daily",
+            "type": "array"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceSchema"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/QualitySchema"
+          },
+          "quantity_unit": {
+            "$ref": "#/components/schemas/QuantityUnit"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/FactTimingSchema"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          },
+          "trade_scope": {
+            "$ref": "#/components/schemas/TradeScopeSchema"
+          }
+        },
+        "required": [
+          "trade_date",
+          "trade_scope",
+          "timing",
+          "provenance",
+          "quantity_unit",
+          "taxonomy_version",
+          "components",
+          "quality",
+          "derived_daily"
+        ],
+        "title": "InstitutionalPointSchema",
+        "type": "object"
+      },
+      "InstitutionalRunSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "has_partial_data": {
+            "title": "Has Partial Data",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "safe_failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Failure Code"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "has_partial_data",
+          "safe_failure_code",
+          "counts"
+        ],
+        "title": "InstitutionalRunSchema",
+        "type": "object"
+      },
+      "InstitutionalSourceStatusSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_count": {
+            "minimum": 0.0,
+            "title": "Candidate Count",
+            "type": "integer"
+          },
+          "canonical_count": {
+            "minimum": 0.0,
+            "title": "Canonical Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/SourceCapabilitiesSchema"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "last_successful_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionalRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_canonical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Canonical Date"
+          },
+          "latest_reported_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reported As Of Date"
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionalRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "market": {
+            "$ref": "#/components/schemas/StatusMarketSchema"
+          },
+          "product": {
+            "const": "institutional_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/StatusSourceSchema"
+          }
+        },
+        "required": [
+          "key",
+          "product",
+          "frequency",
+          "source",
+          "market",
+          "capabilities",
+          "latest_run",
+          "last_successful_run",
+          "latest_reported_as_of_date",
+          "latest_canonical_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "canonical_count",
+          "candidate_count",
+          "coverage"
+        ],
+        "title": "InstitutionalSourceStatusSchema",
+        "type": "object"
+      },
+      "InstitutionalStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InstitutionalSourceStatusSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "institutional_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "is_realtime"
+        ],
+        "title": "InstitutionalStatusResponse",
+        "type": "object"
       },
       "InstrumentSchema": {
         "additionalProperties": false,
@@ -901,7 +1755,7 @@
             "type": "string"
           },
           "freshness": {
-            "$ref": "#/components/schemas/FreshnessSchema"
+            "$ref": "#/components/schemas/stockapp__modules__market_data__api__schemas__FreshnessSchema"
           },
           "history": {
             "$ref": "#/components/schemas/HistorySchema"
@@ -925,6 +1779,73 @@
         ],
         "title": "LatestResponse",
         "type": "object"
+      },
+      "LineageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "payload_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Payload Hash",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_contract_version",
+          "parser_version",
+          "revision_id",
+          "run_id",
+          "raw_id",
+          "source_row_locator",
+          "payload_hash",
+          "promotion_policy_version"
+        ],
+        "title": "LineageSchema",
+        "type": "object"
+      },
+      "MappingStatus": {
+        "enum": [
+          "verified",
+          "unverified"
+        ],
+        "title": "MappingStatus",
+        "type": "string"
       },
       "MarketSchema": {
         "additionalProperties": false,
@@ -999,31 +1920,176 @@
         "title": "MarketStateSchema",
         "type": "object"
       },
-      "PrecisionSchema": {
+      "NetResultSchema": {
         "additionalProperties": false,
         "properties": {
-          "internal_digits": {
-            "const": 50,
-            "title": "Internal Digits",
-            "type": "integer"
-          },
-          "output_decimal_places": {
-            "const": 12,
-            "title": "Output Decimal Places",
-            "type": "integer"
-          },
-          "rounding": {
-            "const": "ROUND_HALF_EVEN",
-            "title": "Rounding",
+          "algorithm_version": {
+            "title": "Algorithm Version",
             "type": "string"
+          },
+          "anchor_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Date"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "calendar_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Version"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_refs": {
+            "items": {
+              "$ref": "#/components/schemas/CalculationInputSchema"
+            },
+            "title": "Input Refs",
+            "type": "array"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "daily_net",
+              "cumulative_net"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_components": {
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            },
+            "title": "Missing Components",
+            "type": "array"
+          },
+          "missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Dates",
+            "type": "array"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "enum": [
+                  5,
+                  10,
+                  20,
+                  60
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
+          "quantity_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuantityUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "session_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Session Dates",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CalculationStatus"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "decimal_places": 0,
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
           }
         },
         "required": [
-          "internal_digits",
-          "output_decimal_places",
-          "rounding"
+          "instrument_id",
+          "market_id",
+          "metric",
+          "category",
+          "as_of",
+          "anchor_date",
+          "value",
+          "status",
+          "quantity_unit",
+          "formula",
+          "period",
+          "algorithm_version",
+          "calendar_version",
+          "session_dates",
+          "missing_dates",
+          "missing_components",
+          "input_refs",
+          "reasons",
+          "parameters"
         ],
-        "title": "PrecisionSchema",
+        "title": "NetResultSchema",
         "type": "object"
       },
       "PreviousObservedSchema": {
@@ -1045,6 +2111,118 @@
         ],
         "title": "PreviousObservedSchema",
         "type": "object"
+      },
+      "ProvenanceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "normalized_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Normalized Hash",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/stockapp__modules__institutional__api__schemas__SourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "revision_id",
+          "run_id",
+          "raw_id",
+          "source_row_locator",
+          "parser_version",
+          "source_contract_version",
+          "promotion_policy_version",
+          "normalized_hash"
+        ],
+        "title": "ProvenanceSchema",
+        "type": "object"
+      },
+      "QualitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "domain_completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "missing_components": {
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            },
+            "title": "Missing Components",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "verified",
+              "partial",
+              "not_verified"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "flags",
+          "unavailable_reasons",
+          "missing_components",
+          "domain_completeness"
+        ],
+        "title": "QualitySchema",
+        "type": "object"
+      },
+      "QuantityUnit": {
+        "enum": [
+          "shares",
+          "units"
+        ],
+        "title": "QuantityUnit",
+        "type": "string"
       },
       "RunSummarySchema": {
         "additionalProperties": false,
@@ -1155,33 +2333,68 @@
         "title": "SearchResponse",
         "type": "object"
       },
-      "SourceSchema": {
+      "SourceCapabilitiesSchema": {
         "additionalProperties": false,
         "properties": {
-          "code": {
-            "title": "Code",
+          "archive": {
+            "title": "Archive",
+            "type": "boolean"
+          },
+          "automated_ingestion_enabled": {
+            "const": false,
+            "title": "Automated Ingestion Enabled",
+            "type": "boolean"
+          },
+          "date_query": {
+            "title": "Date Query",
+            "type": "boolean"
+          },
+          "latest": {
+            "title": "Latest",
+            "type": "boolean"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "license_status": {
+            "enum": [
+              "verified_open",
+              "unresolved"
+            ],
+            "title": "License Status",
             "type": "string"
           },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
           },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "source_type": {
-            "$ref": "#/components/schemas/SourceType"
+          "manual": {
+            "title": "Manual",
+            "type": "boolean"
           }
         },
         "required": [
-          "id",
-          "code",
-          "name",
-          "source_type"
+          "latest",
+          "date_query",
+          "archive",
+          "manual",
+          "license_status",
+          "license",
+          "automated_ingestion_enabled",
+          "limitations"
         ],
-        "title": "SourceSchema",
+        "title": "SourceCapabilitiesSchema",
         "type": "object"
       },
       "SourceStateSchema": {
@@ -1256,7 +2469,7 @@
             "type": "array"
           },
           "source": {
-            "$ref": "#/components/schemas/SourceSchema"
+            "$ref": "#/components/schemas/stockapp__modules__market_data__api__schemas__SourceSchema"
           }
         },
         "required": [
@@ -1272,6 +2485,64 @@
         "title": "SourceStateSchema",
         "type": "object"
       },
+      "SourceTimingSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "timezone_name": {
+            "title": "Timezone Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at",
+          "source_published_on",
+          "source_published_at",
+          "timezone_name"
+        ],
+        "title": "SourceTimingSchema",
+        "type": "object"
+      },
       "SourceType": {
         "enum": [
           "exchange",
@@ -1281,6 +2552,323 @@
         ],
         "title": "SourceType",
         "type": "string"
+      },
+      "StatusMarketSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "timezone",
+          "currency"
+        ],
+        "title": "StatusMarketSchema",
+        "type": "object"
+      },
+      "StatusSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "StatusSourceSchema",
+        "type": "object"
+      },
+      "StreakResultSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "anchor_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Date"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "buy_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Count"
+          },
+          "buy_lower_bound": {
+            "minimum": 0.0,
+            "title": "Buy Lower Bound",
+            "type": "integer"
+          },
+          "calendar_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Version"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_refs": {
+            "items": {
+              "$ref": "#/components/schemas/CalculationInputSchema"
+            },
+            "title": "Input Refs",
+            "type": "array"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "left_censored": {
+            "title": "Left Censored",
+            "type": "boolean"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "metric": {
+            "const": "consecutive_net",
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_components": {
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            },
+            "title": "Missing Components",
+            "type": "array"
+          },
+          "missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Dates",
+            "type": "array"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "quantity_unit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuantityUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "sell_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Count"
+          },
+          "sell_lower_bound": {
+            "minimum": 0.0,
+            "title": "Sell Lower Bound",
+            "type": "integer"
+          },
+          "session_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Session Dates",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CalculationStatus"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "category",
+          "as_of",
+          "anchor_date",
+          "status",
+          "quantity_unit",
+          "buy_count",
+          "sell_count",
+          "buy_lower_bound",
+          "sell_lower_bound",
+          "left_censored",
+          "formula",
+          "metric",
+          "algorithm_version",
+          "calendar_version",
+          "session_dates",
+          "missing_dates",
+          "missing_components",
+          "input_refs",
+          "reasons",
+          "parameters"
+        ],
+        "title": "StreakResultSchema",
+        "type": "object"
+      },
+      "TradeBasis": {
+        "enum": [
+          "original",
+          "corrected",
+          "unspecified"
+        ],
+        "title": "TradeBasis",
+        "type": "string"
+      },
+      "TradeScopeSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/TradeBasis"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "includes_after_hours": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Includes After Hours"
+          },
+          "includes_block_trades": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Includes Block Trades"
+          },
+          "includes_odd_lots": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Includes Odd Lots"
+          }
+        },
+        "required": [
+          "code",
+          "includes_block_trades",
+          "includes_odd_lots",
+          "includes_after_hours",
+          "basis"
+        ],
+        "title": "TradeScopeSchema",
+        "type": "object"
       },
       "ValidationIssueSchema": {
         "additionalProperties": false,
@@ -1315,6 +2903,263 @@
         ],
         "title": "ValidationIssueSchema",
         "type": "object"
+      },
+      "stockapp__modules__institutional__api__schemas__FreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "expected_frequency": {
+            "const": "1d",
+            "title": "Expected Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest As Of Date"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          }
+        },
+        "required": [
+          "latest_as_of_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "age_calendar_days",
+          "assessment",
+          "expected_frequency",
+          "is_realtime"
+        ],
+        "title": "FreshnessSchema",
+        "type": "object"
+      },
+      "stockapp__modules__institutional__api__schemas__PrecisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "internal_digits": {
+            "const": 50,
+            "title": "Internal Digits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "internal_digits"
+        ],
+        "title": "PrecisionSchema",
+        "type": "object"
+      },
+      "stockapp__modules__institutional__api__schemas__SourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "SourceSchema",
+        "type": "object"
+      },
+      "stockapp__modules__market_data__api__schemas__FreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "calendar_not_verified",
+              "future_dated"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "last_ingested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Ingested At"
+          },
+          "latest_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Trade Date"
+          },
+          "market_local_date": {
+            "format": "date",
+            "title": "Market Local Date",
+            "type": "string"
+          },
+          "market_timezone": {
+            "title": "Market Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "market_timezone",
+          "market_local_date",
+          "latest_trade_date",
+          "last_ingested_at",
+          "age_calendar_days",
+          "is_realtime",
+          "assessment"
+        ],
+        "title": "FreshnessSchema",
+        "type": "object"
+      },
+      "stockapp__modules__market_data__api__schemas__SourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "source_type"
+        ],
+        "title": "SourceSchema",
+        "type": "object"
+      },
+      "stockapp__modules__technical__api__schemas__PrecisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "internal_digits": {
+            "const": 50,
+            "title": "Internal Digits",
+            "type": "integer"
+          },
+          "output_decimal_places": {
+            "const": 12,
+            "title": "Output Decimal Places",
+            "type": "integer"
+          },
+          "rounding": {
+            "const": "ROUND_HALF_EVEN",
+            "title": "Rounding",
+            "type": "string"
+          }
+        },
+        "required": [
+          "internal_digits",
+          "output_decimal_places",
+          "rounding"
+        ],
+        "title": "PrecisionSchema",
+        "type": "object"
       }
     }
   },
@@ -1324,6 +3169,137 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/chip-data/status": {
+      "get": {
+        "description": "Read saved ingestion metadata and capabilities; no public import operation.",
+        "operationId": "institutional_source_status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product",
+            "required": false,
+            "schema": {
+              "const": "institutional_daily",
+              "default": "institutional_daily",
+              "title": "Product",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "market",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "TWSE",
+                    "TPEX"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Market"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionalStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Stock not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive institutional query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Institutional data temporarily unavailable"
+          }
+        },
+        "summary": "Institutional Status",
+        "tags": [
+          "Institutional trading"
+        ]
+      }
+    },
     "/api/v1/data/status": {
       "get": {
         "description": "Summarize stored coverage and ingestion runs without fetching any providers.",
@@ -1910,6 +3886,405 @@
         "summary": "Indicators",
         "tags": [
           "Technical indicators"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/institutional": {
+      "get": {
+        "description": "Read one page of whole canonical reports with explicit lineage and quality.",
+        "operationId": "institutional_daily_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "description": "Stored scope code or strict JSON full scope; ambiguous codes require the full value.",
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1024,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Stored scope code or strict JSON full scope; ambiguous codes require the full value.",
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionalHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Stock not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive institutional query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Institutional data temporarily unavailable"
+          }
+        },
+        "summary": "Institutional History",
+        "tags": [
+          "Institutional trading"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/institutional/latest": {
+      "get": {
+        "description": "Return the latest saved canonical report, or point=null for an empty stock.",
+        "operationId": "institutional_latest_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1024,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionalLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Stock not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive institutional query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Institutional data temporarily unavailable"
+          }
+        },
+        "summary": "Institutional Latest",
+        "tags": [
+          "Institutional trading"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/institutional/metrics": {
+      "get": {
+        "description": "Reuse the Domain calculator; unknown calendars never become assumed sessions.",
+        "operationId": "institutional_trading_metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1024,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "foreign_ex_dealers",
+              "enum": [
+                "foreign_ex_dealers",
+                "investment_trust",
+                "dealer_proprietary",
+                "dealer_hedging",
+                "dealer_total",
+                "three_major_total"
+              ],
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Confirmed sessions; omit to return all four supported windows.",
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Confirmed sessions; omit to return all four supported windows.",
+              "enum": [
+                5,
+                10,
+                20,
+                60,
+                null
+              ],
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionalMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Stock not found or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive institutional query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Institutional data temporarily unavailable"
+          }
+        },
+        "summary": "Institutional Metrics",
+        "tags": [
+          "Institutional trading"
         ]
       }
     },
