@@ -87,15 +87,15 @@ flowchart LR
 
 ## 5. Phase 2D — 融資融券
 
-### 2D-1：單位、日期與來源契約
+### 2D-1：雙 Ledger Domain、單位、日期與來源契約
 
-工作：優先M5已帶日期的TPEx OpenAPI；核實普通股／其他證券的張股換算。TWSE M1沒有日期，須有可信日期證據或改採已授權dated來源M2；不能使用執行日期。M2歷史與TPEx融資歷史另有權限／endpoint gate。
+狀態：純 Domain／Ports／Calculator／版本化 Manifest 已完成，見[2D-1 規格](phase-2d-margin-domain.md)。依最新任務，雙 Ledger 與固定公式測試提前納入本階段；不新增資料表或 I/O。優先規劃 M5 已帶日期的TPEx OpenAPI，普通股／其他證券的張股換算須具身分與適用期間證據。TWSE M1沒有日期，須有可信日期證據或改採已授權dated來源M2；不能使用執行日期。M2歷史與TPEx融資歷史另有權限／endpoint gate。
 
-**AC**：每列有可核實trade_date、raw unit／multiplier及版本；缺multiplier不猜；固定測試103張→103000股只於適用契約；未核實來源disabled。市場summary仟元不進個股quantity；官方ShortConvering拼字與實際買進還券語意正確；狀態／限額次一營業日的effectivity獨立保存。
+**AC**：雙 Ledger balance identity、signed adjustment 版本、missing／not_applicable／zero 與數值精度固定測試；每列有可核實trade_date、raw unit／multiplier及版本；缺multiplier不猜；固定測試103張→103000股只於適用契約；未核實來源disabled。市場summary仟元不進個股quantity；官方ShortConvering拼字與實際買進還券語意正確；狀態／限額次一營業日的effectivity獨立保存。此階段所有下載仍關閉。
 
 ### 2D-2：雙leg存量／流量與API
 
-工作：financing與short_margin typed models／repos／migration／CLI／margin API；前日餘額、買賣／償還、限額與註記分開。
+工作：重用 2D-1 financing／short_margin Domain 與唯一 Calculator，建立 typed persistence／repos／migration、來源 Adapter／Normalizer、CLI／margin API；前日餘額、買賣／償還、限額與註記分開。須另獲任務授權才開始。
 
 **AC**：融資與融券兩種balance identity固定數值驗證；不適用空欄維持null；D+1更帳的前日assertion不自動消滅D原始current；日曆未確認不拿前曆日當前交易日；重複與修訂、整組rollback、來源故障保留資料。只在已確認來源範圍內宣告真實資料驗收，不宣稱完整十年。
 

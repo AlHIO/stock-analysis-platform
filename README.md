@@ -16,6 +16,7 @@ apps/
       modules/technical/ Decimal 指標引擎、歷史輸入 Port、Application 與版本化 API
       modules/institutional/ 法人 Domain、typed revisions、audit 與 PostgreSQL repositories
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
+      modules/margin/      純Domain雙Ledger、精確計算、日期／單位／來源能力契約
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -53,6 +54,8 @@ Phase 2B-4 加入手動法人匯入 CLI、raw-first pipeline、逐列 audit／tr
 Phase 2B-5 新增法人 History／Latest／Metrics／Source Status REST API，讀取既有 PostgreSQL canonical，直接重用 Domain Calculator；完整契約、snapshot 與交易日曆限制見 [法人 API 規格](docs/specs/phase-2b-api.md)。沒有新 Migration 或法人 UI；TWSE 使用權、TPEx partial／candidate 限制繼續保留。
 
 Phase 2B-6 已完成軟體端到端與回歸驗收；已核准TPEx真實raw／audit驗證通過，但TWSE使用權、TPEx交易口徑／dated identity及verified日曆仍使真實canonical→API驗收Blocked。正式法人資料仍為0，沒有以Fixture補齊。詳見 [完整驗收報告與重跑指令](docs/specs/phase-2b-validation.md)。
+
+Phase 2D-1 新增 margin 純 Domain：融資／融券分開的 balance identity、Signed Adjustment 版本政策、嚴格缺值狀態、限額生效日、經證券與有效期間核實的張股換算，以及 M1／M2／M5 Source Capability Manifest。沒有新增資料表、下載、匯入、API 或畫面；TWSE 無日期與 TPEx latest-only 限制維持明確。公式、來源 gate、固定數值測試指令與 2D-2 待辦見 [融資融券 Domain 規格](docs/specs/phase-2d-margin-domain.md)。
 
 ```bash
 # 建立獨立臨時DB執行完整離線驗收，結束只清除測試DB
@@ -528,4 +531,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2C-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2D-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
