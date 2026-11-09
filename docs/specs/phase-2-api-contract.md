@@ -1,6 +1,6 @@
 # Phase 2 — REST API Contract 草案
 
-狀態更新：2026-11-08，Asia/Taipei。Phase 2B-5 實作本文件的 institutional history／latest、產品內 metrics 與 institutional-only chip-data/status，runtime OpenAPI及snapshot隨實作更新。Phase 2C-2已實作ownership history／latest／distribution／metrics及ownership status（[實作規格](phase-2c-ownership-api.md)）；margin／lending／泛用chip-metrics仍是未實作提案，不因本次任務開始後續階段。
+狀態更新：2026-11-09，Asia/Taipei。Phase 2B-5 實作 institutional，Phase 2C-2 已實作 ownership，Phase 2D-2 已實作 Margin History／Latest／Status 與 shared chip-data/status 的 margin_daily 分支（[實作規格](phase-2d-margin-api.md)）。Runtime OpenAPI／snapshot 隨實作更新；lending／泛用 chip-metrics 仍是未實作提案。
 
 ### Phase 2B-5 與早期草案的差異
 
@@ -64,7 +64,9 @@ freshness 的 delayed／within_expected_window 只能在該來源已驗證發布
 
 `OwnershipPoint`：as_of_date、frequency=1w、timing、provenance、quantity_unit、bucket_scheme_version、denominator=depository_inventory、source_total_holders/quantity、buckets、quality。bucket 含 code/kind/label/lower_inclusive/upper_inclusive、holder_count、quantity、reported_percent。差異調整與合計仍可顯示，但不能當 regular holdings；保留來源原始調整值、blank或非0的adjustment holders，並回`adjustment_value_convention=shortfall_magnitude|signed_delta|unverified`，不能把CSV正差額直接當signed delta。週日曆標記不取代真正統計日。
 
-`MarginPoint`：trade_date、balance_scope、quantity_unit、financing、short_margin、timing/provenance/quality。各 leg 包含 previous_balance、buy、sell、repayment、balance、limit、adjustment；另附 verified balance identity version、limit_effective_on/status_effective_on與effective_relation。若僅知次一營業日而未核實日曆，actual date=null並保存next_business_day。D+1來源的previous assertion不直接覆寫D current。數值若來源以金額表示，使用獨立 amount/currency 欄，不重命名為股數。
+`MarginPoint` 實作：trade_date、balance_scope、quantity_unit／source_quantity_unit、financing、short_margin、timing／provenance／quality。Financing 使用 previous_balance／purchase／sale／cash_repayment／balance；Short Margin 使用 previous_balance／short_sell／short_cover／stock_repayment／balance，避免通用 buy／sell 方向混淆。每欄 Quantity 有精確字串 value、unit、availability；附 signed_adjustment、公式政策／identity、daily_change、quota_limit 與 available_quota。限額 report_date／effective_on／effective_relation／basis 分開；未核實不以當日或 D+1 猜值。Provenance 保留 raw／run／revision、版本與 instrument-period ConversionEvidence。D+1 前日 assertion 不直接覆寫 D current。沒有用數量欄冒充金額。
+
+Margin 路由為 `GET /api/v1/stocks/{id}/margin`、`GET /api/v1/stocks/{id}/margin/latest`、`GET /api/v1/margin/status` 及 `GET /api/v1/chip-data/status?product=margin_daily`。History 限制 3,660 日與 1,000 筆，支援日期 keyset cursor／order。Latest 無資料回 point=null。數值與 Decimal 為字串，GET 使用同一次 RR 唯讀快照且不連供應商。Daily Change 共用 Domain 公式 `balance − official previous_balance`，不是查前一曆日，亦非把餘額當 flow；coverage／freshness 在沒有 verified 日期覆蓋時維持 not_verified。完整實作契約以 [2D-2 規格](phase-2d-margin-api.md)及 OpenAPI 為準。
 
 `LendingPoint`：trade_date、report_kind、trade_scope、lending_channel、quantity_unit、previous_balance/increase/decrease/adjustment/balance、short_sale_quantity/amount/currency、limit/status及其effectivity、timing/provenance/quality。channel=combined|slb|nlb|other_verified，初版M4僅combined，子系統不能再加到combined。不同 kind 不適用欄位為null；借券餘額與借券賣出餘額必須不同 kind，不共用模糊的 `short_balance` 名稱；不能通用限制sold≤limit。
 

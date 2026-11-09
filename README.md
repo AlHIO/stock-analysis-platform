@@ -16,7 +16,7 @@ apps/
       modules/technical/ Decimal 指標引擎、歷史輸入 Port、Application 與版本化 API
       modules/institutional/ 法人 Domain、typed revisions、audit 與 PostgreSQL repositories
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
-      modules/margin/      純Domain雙Ledger、精確計算、日期／單位／來源能力契約
+      modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -56,6 +56,48 @@ Phase 2B-5 新增法人 History／Latest／Metrics／Source Status REST API，�
 Phase 2B-6 已完成軟體端到端與回歸驗收；已核准TPEx真實raw／audit驗證通過，但TWSE使用權、TPEx交易口徑／dated identity及verified日曆仍使真實canonical→API驗收Blocked。正式法人資料仍為0，沒有以Fixture補齊。詳見 [完整驗收報告與重跑指令](docs/specs/phase-2b-validation.md)。
 
 Phase 2D-1 新增 margin 純 Domain：融資／融券分開的 balance identity、Signed Adjustment 版本政策、嚴格缺值狀態、限額生效日、經證券與有效期間核實的張股換算，以及 M1／M2／M5 Source Capability Manifest。沒有新增資料表、下載、匯入、API 或畫面；TWSE 無日期與 TPEx latest-only 限制維持明確。公式、來源 gate、固定數值測試指令與 2D-2 待辦見 [融資融券 Domain 規格](docs/specs/phase-2d-margin-domain.md)。
+
+Phase 2D-2 完成 Margin Persistence／手動匯入／REST API，新增 `0008_margin` Migration。每份雙 Ledger 報表原子晉升、來源修訂保留、Raw／audit 可追溯；查詢使用一致唯讀 Snapshot。完整 Schema、來源限制、Evidence 格式與實際驗證結果見 [融資融券管線與 API 規格](docs/specs/phase-2d-margin-api.md)。
+
+## 融資融券匯入與 API（Phase 2D-2）
+
+```bash
+docker compose build backend
+docker compose run --rm backend alembic current
+docker compose run --rm backend alembic upgrade head
+docker compose up -d --no-deps --wait backend
+
+# TPEx M5 只支援官方最新快照。未附審查證據時，保留 Raw／Audit 並將身分／換算列為 unresolved。
+docker compose run --rm backend stockapp margin sync latest --market tpex
+docker compose run --rm backend stockapp margin status --limit 20
+
+# 替換成已審查的絕對路徑，證據須與實際官方日期／商品相符；不可假定所有商品一張1,000股。
+# docker compose run --rm -v /absolute/reviewed-margin.json:/evidence.json:ro backend \
+#   stockapp margin sync latest --market tpex --evidence /evidence.json
+
+docker compose run --rm backend stockapp margin replay --raw <RAW_UUID>
+docker compose run --rm backend stockapp margin replay --resume <RUN_UUID>
+
+# M1／M5 沒有歷史日期參數：這個命令會明確拒絕，不會下載日期相近資料冒充。
+docker compose run --rm backend stockapp margin sync date --market tpex --date 2026-11-06
+```
+
+TWSE M1 可保存最新 Raw，但沒有官方 Date，缺少同份 Payload 的可信日期證據時禁止 canonical；M2 dated 網站來源使用權／群組 Schema 未核實，保持停用。沒有十年融資融券覆蓋。CLI 的 Partial／failed 退出碼為 2，可用 status 查原因；Replay 不連外，Resume 使用原工作凍結的 Evidence。
+
+```bash
+curl 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/margin/latest'
+curl 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/margin?from=2026-01-01&to=2026-11-09&limit=100'
+curl 'http://localhost:8000/api/v1/margin/status?market=TPEX'
+curl 'http://localhost:8000/api/v1/chip-data/status?product=margin_daily'
+```
+
+融資、融券各自回傳餘額、買進／賣出、償還與每日變化；Quantity 包含精確字串 value、unit 和 availability。缺值維持 null，來源 lots 與經審查換算後 shares／units 分開。API 保留 Revision、來源及統計／發布／擷取時間，不在 GET 抓資料、不宣稱即時或完整歷史。尚無 canonical 的股票回傳空資料，Partial candidate 仍可由 status 查詢。
+
+本機已升級至 `0008_margin`，實際保存 **6488／2026-11-06 一檔、一個交易日**；再次同步後仍為1份Canonical／1個Revision。融資餘額10,285,000股、融券餘額317,000股，已逐欄比對官方Raw、PostgreSQL與HTTP API。其餘918筆M5證券因身分／乘數未核實維持unresolved；TWSE M1因無日期仍無Canonical，不宣稱歷史完整。單日審查證據與實測紀錄見規格。
+
+```bash
+curl 'http://localhost:8000/api/v1/stocks/fe53c1d3-e0ca-4475-8ab6-d2c274252e25/margin/latest'
+```
 
 ```bash
 # 建立獨立臨時DB執行完整離線驗收，結束只清除測試DB
@@ -531,4 +573,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2D-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2D-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

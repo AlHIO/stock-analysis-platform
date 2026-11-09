@@ -46,6 +46,25 @@ def _unavailable(fields: dict[str, Quantity]):
 
 
 class MarginCalculator:
+    def daily_change(self, report: MarginDailyReport, ledger: LedgerKind) -> CalculationResult:
+        refs = _reference(report)
+        if not isinstance(ledger, LedgerKind):
+            raise MarginError('invalid_ledger')
+        leg = report.ledger(ledger)
+        result = dict(metric=f'{ledger.value}_balance_change',
+                      quantity_unit=leg.quantity_unit,
+                      formula='reported_balance - official_reported_previous_balance',
+                      input_refs=refs)
+        unavailable = _unavailable({
+            'balance':leg.balance, 'previous_balance':leg.previous_balance,
+        })
+        if unavailable:
+            status, missing_fields, reasons = unavailable
+            return CalculationResult(**result, status=status, value=None,
+                                     missing_fields=missing_fields, reasons=reasons)
+        return CalculationResult(**result, status=CalculationStatus.COMPLETE,
+            value=_exact(lambda:Decimal(leg.balance.value) - Decimal(leg.previous_balance.value)))
+
     def financing_identity(self, report: MarginDailyReport) -> CalculationResult:
         refs = _reference(report)
         leg = report.financing

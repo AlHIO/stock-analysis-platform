@@ -8,6 +8,7 @@ from stockapp.modules.institutional.infrastructure import ingestion_models as in
 
 
 from stockapp.modules.ownership.infrastructure import models as ownership_models  # noqa: F401
+from stockapp.modules.margin.infrastructure import models as margin_models  # noqa: F401
 
 
 def migrate(connection):

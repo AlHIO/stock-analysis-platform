@@ -1,4 +1,4 @@
-"""Versioned official margin capabilities; Phase 2D-1 enables no network IO.
+"""Versioned official margin capabilities; approved manual downloads opt in.
 
 The Phase 2A body audit and a subsequent Swagger/metadata review are distinct.
 Swagger describes objects; the audited live bodies were arrays/tables. This is
@@ -17,7 +17,7 @@ from stockapp.modules.margin.domain.sources import (
     MarginSourceContract, SourceCapability, SourceDateFormat, SourceField,
 )
 
-MANIFEST_VERSION = "margin-sources-1.0.0"
+MANIFEST_VERSION = "margin-sources-1.1.0"
 
 
 def _field(name: str, target: str, unit: str = "lots") -> SourceField:
@@ -151,7 +151,7 @@ TWSE_OPENAPI_MANIFEST = MarginSourceManifest(
     response_format="JSON array observed; Swagger declares object; CSV declared, not body-audited",
     limitations=("no_trade_date_field", "no_historical_date_parameter", "no_global_lot_multiplier",
                  "precise_publication_time_unknown", "no_verified_adjustment_field",
-                 "phase_2d1_has_no_downloader"),
+                 "manual_download_requires_explicit_opt_in"),
 )
 TWSE_DATED_MANIFEST = MarginSourceManifest(
     audit_id="M2", provider="TWSE",
@@ -166,7 +166,7 @@ TWSE_DATED_MANIFEST = MarginSourceManifest(
     limitations=("automatic_download_rights_unconfirmed", "only_20161107_body_audited",
                  "grouped_headers_and_market_summary_require_separate_parser",
                  "no_verified_contiguous_history", "no_global_lot_multiplier",
-                 "no_verified_adjustment_field", "phase_2d1_has_no_downloader"),
+                 "no_verified_adjustment_field", "downloader_and_parser_disabled"),
 )
 TPEX_MANIFEST = MarginSourceManifest(
     audit_id="M5", provider="TPEx",
@@ -181,7 +181,7 @@ TPEX_MANIFEST = MarginSourceManifest(
                  "short_convering_is_official_buy_to_cover_spelling", "no_verified_adjustment_field",
                  "note_may_describe_next_business_day", "quota_effective_date_requires_evidence",
                  "precise_publication_time_unknown", "legacy_csv_metadata_mapping_preserved",
-                 "phase_2d1_has_no_downloader"),
+                 "manual_download_requires_explicit_opt_in"),
 )
 
 MANIFESTS = MappingProxyType({

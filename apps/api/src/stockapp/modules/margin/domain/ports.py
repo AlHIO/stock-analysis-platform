@@ -1,4 +1,4 @@
-"""Public contracts for future I/O; this phase has no implementations.
+"""Public contracts separating margin domain from persistence and providers.
 
 Repositories must select a whole revision for one natural key. Callers own the
 transaction; reads must not fetch providers or reconcile across report dates.
@@ -51,6 +51,8 @@ class MarginSourceAdapter(Protocol):
 
 
 class MarginCalculationEngine(Protocol):
+    def daily_change(self, report: MarginDailyReport, ledger: LedgerKind) -> "CalculationResult": ...
+
     def financing_identity(self, report: MarginDailyReport) -> "CalculationResult": ...
 
     def short_identity(self, report: MarginDailyReport) -> "CalculationResult": ...

@@ -1,0 +1,25 @@
+[
+  {
+    "Date": "1151106",
+    "SecuritiesCompanyCode": "9998",
+    "CompanyName": "SYNTHETIC 測試證券",
+    "MarginPurchaseBalancePreviousDay": "100",
+    "MarginPurchase": "20",
+    "MarginSales": "7",
+    "CashRedemption": "3",
+    "MarginPurchaseBalance": "110",
+    "MarginPurchaseBalanceBelongSecuritiesFinanceEnterprise": "0",
+    "MarginPurchaseUtilizationRate": "55.00",
+    "MarginPurchaseQuota": "200",
+    "ShortSaleBalancePreviousDay": "50",
+    "ShortSale": "9",
+    "ShortConvering": "4",
+    "StockRedemption": "2",
+    "ShortSaleBalance": "53",
+    "ShortSaleBalanceBelongSecuritiesFinanceEnterprise": "0",
+    "ShortSaleUtilizationRate": "26.50",
+    "ShortSaleQuota": "200",
+    "Offsetting": "0",
+    "Note": "SYNTHETIC 固定數值，不得匯入正式環境"
+  }
+]

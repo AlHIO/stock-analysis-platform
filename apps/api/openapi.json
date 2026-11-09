@@ -10,6 +10,15 @@
         "title": "AdjustmentConvention",
         "type": "string"
       },
+      "AdjustmentTreatment": {
+        "enum": [
+          "none",
+          "signed",
+          "unverified"
+        ],
+        "title": "AdjustmentTreatment",
+        "type": "string"
+      },
       "AggregationRole": {
         "enum": [
           "leaf",
@@ -17,6 +26,15 @@
           "supplemental"
         ],
         "title": "AggregationRole",
+        "type": "string"
+      },
+      "Availability": {
+        "enum": [
+          "reported",
+          "missing",
+          "not_applicable"
+        ],
+        "title": "Availability",
         "type": "string"
       },
       "BarSchema": {
@@ -446,19 +464,6 @@
         "title": "CalculationSchema",
         "type": "object"
       },
-      "CalculationStatus": {
-        "enum": [
-          "complete",
-          "missing_data",
-          "not_verified",
-          "insufficient_history",
-          "incompatible_data",
-          "truncated_history",
-          "no_sessions"
-        ],
-        "title": "CalculationStatus",
-        "type": "string"
-      },
       "CalendarSchema": {
         "additionalProperties": false,
         "properties": {
@@ -739,6 +744,24 @@
         "title": "DataStatusResponse",
         "type": "object"
       },
+      "DateEvidence": {
+        "enum": [
+          "source_field",
+          "verified_payload",
+          "unverified"
+        ],
+        "title": "DateEvidence",
+        "type": "string"
+      },
+      "EffectiveRelation": {
+        "enum": [
+          "same_day",
+          "next_business_day",
+          "unspecified"
+        ],
+        "title": "EffectiveRelation",
+        "type": "string"
+      },
       "ErrorDetailSchema": {
         "additionalProperties": false,
         "properties": {
@@ -847,6 +870,78 @@
           "timezone_name"
         ],
         "title": "FactTimingSchema",
+        "type": "object"
+      },
+      "FinancingLedgerSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "available_quota": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "balance_semantics": {
+            "const": "stock",
+            "title": "Balance Semantics",
+            "type": "string"
+          },
+          "cash_repayment": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "daily_change": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "flow_semantics": {
+            "const": "daily_flow",
+            "title": "Flow Semantics",
+            "type": "string"
+          },
+          "formula_policy": {
+            "$ref": "#/components/schemas/MarginFormulaPolicySchema"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "previous_balance": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "purchase": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "quota_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginQuotaLimitSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sale": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "signed_adjustment": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          }
+        },
+        "required": [
+          "previous_balance",
+          "balance",
+          "signed_adjustment",
+          "balance_semantics",
+          "flow_semantics",
+          "formula_policy",
+          "identity",
+          "daily_change",
+          "quota_limit",
+          "available_quota",
+          "purchase",
+          "sale",
+          "cash_repayment"
+        ],
+        "title": "FinancingLedgerSchema",
         "type": "object"
       },
       "HistorySchema": {
@@ -1962,6 +2057,1293 @@
         "title": "MappingStatus",
         "type": "string"
       },
+      "MarginCapabilitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "archive": {
+            "title": "Archive",
+            "type": "boolean"
+          },
+          "automated_ingestion_enabled": {
+            "const": false,
+            "title": "Automated Ingestion Enabled",
+            "type": "boolean"
+          },
+          "date_query": {
+            "title": "Date Query",
+            "type": "boolean"
+          },
+          "latest": {
+            "title": "Latest",
+            "type": "boolean"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "license_status": {
+            "enum": [
+              "verified_open",
+              "unresolved"
+            ],
+            "title": "License Status",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manual": {
+            "title": "Manual",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "latest",
+          "date_query",
+          "archive",
+          "manual",
+          "license_status",
+          "license",
+          "automated_ingestion_enabled",
+          "limitations"
+        ],
+        "title": "MarginCapabilitySchema",
+        "type": "object"
+      },
+      "MarginConversionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_version": {
+            "title": "Evidence Version",
+            "type": "string"
+          },
+          "factor": {
+            "max_digits": 50,
+            "title": "Factor",
+            "type": "string"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "source_unit": {
+            "enum": [
+              "shares",
+              "lots",
+              "units"
+            ],
+            "title": "Source Unit",
+            "type": "string"
+          },
+          "target_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Target Unit",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_through": {
+            "format": "date",
+            "title": "Valid Through",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "source_unit",
+          "target_unit",
+          "factor",
+          "valid_from",
+          "valid_through",
+          "evidence_version"
+        ],
+        "title": "MarginConversionSchema",
+        "type": "object"
+      },
+      "MarginCoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "const": "not_verified",
+            "title": "Completeness",
+            "type": "string"
+          },
+          "declared_scope": {
+            "const": "canonical_only",
+            "title": "Declared Scope",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "const": false,
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "known_missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Known Missing Dates",
+            "type": "array"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_report_count": {
+            "minimum": 0.0,
+            "title": "Stored Report Count",
+            "type": "integer"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored_from",
+          "stored_to",
+          "stored_report_count",
+          "completeness",
+          "declared_scope",
+          "expected_dates_known",
+          "known_missing_dates",
+          "truncated"
+        ],
+        "title": "MarginCoverageSchema",
+        "type": "object"
+      },
+      "MarginFormulaPolicySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustment_treatment": {
+            "$ref": "#/components/schemas/AdjustmentTreatment"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "verified",
+          "adjustment_treatment"
+        ],
+        "title": "MarginFormulaPolicySchema",
+        "type": "object"
+      },
+      "MarginFreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "expected_frequency": {
+            "const": "1d",
+            "title": "Expected Frequency",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Seen At"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "latest_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Trade Date"
+          }
+        },
+        "required": [
+          "latest_trade_date",
+          "latest_source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "age_calendar_days",
+          "assessment",
+          "expected_frequency",
+          "is_realtime"
+        ],
+        "title": "MarginFreshnessSchema",
+        "type": "object"
+      },
+      "MarginHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_scope": {
+            "title": "Balance Scope",
+            "type": "string"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/MarginCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/MarginFreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MarginPointSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "margin_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "balance_scope",
+          "from",
+          "to",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions"
+        ],
+        "title": "MarginHistoryResponse",
+        "type": "object"
+      },
+      "MarginLatestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_scope": {
+            "title": "Balance Scope",
+            "type": "string"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/MarginCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/MarginFreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginPointSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "margin_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "balance_scope",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions"
+        ],
+        "title": "MarginLatestResponse",
+        "type": "object"
+      },
+      "MarginMetricSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "decimal_precision": {
+            "const": 50,
+            "title": "Decimal Precision",
+            "type": "integer"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_revision_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Input Revision Ids",
+            "type": "array"
+          },
+          "input_trade_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Input Trade Dates",
+            "type": "array"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "reported": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported"
+          },
+          "status": {
+            "$ref": "#/components/schemas/stockapp__modules__margin__domain__results__CalculationStatus"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "value",
+          "status",
+          "quantity_unit",
+          "formula",
+          "expected",
+          "reported",
+          "difference",
+          "missing_fields",
+          "reasons",
+          "input_revision_ids",
+          "input_trade_dates",
+          "algorithm_version",
+          "decimal_precision"
+        ],
+        "title": "MarginMetricSchema",
+        "type": "object"
+      },
+      "MarginPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_scope": {
+            "title": "Balance Scope",
+            "type": "string"
+          },
+          "financing": {
+            "$ref": "#/components/schemas/FinancingLedgerSchema"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/MarginProvenanceSchema"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/MarginQualitySchema"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "short_margin": {
+            "$ref": "#/components/schemas/ShortMarginLedgerSchema"
+          },
+          "source_quantity_unit": {
+            "anyOf": [
+              {
+                "enum": [
+                  "shares",
+                  "lots",
+                  "units"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quantity Unit"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/MarginTimingSchema"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trade_date",
+          "balance_scope",
+          "quantity_unit",
+          "source_quantity_unit",
+          "financing",
+          "short_margin",
+          "timing",
+          "provenance",
+          "quality"
+        ],
+        "title": "MarginPointSchema",
+        "type": "object"
+      },
+      "MarginProvenanceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversion_evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginConversionSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "formula_version": {
+            "title": "Formula Version",
+            "type": "string"
+          },
+          "identity_evidence_version": {
+            "title": "Identity Evidence Version",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "payload_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Payload Sha256",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MarginSourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "revision_id",
+          "run_id",
+          "raw_id",
+          "source_row_locator",
+          "source_contract_version",
+          "schema_version",
+          "parser_version",
+          "identity_evidence_version",
+          "formula_version",
+          "promotion_policy_version",
+          "payload_sha256",
+          "conversion_evidence"
+        ],
+        "title": "MarginProvenanceSchema",
+        "type": "object"
+      },
+      "MarginQualitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "verified",
+              "partial",
+              "not_verified"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "missing_fields",
+          "unavailable_reasons"
+        ],
+        "title": "MarginQualitySchema",
+        "type": "object"
+      },
+      "MarginQuantitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "unit",
+          "availability"
+        ],
+        "title": "MarginQuantitySchema",
+        "type": "object"
+      },
+      "MarginQuotaLimitSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/QuotaBasis"
+          },
+          "effective_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective On"
+          },
+          "effective_relation": {
+            "$ref": "#/components/schemas/EffectiveRelation"
+          },
+          "evidence_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Version"
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "report_date": {
+            "format": "date",
+            "title": "Report Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quantity",
+          "report_date",
+          "effective_on",
+          "effective_relation",
+          "basis",
+          "evidence_version"
+        ],
+        "title": "MarginQuotaLimitSchema",
+        "type": "object"
+      },
+      "MarginRunSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "has_partial_data": {
+            "title": "Has Partial Data",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "safe_failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Failure Code"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "has_partial_data",
+          "safe_failure_code",
+          "counts"
+        ],
+        "title": "MarginRunSchema",
+        "type": "object"
+      },
+      "MarginSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "MarginSourceSchema",
+        "type": "object"
+      },
+      "MarginSourceStatusSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Audit Counts",
+            "type": "object"
+          },
+          "canonical_count": {
+            "minimum": 0.0,
+            "title": "Canonical Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/MarginCapabilitySchema"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/MarginCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "last_successful_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_canonical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Canonical Date"
+          },
+          "latest_reported_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reported Trade Date"
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "market_code": {
+            "enum": [
+              "TWSE",
+              "TPEX"
+            ],
+            "title": "Market Code",
+            "type": "string"
+          },
+          "product": {
+            "const": "margin_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "raw_count": {
+            "minimum": 0.0,
+            "title": "Raw Count",
+            "type": "integer"
+          },
+          "revision_count": {
+            "minimum": 0.0,
+            "title": "Revision Count",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MarginStatusSourceSchema"
+          }
+        },
+        "required": [
+          "key",
+          "product",
+          "frequency",
+          "market_code",
+          "source",
+          "capabilities",
+          "latest_run",
+          "last_successful_run",
+          "latest_reported_trade_date",
+          "latest_canonical_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "canonical_count",
+          "revision_count",
+          "raw_count",
+          "audit_counts",
+          "coverage"
+        ],
+        "title": "MarginSourceStatusSchema",
+        "type": "object"
+      },
+      "MarginStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MarginSourceStatusSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "margin_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "is_realtime"
+        ],
+        "title": "MarginStatusResponse",
+        "type": "object"
+      },
+      "MarginStatusSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "MarginStatusSourceSchema",
+        "type": "object"
+      },
+      "MarginTimingSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "date_evidence": {
+            "$ref": "#/components/schemas/DateEvidence"
+          },
+          "date_evidence_payload_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Evidence Payload Sha256"
+          },
+          "date_evidence_version": {
+            "title": "Date Evidence Version",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "timezone_name": {
+            "title": "Timezone Name",
+            "type": "string"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trade_date",
+          "source_published_on",
+          "source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at",
+          "timezone_name",
+          "date_evidence",
+          "date_evidence_version",
+          "date_evidence_payload_sha256"
+        ],
+        "title": "MarginTimingSchema",
+        "type": "object"
+      },
       "MarketSchema": {
         "additionalProperties": false,
         "properties": {
@@ -2167,7 +3549,7 @@
             "type": "array"
           },
           "status": {
-            "$ref": "#/components/schemas/CalculationStatus"
+            "$ref": "#/components/schemas/stockapp__modules__institutional__domain__results__CalculationStatus"
           },
           "value": {
             "anyOf": [
@@ -3985,6 +5367,14 @@
         "title": "QuantityUnit",
         "type": "string"
       },
+      "QuotaBasis": {
+        "enum": [
+          "balance_ceiling",
+          "unverified"
+        ],
+        "title": "QuotaBasis",
+        "type": "string"
+      },
       "RunSummarySchema": {
         "additionalProperties": false,
         "properties": {
@@ -4092,6 +5482,78 @@
           "total_pages"
         ],
         "title": "SearchResponse",
+        "type": "object"
+      },
+      "ShortMarginLedgerSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "available_quota": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "balance_semantics": {
+            "const": "stock",
+            "title": "Balance Semantics",
+            "type": "string"
+          },
+          "daily_change": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "flow_semantics": {
+            "const": "daily_flow",
+            "title": "Flow Semantics",
+            "type": "string"
+          },
+          "formula_policy": {
+            "$ref": "#/components/schemas/MarginFormulaPolicySchema"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/MarginMetricSchema"
+          },
+          "previous_balance": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "quota_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarginQuotaLimitSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "short_cover": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "short_sell": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "signed_adjustment": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          },
+          "stock_repayment": {
+            "$ref": "#/components/schemas/MarginQuantitySchema"
+          }
+        },
+        "required": [
+          "previous_balance",
+          "balance",
+          "signed_adjustment",
+          "balance_semantics",
+          "flow_semantics",
+          "formula_policy",
+          "identity",
+          "daily_change",
+          "quota_limit",
+          "available_quota",
+          "short_sell",
+          "short_cover",
+          "stock_repayment"
+        ],
+        "title": "ShortMarginLedgerSchema",
         "type": "object"
       },
       "SourceCapabilitiesSchema": {
@@ -4538,7 +6000,7 @@
             "type": "array"
           },
           "status": {
-            "$ref": "#/components/schemas/CalculationStatus"
+            "$ref": "#/components/schemas/stockapp__modules__institutional__domain__results__CalculationStatus"
           }
         },
         "required": [
@@ -4786,6 +6248,31 @@
         "title": "SourceSchema",
         "type": "object"
       },
+      "stockapp__modules__institutional__domain__results__CalculationStatus": {
+        "enum": [
+          "complete",
+          "missing_data",
+          "not_verified",
+          "insufficient_history",
+          "incompatible_data",
+          "truncated_history",
+          "no_sessions"
+        ],
+        "title": "CalculationStatus",
+        "type": "string"
+      },
+      "stockapp__modules__margin__domain__results__CalculationStatus": {
+        "enum": [
+          "complete",
+          "missing_data",
+          "not_applicable",
+          "not_verified",
+          "incompatible_data",
+          "invalid"
+        ],
+        "title": "CalculationStatus",
+        "type": "string"
+      },
       "stockapp__modules__market_data__api__schemas__FreshnessSchema": {
         "additionalProperties": false,
         "properties": {
@@ -4943,7 +6430,8 @@
               "default": "institutional_daily",
               "enum": [
                 "institutional_daily",
-                "ownership_weekly"
+                "ownership_weekly",
+                "margin_daily"
               ],
               "title": "Product",
               "type": "string"
@@ -5027,6 +6515,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/OwnershipStatusResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MarginStatusResponse"
                     }
                   ],
                   "title": "Response Institutional Source Status"
@@ -5363,6 +6854,127 @@
         "summary": "Get Instrument",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/margin/status": {
+      "get": {
+        "description": "Saved ingestion outcomes and source capability gates; no provider I/O.",
+        "operationId": "margin_ingestion_status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "market",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "TWSE",
+                    "TPEX"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Market"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarginStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument missing or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive margin query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Margin data temporarily unavailable"
+          }
+        },
+        "summary": "Margin Status",
+        "tags": [
+          "Margin trading"
         ]
       }
     },
@@ -6122,6 +7734,233 @@
         "summary": "Get Latest",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/margin": {
+      "get": {
+        "description": "Return whole canonical reports, separate stock balances and daily flows.",
+        "operationId": "margin_daily_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balance_scope",
+            "required": false,
+            "schema": {
+              "default": "margin_trading",
+              "maxLength": 64,
+              "title": "Balance Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarginHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument missing or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive margin query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Margin data temporarily unavailable"
+          }
+        },
+        "summary": "Margin History",
+        "tags": [
+          "Margin trading"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/margin/latest": {
+      "get": {
+        "description": "Latest saved report, never a realtime quote; point=null when absent.",
+        "operationId": "margin_latest_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balance_scope",
+            "required": false,
+            "schema": {
+              "default": "margin_trading",
+              "maxLength": 64,
+              "title": "Balance Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarginLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Instrument missing or unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid or excessive margin query"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Margin data temporarily unavailable"
+          }
+        },
+        "summary": "Margin Latest",
+        "tags": [
+          "Margin trading"
         ]
       }
     },

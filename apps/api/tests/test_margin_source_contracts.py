@@ -53,7 +53,7 @@ def blockers(manifest, *, observed=None, conversion=None):
 
 
 def test_manifest_capabilities_are_versioned_immutable_and_not_network_enablement():
-    assert MANIFEST_VERSION == 'margin-sources-1.0.0'
+    assert MANIFEST_VERSION == 'margin-sources-1.1.0'
     assert {manifest.audit_id for manifest in MANIFESTS.values()} == {'M1', 'M2', 'M5'}
     for manifest in MANIFESTS.values():
         assert manifest.version == MANIFEST_VERSION

@@ -140,6 +140,31 @@ def _register_ownership(commands):
     status.add_argument("--limit", type=_institutional_limit, default=20)
 
 
+def _register_margin(commands):
+    margin = commands.add_parser("margin", help="Official financing and short-margin ingestion")
+    actions = margin.add_subparsers(dest="margin_action", required=True)
+    sync = actions.add_parser("sync", help="Fetch approved sources; dates and units remain source facts")
+    modes = sync.add_subparsers(dest="margin_sync_mode", required=True)
+    for mode in ("latest", "date"):
+        command = modes.add_parser(mode)
+        command.add_argument("--market", choices=["twse", "tpex"], default="tpex")
+        command.add_argument("--source", choices=["openapi", "dated"], default="openapi")
+        command.add_argument("--evidence", "--identity-evidence", dest="identity_evidence", type=Path,
+                             help="Reviewed dated UUID, unit multiplier and optional payload-bound date evidence")
+        if mode == "date":
+            command.add_argument("--date", type=_institutional_date, required=True)
+        else:
+            command.set_defaults(date=None)
+    replay = actions.add_parser("replay", help="Replay archived bytes or resume a durable checkpoint without downloading")
+    choice = replay.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--raw", type=UUID)
+    choice.add_argument("--resume", type=UUID)
+    replay.add_argument("--evidence", "--identity-evidence", dest="identity_evidence", type=Path)
+    status = actions.add_parser("status", help="Inspect margin run counts, rejection reasons and checkpoints")
+    status.add_argument("--id", type=UUID)
+    status.add_argument("--limit", type=_institutional_limit, default=20)
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -182,6 +207,7 @@ def _parser():
     replay.add_argument("--date", type=date.fromisoformat, required=True)
     _register_institutional(commands)
     _register_ownership(commands)
+    _register_margin(commands)
     return parser
 
 
@@ -318,12 +344,20 @@ def main(argv=None) -> int:
     if (args.command == "ownership" and args.ownership_action == "replay"
         and args.resume is not None and args.identity_evidence is not None):
         parser.error("--identity-evidence is only valid for a new --raw replay; resume uses frozen evidence")
+    if (args.command == "margin" and args.margin_action == "replay"
+        and args.resume is not None and args.identity_evidence is not None):
+        parser.error("--evidence is only valid for a new --raw replay; resume uses frozen evidence")
     # Also support running the installed CLI from the monorepo root. Docker
     # configuration comes from environment variables, not copied secret files.
     engine = None
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "margin":
+            from stockapp.modules.margin.infrastructure import operations
+            reports = asyncio.run(operations.execute(engine, args, settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            return operations.exit_code(args, reports)
         if args.command == "ownership":
             from stockapp.modules.ownership.infrastructure import operations
             reports = asyncio.run(operations.execute(engine, args, settings))
@@ -351,6 +385,12 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "margin":
+            from stockapp.modules.margin.domain.models import MarginError
+            if isinstance(exc, MarginError):
+                print(json.dumps({"error": type(exc).__name__, "code": exc.code,
+                    "hint": "Inspect stockapp margin status; source dates, use rights and unit evidence remain enforced"}))
+                return 2
         if args.command == "ownership":
             from stockapp.modules.ownership.domain.models import OwnershipError
             if isinstance(exc, OwnershipError):

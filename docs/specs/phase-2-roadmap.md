@@ -95,6 +95,8 @@ flowchart LR
 
 ### 2D-2：雙leg存量／流量與API
 
+狀態：Persistence／手動 Ingestion／REST API 已實作，見 [2D-2 規格與驗證](phase-2d-margin-api.md)。實際來源驗收受 M1 日期、M2 使用權及商品／日期換算證據 gate 限制，不宣稱完整歷史；停止於本階段。
+
 工作：重用 2D-1 financing／short_margin Domain 與唯一 Calculator，建立 typed persistence／repos／migration、來源 Adapter／Normalizer、CLI／margin API；前日餘額、買賣／償還、限額與註記分開。須另獲任務授權才開始。
 
 **AC**：融資與融券兩種balance identity固定數值驗證；不適用空欄維持null；D+1更帳的前日assertion不自動消滅D原始current；日曆未確認不拿前曆日當前交易日；重複與修訂、整組rollback、來源故障保留資料。只在已確認來源範圍內宣告真實資料驗收，不宣稱完整十年。

@@ -318,6 +318,7 @@ class MarginSourceLineage:
     promotion_policy_version: str
     payload_sha256: str
     source_row_locator: str
+    conversion_evidence: ConversionEvidence | None = None
 
     def __post_init__(self):
         for name in ("source_id", "run_id", "raw_id", "revision_id"):
@@ -328,12 +329,17 @@ class MarginSourceLineage:
             _text(getattr(self, name), name)
         if not isinstance(self.payload_sha256, str) or re.fullmatch("[0-9a-f]{64}", self.payload_sha256) is None:
             raise MarginError("invalid_payload_sha256")
+        if self.conversion_evidence is not None and not isinstance(self.conversion_evidence, ConversionEvidence):
+            raise MarginError("invalid_conversion_evidence")
 
     @property
     def comparison_key(self) -> tuple:
         return (self.source_id, self.source_contract_version, self.schema_version,
                 self.parser_version, self.identity_evidence_version, self.scope,
-                self.formula_version, self.promotion_policy_version)
+                self.formula_version, self.promotion_policy_version,
+                None if self.conversion_evidence is None else (
+                    self.conversion_evidence.source_unit, self.conversion_evidence.target_unit,
+                    self.conversion_evidence.factor, self.conversion_evidence.evidence_version))
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -359,6 +365,12 @@ class MarginDailyReport:
             raise MarginError("invalid_report_metadata")
         if self.timing.trade_date != self.trade_date or self.timing.date_evidence is DateEvidence.UNVERIFIED:
             raise MarginError("unverified_source_date")
+        conversion = self.lineage.conversion_evidence
+        if conversion is not None and (
+                conversion.instrument_id != self.instrument_id or conversion.market_id != self.market_id
+                or conversion.target_unit is not self.quantity_unit
+                or not conversion.valid_from <= self.trade_date <= conversion.valid_through):
+            raise MarginError("incompatible_report_conversion_evidence")
         if (self.timing.date_evidence_payload_sha256 is not None
                 and self.timing.date_evidence_payload_sha256 != self.lineage.payload_sha256):
             raise MarginError("date_evidence_payload_mismatch")
