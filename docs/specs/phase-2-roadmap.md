@@ -1,6 +1,6 @@
 # Phase 2 — 開發依賴、工作與驗收
 
-狀態更新：2026-11-10，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。本機0006已依授權套用；[2B-5 法人 REST API](phase-2b-api.md) 已加入 canonical query、Domain metrics 與 source status。[2B-6驗收](phase-2b-validation.md)的軟體全流程／回歸已通過；TWSE使用權與TPEx口徑／dated identity仍阻擋真實canonical正式驗收。[2C-1集保管線／Persistence](phase-2c-ownership-ingestion.md)已完成並升級0007，實際canonical為2330／2026-11-06一週；[2C-2集保API](phase-2c-ownership-api.md)已完成canonical查詢、大戶比例與百分點差；正式週差仍受缺週／未核實schedule限制。[2D 融資融券](phase-2d-margin-api.md)與[2E 借券管線／API](phase-2e-lending-api.md)已在核准來源範圍完成，本機目前為0009；各自僅有已核實單日／單檔的正式資料驗收，不宣稱全市場完整。法人UI及2F尚未開始。法人來源與verified calendar限制仍保留。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
+狀態更新：2026-11-11，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。本機0006已依授權套用；[2B-5 法人 REST API](phase-2b-api.md) 已加入 canonical query、Domain metrics 與 source status。[2B-6驗收](phase-2b-validation.md)的軟體全流程／回歸已通過；TWSE使用權與TPEx口徑／dated identity仍阻擋真實canonical正式驗收。[2C-1集保管線／Persistence](phase-2c-ownership-ingestion.md)已完成並升級0007，實際canonical為2330／2026-11-06一週；[2C-2集保API](phase-2c-ownership-api.md)已完成canonical查詢、大戶比例與百分點差；正式週差仍受缺週／未核實schedule限制。[2D 融資融券](phase-2d-margin-api.md)與[2E 借券管線／API](phase-2e-lending-api.md)已在核准來源範圍完成，本機目前為0009；各自僅有已核實單日／單檔的正式資料驗收，不宣稱全市場完整。[2F-1純分析引擎](phase-2f-chip-engine.md)已完成公開Calculator委派、時間門檻與相容性契約；2F-2查詢整合及法人UI尚未開始。法人來源與verified calendar限制仍保留。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
 
 本計畫依據[來源稽核](phase-2a-data-sources.md)、[Domain／Schema草案](phase-2-domain-model.md)、[API草案](phase-2-api-contract.md)。目前已確認「來源存在」與「小樣本可讀」，不等於所有歷史、完整分類與自動利用權皆已完成。
 
@@ -123,7 +123,9 @@ flowchart LR
 
 ### 2F-1：版本化純Domain Engine
 
-工作：實作領域文件列的法人N-session淨額、集保大戶比例及pp變化、margin balance change、可比較範圍內的lending-short ratio；所有公式只存在chip_analysis engine。來源不足的指標回unavailable，不產生「主力分數」替代。
+狀態：已完成，見[2F-1引擎與固定數值驗證](phase-2f-chip-engine.md)。
+
+本階段工作：實作領域文件列的法人N-session淨額與連續次數、集保大戶比例及pp變化、margin balance change、lending餘額／日變化／flow及可比較範圍內的lending-short ratio。單產品公式重用既有公開Calculator；跨來源新公式只存在chip_analysis engine。來源不足的指標回unavailable，不產生「主力分數」替代。
 
 **AC**：精確數值／參數／Decimal50位中間精度、輸出12位HALF_EVEN驗證；net正負／0/null、暖機／不足觀察、N-session完整度、分母0、跨年／缺週、>=門檻只接受級距下界；輸出版本、參數、分母、單位、input revision refs。資料不足不能只測可執行就當數值正確。
 

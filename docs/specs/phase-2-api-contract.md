@@ -43,7 +43,9 @@
 
 scope 使用部署中 source contract 的明確 enum；初版只有一個已批准 scope 時可省略，由回應明示預設值。多 scope 存在且未指定時回422 `ambiguous_trade_scope`，不能選較新的一個當相同序列。無法核實的含鉅額／其他範圍為 unspecified；禁止拿來跨來源合計。
 
-`chip-metrics.parameters` 白名單依 metric version：N 為1–250整數；ownership threshold 是級距可精確表達的整數股數；不能傳任意 SQL／公式。未知 key、bool冒充int、級距中間門檻、未支援的 frequency 回422。目前不提供跨商品綜合「主力分數」。
+`chip-metrics.parameters` 白名單依 metric version：法人累計v1沿用正式InstitutionalCalculator，N僅5／10／20／60個確認交易session（原1–250的廣泛草案未實作）；ownership threshold 是級距可精確表達的整數股數；不能傳任意 SQL／公式。未知 key、bool冒充int、級距中間門檻、未支援的 frequency 在未來HTTP實作應回422。目前不提供跨商品綜合「主力分數」。
+
+Phase2F-1已完成[純分析Engine與公開Ports](phase-2f-chip-engine.md)，含版本、50位Decimal／12位HALF_EVEN、Input Revision及發布／觀察cutoff。`/chip-metrics`仍為未實作的未來路由，這次不新增Pydantic／OpenAPI操作。單產品公式由其公開Calculator唯一維護，只有跨來源比例等新公式放chip_analysis；未核實的scope／Channel／分母相容性不產生比例。
 
 ## 3. Response Schemas 草案
 

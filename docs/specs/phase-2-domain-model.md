@@ -239,6 +239,8 @@ checkpoint 區分成功、部分、明示 no_data、下載失敗、未發布、�
 
 所有公式登記 `metric_id/algorithm_version/parameters/input_product_versions/availability_policy`：
 
+Phase2F-1實作為[`chip-analysis-engine-1.0.0`](phase-2f-chip-engine.md)，單產品計算委派既有公開Calculator，統一時間可用性、來源／分母相容性、12位HALF_EVEN輸出與Revision追蹤。法人累計只支援正式Domain的5／10／20／60session；沒有新增表、SQL reader、API或UI，不把這裡的草案當成已提供HTTP功能。
+
 | 指標草案                              | 公式與必要輸入                                                           | 缺失／邊界規則                                                                                                                                           |
 | ------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `institutional_net_sum` v1            | N 個已確認交易 session 的指定 leaf net 之和；dealer 合計只取一次         | 未驗證 session 日曆或缺一日則 not_verified/incomplete，不以週末／空列補0                                                                                 |

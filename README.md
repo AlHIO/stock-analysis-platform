@@ -18,6 +18,7 @@ apps/
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
       modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
       modules/lending/     借券雙Ledger、Source／Channel Metadata、Raw／Revision、CLI與API
+      modules/chip_analysis/ 版本化分析Engine、時間可用性、來源相容性與公開Ports
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -63,6 +64,16 @@ Phase 2D-2 完成 Margin Persistence／手動匯入／REST API，新增 `0008_ma
 Phase 2E-1 新增獨立 lending 純 Domain，分開借券未還、借券賣出流量／餘額與 Regulatory Quota。提供精確 balance identity、帶正負號調整、經核實分割證據的 Channel 合計／對帳，以及 M3／M4／M6／M7／M8／M9 Source Manifest；不把 SLBNLB 再加到子系列、不猜未知日期／歷史／Channel。公式與不需資料庫的測試指令見 [借券 Domain 規格](docs/specs/phase-2e-lending-domain.md)。本階段沒有新增表、Migration、下載、CLI、API 或前端。
 
 Phase 2E-2 新增 `0009_lending`、不可變Raw／Audit／Source-Channel-Kind Metadata／Revision、原子Canonical與手動Ingestion／Replay／查詢API。目前只核准TPEx M6借券賣出，M4借券未還的使用權／Schema仍Blocked；不同kind／Channel／scope分開，GET不抓來源。完整Schema、來源限制、操作與實際驗證見 [借券管線與API規格](docs/specs/phase-2e-lending-api.md)。
+
+Phase 2F-1 新增 `chip_analysis` 共用純分析引擎：法人累計／連買連賣、集保比例／百分點變化、Margin餘額差、Lending餘額／日差／流量及有明確相容性證據的借券賣出比例。直接重用各模組Calculator，保留Input Revision、知識截止時間與50位Decimal／12位HALF_EVEN輸出；缺值不補0、未來發布資料不使用。呼叫端提供Canonical Domain Snapshot或注入公開Reader Port，本階段沒有SQL reader wiring、API、UI或Migration。契約與數值見 [籌碼分析引擎規格](docs/specs/phase-2f-chip-engine.md)。
+
+```bash
+# 純Domain固定數值測試，不連資料庫或供應商
+.tools/api-venv/bin/python -m pytest \
+  apps/api/tests/test_chip_analysis_contracts.py \
+  apps/api/tests/test_chip_analysis_products.py \
+  apps/api/tests/test_chip_analysis_ledgers.py -q
+```
 
 ## 借券資料匯入與 API（Phase 2E-2）
 
@@ -621,4 +632,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2E-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2F-1；後續分析API／UI、回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
