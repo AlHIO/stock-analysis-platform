@@ -345,6 +345,55 @@
         "title": "BarsResponse",
         "type": "object"
       },
+      "BorrowingLedgerSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "balance_semantics": {
+            "const": "stock",
+            "title": "Balance Semantics",
+            "type": "string"
+          },
+          "borrowed_quantity": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "flow_semantics": {
+            "const": "daily_flow",
+            "title": "Flow Semantics",
+            "type": "string"
+          },
+          "formula_policy": {
+            "$ref": "#/components/schemas/LendingPolicySchema"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/LendingMetricSchema"
+          },
+          "previous_balance": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "returned_quantity": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "signed_adjustment": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          }
+        },
+        "required": [
+          "previous_balance",
+          "balance",
+          "signed_adjustment",
+          "balance_semantics",
+          "flow_semantics",
+          "formula_policy",
+          "identity",
+          "borrowed_quantity",
+          "returned_quantity"
+        ],
+        "title": "BorrowingLedgerSchema",
+        "type": "object"
+      },
       "BucketKind": {
         "enum": [
           "regular",
@@ -1988,6 +2037,1495 @@
           "data_kind"
         ],
         "title": "LatestResponse",
+        "type": "object"
+      },
+      "LendingCapabilitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "archive": {
+            "title": "Archive",
+            "type": "boolean"
+          },
+          "automated_ingestion_enabled": {
+            "const": false,
+            "title": "Automated Ingestion Enabled",
+            "type": "boolean"
+          },
+          "date_query": {
+            "title": "Date Query",
+            "type": "boolean"
+          },
+          "latest": {
+            "title": "Latest",
+            "type": "boolean"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "license_status": {
+            "enum": [
+              "verified_open",
+              "unresolved"
+            ],
+            "title": "License Status",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manual": {
+            "title": "Manual",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "latest",
+          "date_query",
+          "archive",
+          "manual",
+          "license_status",
+          "license",
+          "automated_ingestion_enabled",
+          "limitations"
+        ],
+        "title": "LendingCapabilitySchema",
+        "type": "object"
+      },
+      "LendingChannel": {
+        "enum": [
+          "combined",
+          "slb",
+          "nlb",
+          "other_verified",
+          "unspecified"
+        ],
+        "title": "LendingChannel",
+        "type": "string"
+      },
+      "LendingChannelSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/LendingChannel"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "coverage": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "family": {
+            "title": "Family",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "code",
+          "family",
+          "version",
+          "verified",
+          "coverage"
+        ],
+        "title": "LendingChannelSchema",
+        "type": "object"
+      },
+      "LendingCoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "const": "not_verified",
+            "title": "Completeness",
+            "type": "string"
+          },
+          "declared_scope": {
+            "const": "canonical_only",
+            "title": "Declared Scope",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "const": false,
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "known_missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Known Missing Dates",
+            "type": "array"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_report_count": {
+            "minimum": 0.0,
+            "title": "Stored Report Count",
+            "type": "integer"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored_from",
+          "stored_to",
+          "stored_report_count",
+          "completeness",
+          "declared_scope",
+          "expected_dates_known",
+          "known_missing_dates",
+          "truncated"
+        ],
+        "title": "LendingCoverageSchema",
+        "type": "object"
+      },
+      "LendingDefinitionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/LendingChannelSchema"
+          },
+          "endpoint": {
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "evidence_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Urls",
+            "type": "array"
+          },
+          "manifest_version": {
+            "title": "Manifest Version",
+            "type": "string"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units",
+              "lots"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "report_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_product": {
+            "title": "Source Product",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_product",
+          "report_kind",
+          "channel",
+          "source_contract_version",
+          "schema_version",
+          "quantity_unit",
+          "manifest_version",
+          "endpoint",
+          "attribution",
+          "evidence_urls"
+        ],
+        "title": "LendingDefinitionSchema",
+        "type": "object"
+      },
+      "LendingFreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "expected_frequency": {
+            "const": "1d",
+            "title": "Expected Frequency",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Seen At"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "latest_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Trade Date"
+          }
+        },
+        "required": [
+          "latest_trade_date",
+          "latest_source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "age_calendar_days",
+          "assessment",
+          "expected_frequency",
+          "is_realtime"
+        ],
+        "title": "LendingFreshnessSchema",
+        "type": "object"
+      },
+      "LendingHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregation": {
+            "const": "none",
+            "title": "Aggregation",
+            "type": "string"
+          },
+          "channel_family_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Family Filter"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/LendingCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/LendingFreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LendingPointSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "lending_channel_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lending Channel Filter"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "lending_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "report_kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "trade_scope": {
+            "title": "Trade Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "report_kind",
+          "trade_scope",
+          "lending_channel_filter",
+          "channel_family_filter",
+          "from",
+          "to",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions",
+          "aggregation"
+        ],
+        "title": "LendingHistoryResponse",
+        "type": "object"
+      },
+      "LendingLatestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregation": {
+            "const": "none",
+            "title": "Aggregation",
+            "type": "string"
+          },
+          "channel_family_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Family Filter"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/LendingCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/LendingFreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "lending_channel_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lending Channel Filter"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LendingPointSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "lending_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "report_kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "source_contract_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Contract Versions",
+            "type": "array"
+          },
+          "trade_scope": {
+            "title": "Trade Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "report_kind",
+          "trade_scope",
+          "lending_channel_filter",
+          "channel_family_filter",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "source_contract_versions",
+          "aggregation"
+        ],
+        "title": "LendingLatestResponse",
+        "type": "object"
+      },
+      "LendingMetricSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "decimal_precision": {
+            "const": 50,
+            "title": "Decimal Precision",
+            "type": "integer"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_revision_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Input Revision Ids",
+            "type": "array"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "reported": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported"
+          },
+          "status": {
+            "$ref": "#/components/schemas/stockapp__modules__lending__domain__results__CalculationStatus"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "max_digits": 50,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "value",
+          "status",
+          "quantity_unit",
+          "formula",
+          "expected",
+          "reported",
+          "difference",
+          "missing_fields",
+          "reasons",
+          "input_revision_ids",
+          "algorithm_version",
+          "decimal_precision"
+        ],
+        "title": "LendingMetricSchema",
+        "type": "object"
+      },
+      "LendingPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "ledger": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BorrowingLedgerSchema"
+              },
+              {
+                "$ref": "#/components/schemas/LendingShortLedgerSchema"
+              }
+            ],
+            "title": "Ledger"
+          },
+          "lending_channel": {
+            "$ref": "#/components/schemas/LendingChannelSchema"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/LendingProvenanceSchema"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/LendingQualitySchema"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "quotas": {
+            "items": {
+              "$ref": "#/components/schemas/LendingQuotaSchema"
+            },
+            "title": "Quotas",
+            "type": "array"
+          },
+          "report_kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/LendingTimingSchema"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          },
+          "trade_scope": {
+            "title": "Trade Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trade_date",
+          "report_kind",
+          "trade_scope",
+          "lending_channel",
+          "quantity_unit",
+          "ledger",
+          "quotas",
+          "timing",
+          "provenance",
+          "quality"
+        ],
+        "title": "LendingPointSchema",
+        "type": "object"
+      },
+      "LendingPolicySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "adjustment_treatment": {
+            "$ref": "#/components/schemas/AdjustmentTreatment"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "verified",
+          "adjustment_treatment"
+        ],
+        "title": "LendingPolicySchema",
+        "type": "object"
+      },
+      "LendingProvenanceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "formula_version": {
+            "title": "Formula Version",
+            "type": "string"
+          },
+          "identity_evidence_version": {
+            "title": "Identity Evidence Version",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "payload_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Payload Sha256",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "raw_id": {
+            "format": "uuid",
+            "title": "Raw Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LendingSourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_row_locator": {
+            "title": "Source Row Locator",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "revision_id",
+          "run_id",
+          "raw_id",
+          "source_row_locator",
+          "source_contract_version",
+          "schema_version",
+          "parser_version",
+          "taxonomy_version",
+          "identity_evidence_version",
+          "formula_version",
+          "promotion_policy_version",
+          "payload_sha256"
+        ],
+        "title": "LendingProvenanceSchema",
+        "type": "object"
+      },
+      "LendingQualitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "channel_verified": {
+            "title": "Channel Verified",
+            "type": "boolean"
+          },
+          "identity_status": {
+            "$ref": "#/components/schemas/stockapp__modules__lending__domain__results__CalculationStatus"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Fields",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "verified",
+              "partial",
+              "not_verified"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "trade_scope_verified": {
+            "title": "Trade Scope Verified",
+            "type": "boolean"
+          },
+          "unavailable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "identity_status",
+          "channel_verified",
+          "trade_scope_verified",
+          "missing_fields",
+          "unavailable_reasons"
+        ],
+        "title": "LendingQualitySchema",
+        "type": "object"
+      },
+      "LendingQuantitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "unit",
+          "availability"
+        ],
+        "title": "LendingQuantitySchema",
+        "type": "object"
+      },
+      "LendingQuotaSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "basis_code": {
+            "title": "Basis Code",
+            "type": "string"
+          },
+          "effective_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective On"
+          },
+          "effective_relation": {
+            "$ref": "#/components/schemas/EffectiveRelation"
+          },
+          "evidence_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Version"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/QuotaPurpose"
+          },
+          "quantity": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "report_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Date"
+          },
+          "semantics": {
+            "const": "regulatory_quota_not_actual_volume",
+            "title": "Semantics",
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose",
+          "quantity",
+          "report_date",
+          "effective_on",
+          "effective_relation",
+          "basis_code",
+          "evidence_version",
+          "semantics"
+        ],
+        "title": "LendingQuotaSchema",
+        "type": "object"
+      },
+      "LendingRunSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "has_partial_data": {
+            "title": "Has Partial Data",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "safe_failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Failure Code"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "has_partial_data",
+          "safe_failure_code",
+          "counts"
+        ],
+        "title": "LendingRunSchema",
+        "type": "object"
+      },
+      "LendingShortLedgerSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "balance_semantics": {
+            "const": "stock",
+            "title": "Balance Semantics",
+            "type": "string"
+          },
+          "flow_semantics": {
+            "const": "daily_flow",
+            "title": "Flow Semantics",
+            "type": "string"
+          },
+          "formula_policy": {
+            "$ref": "#/components/schemas/LendingPolicySchema"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/LendingMetricSchema"
+          },
+          "previous_balance": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "short_returns": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "short_sales": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          },
+          "signed_adjustment": {
+            "$ref": "#/components/schemas/LendingQuantitySchema"
+          }
+        },
+        "required": [
+          "previous_balance",
+          "balance",
+          "signed_adjustment",
+          "balance_semantics",
+          "flow_semantics",
+          "formula_policy",
+          "identity",
+          "short_sales",
+          "short_returns"
+        ],
+        "title": "LendingShortLedgerSchema",
+        "type": "object"
+      },
+      "LendingSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "LendingSourceSchema",
+        "type": "object"
+      },
+      "LendingSourceStatusSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Audit Counts",
+            "type": "object"
+          },
+          "canonical_count": {
+            "minimum": 0.0,
+            "title": "Canonical Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/LendingCapabilitySchema"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/LendingCoverageSchema"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/LendingDefinitionSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "last_successful_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LendingRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_canonical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Canonical Date"
+          },
+          "latest_reported_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Reported Trade Date"
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LendingRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "market_code": {
+            "enum": [
+              "TWSE",
+              "TPEX"
+            ],
+            "title": "Market Code",
+            "type": "string"
+          },
+          "product": {
+            "const": "lending_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "raw_count": {
+            "minimum": 0.0,
+            "title": "Raw Count",
+            "type": "integer"
+          },
+          "revision_count": {
+            "minimum": 0.0,
+            "title": "Revision Count",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LendingStatusSourceSchema"
+          }
+        },
+        "required": [
+          "key",
+          "product",
+          "frequency",
+          "market_code",
+          "source",
+          "definition",
+          "capabilities",
+          "latest_run",
+          "last_successful_run",
+          "latest_reported_trade_date",
+          "latest_canonical_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "canonical_count",
+          "revision_count",
+          "raw_count",
+          "audit_counts",
+          "coverage"
+        ],
+        "title": "LendingSourceStatusSchema",
+        "type": "object"
+      },
+      "LendingStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LendingSourceStatusSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "lending_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "items",
+          "count",
+          "next_cursor",
+          "read_at",
+          "is_realtime"
+        ],
+        "title": "LendingStatusResponse",
+        "type": "object"
+      },
+      "LendingStatusSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "LendingStatusSourceSchema",
+        "type": "object"
+      },
+      "LendingTimingSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "date_evidence": {
+            "$ref": "#/components/schemas/DateEvidence"
+          },
+          "date_evidence_payload_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Evidence Payload Sha256"
+          },
+          "date_evidence_version": {
+            "title": "Date Evidence Version",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "timezone_name": {
+            "title": "Timezone Name",
+            "type": "string"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trade_date",
+          "source_published_on",
+          "source_published_at",
+          "first_seen_at",
+          "last_seen_at",
+          "ingested_at",
+          "timezone_name",
+          "date_evidence",
+          "date_evidence_version",
+          "date_evidence_payload_sha256"
+        ],
+        "title": "LendingTimingSchema",
         "type": "object"
       },
       "LineageSchema": {
@@ -5375,6 +6913,23 @@
         "title": "QuotaBasis",
         "type": "string"
       },
+      "QuotaPurpose": {
+        "enum": [
+          "borrowing",
+          "short_sale",
+          "available_short_sale"
+        ],
+        "title": "QuotaPurpose",
+        "type": "string"
+      },
+      "ReportKind": {
+        "enum": [
+          "borrowed_positions",
+          "lending_short_sales"
+        ],
+        "title": "ReportKind",
+        "type": "string"
+      },
       "RunSummarySchema": {
         "additionalProperties": false,
         "properties": {
@@ -6261,6 +7816,18 @@
         "title": "CalculationStatus",
         "type": "string"
       },
+      "stockapp__modules__lending__domain__results__CalculationStatus": {
+        "enum": [
+          "complete",
+          "missing_data",
+          "not_applicable",
+          "not_verified",
+          "incompatible_data",
+          "invalid"
+        ],
+        "title": "CalculationStatus",
+        "type": "string"
+      },
       "stockapp__modules__margin__domain__results__CalculationStatus": {
         "enum": [
           "complete",
@@ -6431,7 +7998,8 @@
               "enum": [
                 "institutional_daily",
                 "ownership_weekly",
-                "margin_daily"
+                "margin_daily",
+                "lending_daily"
               ],
               "title": "Product",
               "type": "string"
@@ -6518,6 +8086,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/MarginStatusResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LendingStatusResponse"
                     }
                   ],
                   "title": "Response Institutional Source Status"
@@ -6854,6 +8425,127 @@
         "summary": "Get Instrument",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/lending/status": {
+      "get": {
+        "description": "Saved source/kind/channel metadata, completeness and ingestion outcomes.",
+        "operationId": "lending_ingestion_status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "market",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "TWSE",
+                    "TPEX"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Market"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LendingStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "Securities lending"
         ]
       }
     },
@@ -7734,6 +9426,323 @@
         "summary": "Get Latest",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/lending": {
+      "get": {
+        "description": "Separate typed points per date/channel; no balance or channel aggregation.",
+        "operationId": "lending_daily_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_kind",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportKind",
+              "default": "lending_short_sales"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "default": "unspecified",
+              "maxLength": 100,
+              "title": "Trade Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lending_channel",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lending Channel"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel_family",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Channel Family"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 250,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LendingHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "Securities lending"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/lending/latest": {
+      "get": {
+        "description": "One latest series; ambiguous channels require explicit filters.",
+        "operationId": "lending_latest_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_kind",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportKind",
+              "default": "lending_short_sales"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "default": "unspecified",
+              "maxLength": 100,
+              "title": "Trade Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lending_channel",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lending Channel"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel_family",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Channel Family"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LendingLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Latest",
+        "tags": [
+          "Securities lending"
         ]
       }
     },

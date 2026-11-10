@@ -51,6 +51,8 @@ TABLES = {
     "ownership_ingestion_items", "ownership_weekly", "ownership_ingestion_jobs",
     "margin_source_audits", "margin_raw_payloads", "margin_revisions",
     "margin_ingestion_items", "margin_daily_reports", "margin_ingestion_jobs",
+    "lending_source_audits", "lending_raw_payloads", "lending_metadata",
+    "lending_revisions", "lending_ingestion_items", "lending_daily_reports", "lending_ingestion_jobs",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

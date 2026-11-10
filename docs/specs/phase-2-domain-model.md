@@ -29,7 +29,7 @@
 | `institutional` | `InstitutionalDailyReport`、`InvestorComponent`、`TradeScope`；每日各法人買／賣／淨額及來源總計對帳                    | `InstitutionalHistoryReader`                  |
 | `ownership`     | `OwnershipWeeklyReport`、`BucketScheme`、`HoldingBucket`；統計日的完整級距快照，區分一般級距／調整／合計               | `OwnershipHistoryReader`                      |
 | `margin`        | `MarginDailyReport`、融資與融券雙 Ledger（2D已實作） | `MarginHistoryReader` |
-| `lending`       | `LendingDailyReport`、`BorrowingLedger`、`LendingShortLedger`、`RegulatoryQuota`、Channel／Partition（2E-1僅純Domain，見[規格](phase-2e-lending-domain.md)） | `LendingHistoryReader` |
+| `lending`       | `LendingDailyReport`、雙Ledger、Quota、Channel／Partition；2E-2新增專用Persistence／Ingestion／API，實作及來源限制見[規格](phase-2e-lending-api.md) | `LendingHistoryReader` |
 | `chip_analysis` | `ChipMetricEngine`、`MetricDefinition`、`MetricPoint`、`InputLineage`；只有跨來源衍生公式，沒有供應商 SDK 或私有表查詢 | `ChipAnalysisService`                         |
 
 共用值物件：`InstrumentRef(UUID)`、`AsOfDate(date)`、`Quantity(int, shares|units)`、`SourceTiming`、`FactLineage`、`Coverage`。金額另外帶 ISO currency；不能由「台股」一律推論 TWD。Domain 不 import SQLAlchemy、FastAPI、httpx 或外部 SDK。

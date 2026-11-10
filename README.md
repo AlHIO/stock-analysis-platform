@@ -17,7 +17,7 @@ apps/
       modules/institutional/ 法人 Domain、typed revisions、audit 與 PostgreSQL repositories
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
       modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
-      modules/lending/     純Domain借券未還／借券賣出、Channel／Quota及來源契約
+      modules/lending/     借券雙Ledger、Source／Channel Metadata、Raw／Revision、CLI與API
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -62,6 +62,51 @@ Phase 2D-2 完成 Margin Persistence／手動匯入／REST API，新增 `0008_ma
 
 Phase 2E-1 新增獨立 lending 純 Domain，分開借券未還、借券賣出流量／餘額與 Regulatory Quota。提供精確 balance identity、帶正負號調整、經核實分割證據的 Channel 合計／對帳，以及 M3／M4／M6／M7／M8／M9 Source Manifest；不把 SLBNLB 再加到子系列、不猜未知日期／歷史／Channel。公式與不需資料庫的測試指令見 [借券 Domain 規格](docs/specs/phase-2e-lending-domain.md)。本階段沒有新增表、Migration、下載、CLI、API 或前端。
 
+Phase 2E-2 新增 `0009_lending`、不可變Raw／Audit／Source-Channel-Kind Metadata／Revision、原子Canonical與手動Ingestion／Replay／查詢API。目前只核准TPEx M6借券賣出，M4借券未還的使用權／Schema仍Blocked；不同kind／Channel／scope分開，GET不抓來源。完整Schema、來源限制、操作與實際驗證見 [借券管線與API規格](docs/specs/phase-2e-lending-api.md)。
+
+## 借券資料匯入與 API（Phase 2E-2）
+
+```bash
+docker compose build backend
+docker compose run --rm backend alembic current
+docker compose run --rm backend alembic upgrade head
+docker compose up -d --no-deps --wait backend
+
+# 預設已核准的M6官方最新快照；缺reviewed UUID/date證據時Raw保存、股票列unresolved
+docker compose run --rm backend stockapp lending sync latest --source M6
+docker compose run --rm backend stockapp lending status --limit 20
+
+# 替換經審查的實際證據路徑；M6原單位為shares，不猜張股係數
+# docker compose run --rm -v /absolute/reviewed-lending.json:/evidence.json:ro backend \
+#   stockapp lending sync latest --source M6 --evidence /evidence.json
+
+docker compose run --rm backend stockapp lending replay --raw <RAW_UUID>
+docker compose run --rm backend stockapp lending replay --resume <RUN_UUID>
+
+# M6 latest-only會拒絕，不能拿最新資料冒充指定日期
+docker compose run --rm backend stockapp lending sync date --source M6 --date 2026-11-06
+```
+
+Source ID沿用2A的M3／M4／M6／M7／M8／M9；只有M6啟用手動下載，其餘維持使用權／Schema／產品能力阻擋。Replay不連外，Resume使用原工作凍結Evidence。Partial／failed退出碼2可用status查原因。
+
+```bash
+curl 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/lending/latest'
+curl 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/lending?report_kind=lending_short_sales&from=2026-01-01&to=2026-11-10&limit=100'
+curl 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/lending?report_kind=borrowed_positions'
+curl 'http://localhost:8000/api/v1/lending/status?source_code=tpex_lending_short_openapi'
+curl 'http://localhost:8000/api/v1/chip-data/status?product=lending_daily'
+```
+
+History回傳各Channel獨立point，不加總每日balance或不同kind；Latest若選到多個Channel回422要求篩選。Quantity／Decimal使用精確字串，Quota與實際借券／賣出流量分開。M6目前保留unknown Channel、trade_scope=unspecified與未知發布時間，品質／歷史完整度不假稱verified；沒有借券未還canonical時回空資料。
+
+目前本機 Schema 已升級至 `0009_lending`，後端完整回歸 **2,756 passed／4 network deselected**。已保存官方 M6 **2026-11-09** 的一份 Raw（933 筆資料列）及逐列 Audit，並以核實的單日身分證據完成 **環球晶（6488）一檔、一個交易日**的 Canonical／資料庫／API 逐欄驗收。借券賣出餘額為 **12,464,000 股**，重播後仍為 **1 份 Canonical／1 個 Revision**；其餘 932 筆維持 unresolved，不宣稱全市場或歷史完整。既有行情與籌碼資料筆數未變；完整實測見上述規格。
+
+```bash
+# 本機已保存的真實 M6 報表；此 Phase 沒有新增前端畫面
+curl 'http://localhost:8000/api/v1/stocks/fe53c1d3-e0ca-4475-8ab6-d2c274252e25/lending/latest'
+curl 'http://localhost:8000/api/v1/stocks/fe53c1d3-e0ca-4475-8ab6-d2c274252e25/lending?from=2026-11-09&to=2026-11-09'
+```
+
 ## 融資融券匯入與 API（Phase 2D-2）
 
 ```bash
@@ -96,7 +141,7 @@ curl 'http://localhost:8000/api/v1/chip-data/status?product=margin_daily'
 
 融資、融券各自回傳餘額、買進／賣出、償還與每日變化；Quantity 包含精確字串 value、unit 和 availability。缺值維持 null，來源 lots 與經審查換算後 shares／units 分開。API 保留 Revision、來源及統計／發布／擷取時間，不在 GET 抓資料、不宣稱即時或完整歷史。尚無 canonical 的股票回傳空資料，Partial candidate 仍可由 status 查詢。
 
-本機已升級至 `0008_margin`，實際保存 **6488／2026-11-06 一檔、一個交易日**；再次同步後仍為1份Canonical／1個Revision。融資餘額10,285,000股、融券餘額317,000股，已逐欄比對官方Raw、PostgreSQL與HTTP API。其餘918筆M5證券因身分／乘數未核實維持unresolved；TWSE M1因無日期仍無Canonical，不宣稱歷史完整。單日審查證據與實測紀錄見規格。
+Phase 2D-2 驗收時 Schema 為 `0008_margin`（目前已升級至 `0009_lending`），實際保存 **6488／2026-11-06 一檔、一個交易日**；再次同步後仍為1份Canonical／1個Revision。融資餘額10,285,000股、融券餘額317,000股，已逐欄比對官方Raw、PostgreSQL與HTTP API。其餘918筆M5證券因身分／乘數未核實維持unresolved；TWSE M1因無日期仍無Canonical，不宣稱歷史完整。單日審查證據與實測紀錄見規格。
 
 ```bash
 curl 'http://localhost:8000/api/v1/stocks/fe53c1d3-e0ca-4475-8ab6-d2c274252e25/margin/latest'
@@ -576,4 +621,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2E-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2E-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

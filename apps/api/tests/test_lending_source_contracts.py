@@ -43,7 +43,7 @@ def observation(contract, **changes):
 
 def test_sources_are_versioned_immutable_and_every_download_remains_disabled():
     assert set(MANIFESTS)=={'M3','M4','M6','M7','M8','M9'}
-    assert MANIFEST_VERSION=='lending-sources-1.0.0'
+    assert MANIFEST_VERSION=='lending-sources-1.1.0'
     for manifest in MANIFESTS.values():
         assert manifest.version==MANIFEST_VERSION and manifest.method=='GET'
         assert manifest.frequency=='1d' and manifest.timezone=='Asia/Taipei'

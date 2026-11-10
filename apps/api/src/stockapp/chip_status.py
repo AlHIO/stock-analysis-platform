@@ -12,8 +12,10 @@ from stockapp.modules.ownership.api.schemas import OwnershipStatusResponse
 from stockapp.modules.ownership.public import ownership_query_service
 from stockapp.modules.margin.api.schemas import MarginStatusResponse
 from stockapp.modules.margin.public import margin_query_service
+from stockapp.modules.lending.api.schemas import LendingStatusResponse
+from stockapp.modules.lending.public import lending_query_service
 
-Product=Literal['institutional_daily','ownership_weekly','margin_daily']
+Product=Literal['institutional_daily','ownership_weekly','margin_daily','lending_daily']
 router=APIRouter(tags=['Chip data status'])
 
 
@@ -24,10 +26,11 @@ def get_chip_status_service(request:Request,product:Annotated[Product,Query()]='
         session.execute(text("SET LOCAL lock_timeout='3s'"))
         yield (ownership_query_service(session) if product=='ownership_weekly'
                else margin_query_service(session) if product=='margin_daily'
+               else lending_query_service(session) if product=='lending_daily'
                else institutional_query_service(session))
 
 
-@router.get('/chip-data/status',response_model=InstitutionalStatusResponse|OwnershipStatusResponse|MarginStatusResponse,
+@router.get('/chip-data/status',response_model=InstitutionalStatusResponse|OwnershipStatusResponse|MarginStatusResponse|LendingStatusResponse,
     operation_id='institutional_source_status',responses={
         404:{'model':ErrorResponse},422:{'model':ErrorResponse},503:{'model':ErrorResponse}})
 def chip_data_status(service:Annotated[Any,Depends(get_chip_status_service)],

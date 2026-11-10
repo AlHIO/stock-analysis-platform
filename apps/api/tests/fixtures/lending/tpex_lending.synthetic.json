@@ -1,0 +1,20 @@
+[
+  {
+    "Date": "1151106",
+    "SecuritiesCompanyCode": "9998",
+    "CompanyName": "SYNTHETIC 借券測試證券",
+    "SaleBalancePreviousDay": "999",
+    "SaleSell": "1",
+    "SaleBuy": "2",
+    "SaleSpotSecurities": "3",
+    "SaleBalanceOfTheMarketDay": "9999",
+    "SaleAvailableVolumes": "1",
+    "SecuritiesBorrowingBalancePreviousDay": "400",
+    "SecuritiesBorrowingSale": "125",
+    "SecuritiesBorrowingReturn": "80",
+    "SecuritiesBorrowingAdjustment": "-7",
+    "SecuritiesBorrowingBalanceOfTheMarketDay": "438",
+    "AvailableVolumesForSBLShortSale": "1",
+    "Note": "SYNTHETIC 固定資料，不得當成正式行情"
+  }
+]

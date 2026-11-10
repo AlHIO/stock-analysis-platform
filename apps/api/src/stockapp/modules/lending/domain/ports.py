@@ -6,10 +6,10 @@ from uuid import UUID
 from .models import (
     ChannelPartition, LendingDailyReport, LendingHistory, QuantityUnit, ReportKind,
 )
+from .ingestion import LendingProvider
 
 if TYPE_CHECKING:
     from .results import CalculationResult
-    from .sources import LendingSourceRequest, LendingSourceSnapshot
 
 
 class LendingHistoryReader(Protocol):
@@ -31,10 +31,13 @@ class LendingRepository(Protocol):
                        channel_code: str) -> tuple[LendingDailyReport, ...]: ...
 
 
-class LendingSourceAdapter(Protocol):
-    async def fetch(self, request: "LendingSourceRequest") -> "LendingSourceSnapshot":
-        """Future infrastructure applies permission, capability and bounded I/O."""
-        ...
+class LendingSourceAdapter(LendingProvider, Protocol):
+    """Audited fetch/parse boundary, including raw-first response callbacks.
+
+    Phase 2E-2 implements the provider-neutral RawPayload port so every HTTP
+    attempt can be archived before parsing. Request/Snapshot value objects remain
+    available as metadata DTOs, not a second unused runtime source interface.
+    """
 
 
 class LendingCalculationEngine(Protocol):

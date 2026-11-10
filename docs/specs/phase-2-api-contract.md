@@ -1,6 +1,6 @@
 # Phase 2 — REST API Contract 草案
 
-狀態更新：2026-11-09，Asia/Taipei。Phase 2B-5 實作 institutional，Phase 2C-2 已實作 ownership，Phase 2D-2 已實作 Margin History／Latest／Status 與 shared chip-data/status 的 margin_daily 分支（[實作規格](phase-2d-margin-api.md)）。Runtime OpenAPI／snapshot 隨實作更新；lending／泛用 chip-metrics 仍是未實作提案。
+狀態更新：2026-11-10，Asia/Taipei。Phase 2B-5實作institutional、2C-2實作ownership、2D-2實作margin、2E-2實作Lending History／Latest／Status及shared chip-data/status的lending_daily分支（[借券實作規格](phase-2e-lending-api.md)）。Runtime OpenAPI／snapshot隨實作更新；泛用chip-metrics仍是未實作提案。
 
 ### Phase 2B-5 與早期草案的差異
 
@@ -68,7 +68,11 @@ freshness 的 delayed／within_expected_window 只能在該來源已驗證發布
 
 Margin 路由為 `GET /api/v1/stocks/{id}/margin`、`GET /api/v1/stocks/{id}/margin/latest`、`GET /api/v1/margin/status` 及 `GET /api/v1/chip-data/status?product=margin_daily`。History 限制 3,660 日與 1,000 筆，支援日期 keyset cursor／order。Latest 無資料回 point=null。數值與 Decimal 為字串，GET 使用同一次 RR 唯讀快照且不連供應商。Daily Change 共用 Domain 公式 `balance − official previous_balance`，不是查前一曆日，亦非把餘額當 flow；coverage／freshness 在沒有 verified 日期覆蓋時維持 not_verified。完整實作契約以 [2D-2 規格](phase-2d-margin-api.md)及 OpenAPI 為準。
 
-`LendingPoint`：trade_date、report_kind、trade_scope、lending_channel、quantity_unit、previous_balance/increase/decrease/adjustment/balance、short_sale_quantity/amount/currency、limit/status及其effectivity、timing/provenance/quality。channel=combined|slb|nlb|other_verified，初版M4僅combined，子系統不能再加到combined。不同 kind 不適用欄位為null；借券餘額與借券賣出餘額必須不同 kind，不共用模糊的 `short_balance` 名稱；不能通用限制sold≤limit。
+`LendingPoint` 實作：trade_date、report_kind、trade_scope、lending_channel（category/code/family/version/verified/coverage）、quantity_unit、typed ledger、quotas、timing／provenance／quality。Borrowing ledger使用previous_balance／borrowed_quantity／returned_quantity／signed_adjustment／balance；Lending Short使用previous_balance／short_sales／short_returns／signed_adjustment／balance。所有Quantity有value精確字串|null／unit／availability，Decimal亦為字串；不把不同kind的欄位補0，不提供未核實amount／currency。
+
+Channel新增unspecified以忠實保存M6未確認的系統範圍，不能猜成combined。M4僅有SLBNLB候選契約且仍受權限／Schema gate阻擋，不能宣稱正式借券未還完成。Quota獨立保存purpose、report_date、effective_on／relation／basis，未知次一營業日不推算日期；不通用限制sold≤quota。quality區分identity complete與channel／scope not_verified，coverage／freshness保守not_verified。
+
+路由為GET `/api/v1/stocks/{id}/lending`、`/lending/latest`、`/api/v1/lending/status`及shared status `product=lending_daily`。預設report_kind=lending_short_sales、trade_scope=unspecified；History用date/family/code複合cursor保留同日獨立Channel，最多3,660日／1,000筆；Latest選到多Channel回422 ambiguous_lending_channel。GET僅查Canonical、同一次RR唯讀Snapshot、不呼叫來源；aggregation=none，不加總每日balance作期間交易量。完整欄位與錯誤契約見[2E-2規格](phase-2e-lending-api.md)及OpenAPI。
 
 `ChipMetricResponse`：instrument、metric、algorithm_version、parameters、evaluation_frequency、precision、points、coverage。每點含 value（Decimal string|null）、unit、status、reason、input_refs（原始報表日期／revision／可用時間）、availability_policy、is_provisional。ownership 變化單位 percentage_points；百分比變化是另一種公式，不能混稱。raw/adjusted price 若未使用則不假設存在；需要價格分母時明示 basis 及來源。
 

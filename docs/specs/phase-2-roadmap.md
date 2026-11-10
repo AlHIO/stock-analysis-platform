@@ -1,6 +1,6 @@
 # Phase 2 — 開發依賴、工作與驗收
 
-狀態更新：2026-11-08，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。本機0006已依授權套用；[2B-5 法人 REST API](phase-2b-api.md) 已加入 canonical query、Domain metrics 與 source status。[2B-6驗收](phase-2b-validation.md)的軟體全流程／回歸已通過；TWSE使用權與TPEx口徑／dated identity仍阻擋真實canonical正式驗收。[2C-1集保管線／Persistence](phase-2c-ownership-ingestion.md)已完成並升級0007，實際canonical為2330／2026-11-06一週；[2C-2集保API](phase-2c-ownership-api.md)已完成canonical查詢、大戶比例與百分點差；正式週差仍受缺週／未核實schedule限制。法人UI及2D–2F尚未開始。法人來源與verified calendar限制仍保留。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
+狀態更新：2026-11-10，Asia/Taipei。後續已依獨立任務完成 [2B-1 Domain](phase-2b-institutional-domain.md)、[2B-2 Persistence](phase-2b-persistence.md)、[2B-3 Adapters](phase-2b-adapters.md) 與 [2B-4 手動CLI／Ingestion](phase-2b-ingestion.md)。本機0006已依授權套用；[2B-5 法人 REST API](phase-2b-api.md) 已加入 canonical query、Domain metrics 與 source status。[2B-6驗收](phase-2b-validation.md)的軟體全流程／回歸已通過；TWSE使用權與TPEx口徑／dated identity仍阻擋真實canonical正式驗收。[2C-1集保管線／Persistence](phase-2c-ownership-ingestion.md)已完成並升級0007，實際canonical為2330／2026-11-06一週；[2C-2集保API](phase-2c-ownership-api.md)已完成canonical查詢、大戶比例與百分點差；正式週差仍受缺週／未核實schedule限制。[2D 融資融券](phase-2d-margin-api.md)與[2E 借券管線／API](phase-2e-lending-api.md)已在核准來源範圍完成，本機目前為0009；各自僅有已核實單日／單檔的正式資料驗收，不宣稱全市場完整。法人UI及2F尚未開始。法人來源與verified calendar限制仍保留。以下保留2A原工作分解，範圍以各次明確任務為準；不因Phase編號自動開工，券商分點仍Deferred。
 
 本計畫依據[來源稽核](phase-2a-data-sources.md)、[Domain／Schema草案](phase-2-domain-model.md)、[API草案](phase-2-api-contract.md)。目前已確認「來源存在」與「小樣本可讀」，不等於所有歷史、完整分類與自動利用權皆已完成。
 
@@ -113,7 +113,9 @@ flowchart LR
 
 ### 2E-2：晚間修訂、資料完整度與API
 
-工作：重用2E-1雙Ledger與唯一Calculator，建立Persistence／Migration、Adapter／Normalizer、CLI／API與status，記錄報表kind、scope、channel、次日限額effectivity、原始發布輪次與跨Raw快照綁定證據。須另獲任務授權才開始。
+狀態：Persistence／核准來源Adapter／手動Ingestion／REST API已實作，並以M6的6488／2026-11-09完成Raw→Canonical→HTTP與再次Replay冪等驗收，見[2E-2規格與驗證](phase-2e-lending-api.md)。M6保留unknown Channel／scope，其餘932筆未核實身分不晉升；M4借券未還及其他未核可來源維持Blocked，不宣稱全市場或完整歷史，停止於本階段。
+
+本階段工作：重用2E-1雙Ledger與唯一Calculator，建立Persistence／Migration、Adapter／Normalizer、CLI／API與status，記錄報表kind、scope、channel、次日限額effectivity、原始發布輪次與跨Raw快照綁定證據。已於本次授權範圍完成，不自動進入下一階段。
 
 **AC**：20:30／22:30觀察不同內容保留revision，不混欄；source說明允許的sold>一般limit案例不被錯誤拒絕；不能合計每日balance當期間volume；錯日／signed adjustment／未知單位／跨市場／舊raw replay／retry／去重測試及真實PG整合通過。精確公開API刷新時刻仍未知時不宣稱SLA。
 

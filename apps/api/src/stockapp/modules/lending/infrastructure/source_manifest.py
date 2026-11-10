@@ -16,7 +16,7 @@ from stockapp.modules.lending.domain.sources import (
     SourceProduct,
 )
 
-MANIFEST_VERSION = 'lending-sources-1.0.0'
+MANIFEST_VERSION = 'lending-sources-1.1.0'
 BORROWING_POLICY = FormulaPolicy(version='lending-borrowed-base-1.0.0',
     verified=True, adjustment_treatment=AdjustmentTreatment.NONE)
 LENDING_SHORT_POLICY = FormulaPolicy(version='lending-short-signed-1.0.0',
@@ -205,7 +205,7 @@ TWSE_SHORT_MANIFEST = LendingSourceManifest(
     limitations=('website_use_rights_unconfirmed','literal_grouped_schema_not_verified',
         'only_20161107_body_audited','pre_20120319_formula_not_verified',
         '20120319_boundary_not_continuous_schema_proof','system_channel_not_verified',
-        'source_publication_time_unknown','phase_2e1_no_downloader'),
+        'source_publication_time_unknown','downloader_and_parser_disabled'),
 )
 TWSE_BORROWED_MANIFEST = LendingSourceManifest(
     audit_id='M4', provider='TWSE',
@@ -222,7 +222,7 @@ TWSE_BORROWED_MANIFEST = LendingSourceManifest(
         'only_20161107_SLBNLB_body_audited','channel_label_is_not_partition_proof',
         'SLB_NLB_LON_TWTBBU_are_unverified_separate_selector_contracts',
         'literal_market_labels_require_review','currency_scale_not_canonicalized',
-        'source_publication_time_unknown','phase_2e1_no_downloader'),
+        'source_publication_time_unknown','downloader_and_parser_disabled'),
 )
 TPEX_SHORT_MANIFEST = LendingSourceManifest(
     audit_id='M6', provider='TPEx',
@@ -232,14 +232,14 @@ TPEX_SHORT_MANIFEST = LendingSourceManifest(
     attribution='證券櫃檯買賣中心：上櫃股票融券借券賣出餘額；依政府資料開放授權條款第1版利用',
     evidence_urls=('https://data.gov.tw/dataset/11632',
                    'https://www.tpex.org.tw/openapi/swagger.json','https://data.gov.tw/license'),
-    response_format='JSON array observed; prior Swagger declared object; no new report downloaded',
+    response_format='JSON array; prior Swagger declared object; source statistics date retained from body',
     metadata_reviewed_on=date(2026,11,10),
     limitations=('latest_only_no_date_parameter','SecuritiesBorrowing_means_lending_short_not_borrowed_outstanding',
         'Sale_group_belongs_to_margin','system_channel_not_verified',
         'quota_next_business_day_effectivity_requires_evidence',
         'precise_openapi_publication_time_unknown','dataset_legacy_csv_mapping_preserved',
         'swagger_metadata_403_on_20261110_prior_body_contract_retained',
-        'phase_2e1_no_downloader'),
+        'manual_download_requires_explicit_opt_in'),
 )
 TPEX_DATED_SHORT_MANIFEST = LendingSourceManifest(
     audit_id='M7', provider='TPEx',
@@ -253,7 +253,7 @@ TPEX_DATED_SHORT_MANIFEST = LendingSourceManifest(
     declared_history_start=date(2006,1,1),
     limitations=('website_use_rights_unconfirmed','literal_grouped_schema_not_verified',
         'only_20161107_body_audited','2012_historical_schema_segment_not_verified',
-        'system_channel_not_verified','source_publication_time_unknown','phase_2e1_no_downloader'),
+        'system_channel_not_verified','source_publication_time_unknown','downloader_and_parser_disabled'),
 )
 TPEX_FLOW_MANIFEST = LendingSourceManifest(
     audit_id='M8', provider='TPEx',
@@ -264,7 +264,7 @@ TPEX_FLOW_MANIFEST = LendingSourceManifest(
     response_format='JSON array observed; separate daily flows, no balances',
     limitations=('source_dataset_license_mapping_unconfirmed','amount_scale_currency_unconfirmed',
         'lots_require_instrument_period_multiplier','daily_flow_is_not_balance',
-        'no_historical_date_parameter','phase_2e1_no_downloader'),
+        'no_historical_date_parameter','downloader_and_parser_disabled'),
 )
 TWSE_QUOTA_MANIFEST = LendingSourceManifest(
     audit_id='M9', provider='TWSE', endpoint='https://openapi.twse.com.tw/v1/SBL/TWT96U',
@@ -276,7 +276,7 @@ TWSE_QUOTA_MANIFEST = LendingSourceManifest(
     body_audited_on=None,
     limitations=('quota_only_not_borrowed_or_sold','body_not_verified','undated',
         'dataset11872_resource_mapping_unconfirmed','publication_and_refresh_unknown',
-        'quota_effectivity_not_verified','phase_2e1_no_downloader'),
+        'quota_effectivity_not_verified','downloader_and_parser_disabled'),
 )
 
 MANIFESTS = MappingProxyType({item.audit_id:item for item in (

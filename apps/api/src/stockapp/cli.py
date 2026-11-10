@@ -165,6 +165,31 @@ def _register_margin(commands):
     status.add_argument("--limit", type=_institutional_limit, default=20)
 
 
+def _register_lending(commands):
+    lending=commands.add_parser("lending",help="Manual securities lending and lending-short ingestion")
+    actions=lending.add_subparsers(dest="lending_action",required=True)
+    sync=actions.add_parser("sync",help="Only approved source contracts may download")
+    modes=sync.add_subparsers(dest="lending_sync_mode",required=True)
+    for mode in ("latest","date"):
+        command=modes.add_parser(mode)
+        command.add_argument("--source",choices=["M3","M4","M6","M7","M8","M9"],default="M6",
+            help="Phase 2A source ID; only M6 currently has approved balance download capability")
+        command.add_argument("--evidence","--identity-evidence",dest="identity_evidence",type=Path,
+            help="Reviewed Instrument UUID/market/date evidence; missing identities remain unresolved")
+        if mode=="date":
+            command.add_argument("--date",type=_institutional_date,required=True)
+        else:
+            command.set_defaults(date=None)
+    replay=actions.add_parser("replay",help="Replay archived bytes or resume a frozen checkpoint without network")
+    choice=replay.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--raw",type=UUID)
+    choice.add_argument("--resume",type=UUID)
+    replay.add_argument("--evidence","--identity-evidence",dest="identity_evidence",type=Path)
+    status=actions.add_parser("status",help="Read source/kind/channel counts, errors and durable checkpoints")
+    status.add_argument("--id",type=UUID)
+    status.add_argument("--limit",type=_institutional_limit,default=20)
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -208,6 +233,7 @@ def _parser():
     _register_institutional(commands)
     _register_ownership(commands)
     _register_margin(commands)
+    _register_lending(commands)
     return parser
 
 
@@ -347,12 +373,20 @@ def main(argv=None) -> int:
     if (args.command == "margin" and args.margin_action == "replay"
         and args.resume is not None and args.identity_evidence is not None):
         parser.error("--evidence is only valid for a new --raw replay; resume uses frozen evidence")
+    if (args.command == "lending" and args.lending_action == "replay"
+        and args.resume is not None and args.identity_evidence is not None):
+        parser.error("--evidence is only valid for a new --raw replay; resume uses frozen evidence")
     # Also support running the installed CLI from the monorepo root. Docker
     # configuration comes from environment variables, not copied secret files.
     engine = None
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "lending":
+            from stockapp.modules.lending.infrastructure import operations
+            reports=asyncio.run(operations.execute(engine,args,settings))
+            print(json.dumps(reports,ensure_ascii=False,indent=2,default=str))
+            return operations.exit_code(args,reports)
         if args.command == "margin":
             from stockapp.modules.margin.infrastructure import operations
             reports = asyncio.run(operations.execute(engine, args, settings))
@@ -385,6 +419,12 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "lending":
+            from stockapp.modules.lending.domain.models import LendingError
+            if isinstance(exc,LendingError):
+                print(json.dumps({"error":type(exc).__name__,"code":exc.code,
+                    "hint":"Inspect stockapp lending status; source/date/kind/channel and identity gates remain enforced"}))
+                return 2
         if args.command == "margin":
             from stockapp.modules.margin.domain.models import MarginError
             if isinstance(exc, MarginError):
