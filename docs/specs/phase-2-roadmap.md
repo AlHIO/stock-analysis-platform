@@ -105,13 +105,15 @@ flowchart LR
 
 ### 2E-1：ledger與source/channel分離
 
+狀態：純 lending Domain／Ports／Calculator／版本化 Source Manifest 已完成，見 [2E-1規格](phase-2e-lending-domain.md)。依本次任務不建立正式資料表或I/O；所有來源下載關閉。M4只描述SLBNLB來源契約，使用權與子系列partition仍未核可。
+
 工作：M6的借券賣出、M4的借券未還、M3/M7的信用管制量分開；先只接已核可資料源。consolidated SLBNLB與其SLB/NLB子系列不重複加總，若同時保存則channel進natural key／API。
 
 **AC**：借券未還current=previous+borrow−return；借券賣出current=previous+sold−returned+adjustment，各有fixture；源頭只提供quota時不能冒充borrowed或sold。M4兩市場正確對映既有Instrument。M8張數／金額未確認前不啟用，TWT96U僅額度且body未核實，不作實際量值替代。
 
 ### 2E-2：晚間修訂、資料完整度與API
 
-工作：lending模型／migration／CLI／API與status，記錄報表kind、scope、channel、次日限額effectivity、原始發布輪次證據。
+工作：重用2E-1雙Ledger與唯一Calculator，建立Persistence／Migration、Adapter／Normalizer、CLI／API與status，記錄報表kind、scope、channel、次日限額effectivity、原始發布輪次與跨Raw快照綁定證據。須另獲任務授權才開始。
 
 **AC**：20:30／22:30觀察不同內容保留revision，不混欄；source說明允許的sold>一般limit案例不被錯誤拒絕；不能合計每日balance當期間volume；錯日／signed adjustment／未知單位／跨市場／舊raw replay／retry／去重測試及真實PG整合通過。精確公開API刷新時刻仍未知時不宣稱SLA。
 

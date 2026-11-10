@@ -17,6 +17,7 @@ apps/
       modules/institutional/ 法人 Domain、typed revisions、audit 與 PostgreSQL repositories
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
       modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
+      modules/lending/     純Domain借券未還／借券賣出、Channel／Quota及來源契約
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -58,6 +59,8 @@ Phase 2B-6 已完成軟體端到端與回歸驗收；已核准TPEx真實raw／au
 Phase 2D-1 新增 margin 純 Domain：融資／融券分開的 balance identity、Signed Adjustment 版本政策、嚴格缺值狀態、限額生效日、經證券與有效期間核實的張股換算，以及 M1／M2／M5 Source Capability Manifest。沒有新增資料表、下載、匯入、API 或畫面；TWSE 無日期與 TPEx latest-only 限制維持明確。公式、來源 gate、固定數值測試指令與 2D-2 待辦見 [融資融券 Domain 規格](docs/specs/phase-2d-margin-domain.md)。
 
 Phase 2D-2 完成 Margin Persistence／手動匯入／REST API，新增 `0008_margin` Migration。每份雙 Ledger 報表原子晉升、來源修訂保留、Raw／audit 可追溯；查詢使用一致唯讀 Snapshot。完整 Schema、來源限制、Evidence 格式與實際驗證結果見 [融資融券管線與 API 規格](docs/specs/phase-2d-margin-api.md)。
+
+Phase 2E-1 新增獨立 lending 純 Domain，分開借券未還、借券賣出流量／餘額與 Regulatory Quota。提供精確 balance identity、帶正負號調整、經核實分割證據的 Channel 合計／對帳，以及 M3／M4／M6／M7／M8／M9 Source Manifest；不把 SLBNLB 再加到子系列、不猜未知日期／歷史／Channel。公式與不需資料庫的測試指令見 [借券 Domain 規格](docs/specs/phase-2e-lending-domain.md)。本階段沒有新增表、Migration、下載、CLI、API 或前端。
 
 ## 融資融券匯入與 API（Phase 2D-2）
 
@@ -573,4 +576,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2D-2；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2E-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

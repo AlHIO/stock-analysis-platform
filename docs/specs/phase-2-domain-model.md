@@ -2,6 +2,8 @@
 
 狀態：**Phase 2A 設計，尚未實作**。設計日期：2026-11-07，Asia/Taipei。沒有新增 Python 模組、資料表、migration 或正式籌碼資料。來源能力以[來源查證](phase-2a-data-sources.md)為準；API 與實作順序見[API 草案](phase-2-api-contract.md)、[roadmap](phase-2-roadmap.md)。
 
+後續補註（2026-11-10）：以上是 Phase 2A 當時的設計狀態，不代表今日執行庫現況；各階段實作以專屬 Spec 為準。模組表依最新任務分開 margin 與 lending；2E-1 僅建立 lending 純 Domain，下方 lending Schema 仍是未套用草案。
+
 ## 1. 與既有架構的接點
 
 已閱讀 AGENTS、README、foundation、Phase 1A／1B／1E、十年回補規格，以及 `market_data`、`technical`、`health` 與 migrations `0001`–`0004`。目前依賴如下：
@@ -26,7 +28,8 @@
 | --------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | `institutional` | `InstitutionalDailyReport`、`InvestorComponent`、`TradeScope`；每日各法人買／賣／淨額及來源總計對帳                    | `InstitutionalHistoryReader`                  |
 | `ownership`     | `OwnershipWeeklyReport`、`BucketScheme`、`HoldingBucket`；統計日的完整級距快照，區分一般級距／調整／合計               | `OwnershipHistoryReader`                      |
-| `margin`        | `MarginDailyReport`、`MarginLeg`、`LendingDailyReport`、`LendingReportKind`；融資、融券、借券與借券賣出分開            | `MarginHistoryReader`、`LendingHistoryReader` |
+| `margin`        | `MarginDailyReport`、融資與融券雙 Ledger（2D已實作） | `MarginHistoryReader` |
+| `lending`       | `LendingDailyReport`、`BorrowingLedger`、`LendingShortLedger`、`RegulatoryQuota`、Channel／Partition（2E-1僅純Domain，見[規格](phase-2e-lending-domain.md)） | `LendingHistoryReader` |
 | `chip_analysis` | `ChipMetricEngine`、`MetricDefinition`、`MetricPoint`、`InputLineage`；只有跨來源衍生公式，沒有供應商 SDK 或私有表查詢 | `ChipAnalysisService`                         |
 
 共用值物件：`InstrumentRef(UUID)`、`AsOfDate(date)`、`Quantity(int, shares|units)`、`SourceTiming`、`FactLineage`、`Coverage`。金額另外帶 ISO currency；不能由「台股」一律推論 TWD。Domain 不 import SQLAlchemy、FastAPI、httpx 或外部 SDK。
