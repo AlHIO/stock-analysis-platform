@@ -1,8 +1,9 @@
 """Versioned official margin capabilities; approved manual downloads opt in.
 
 The Phase 2A body audit and a subsequent Swagger/metadata review are distinct.
-Swagger describes objects; the audited live bodies were arrays/tables. This is
-metadata for future reviewed adapters, not a claim of an implemented parser.
+Swagger describes objects; the audited live bodies were arrays/tables. Existing
+adapters enforce each reviewed contract; disabled candidate routes remain metadata
+until their literal schema and use rights are verified.
 """
 from dataclasses import dataclass
 from datetime import date

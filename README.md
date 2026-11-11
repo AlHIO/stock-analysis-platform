@@ -75,6 +75,10 @@ Phase 2F-1 新增 `chip_analysis` 共用純分析引擎：法人累計／連買�
   apps/api/tests/test_chip_analysis_ledgers.py -q
 ```
 
+## Phase 2整合驗收（Phase 2G-2）
+
+完整功能、真實資料覆蓋、來源Partial／Blocked、隔離PostgreSQL／Migration回歸、正式資料保護、API／瀏覽器與實測效能，見 [Phase 2最終驗收報告](docs/specs/phase-2-final-validation.md)。軟體測試通過不代表已取得完整法人、借券未還或十年籌碼資料；正式來源缺口與公開發布前置條件保留在報告中。本階段不新增功能、不部署或進入Phase 3。
+
 ## 個股籌碼 Dashboard（Phase 2G-1）
 
 在既有 `/stocks/<instrument UUID>` 個股頁，價格 K 線與技術指標下方可切換「三大法人／集保持股／融資融券／借券賣出」。支援近1個月、近3個月、近1年與自訂區間（最多366個日曆日）；籌碼區間獨立於價格圖表，不會重設既有技術指標。已造訪的 Tab 保留圖表、選擇及縮放視窗，同一區間切回不重複載入。
@@ -687,4 +691,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2G-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍，不自行進入Phase 3。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2G-2系統驗收；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍，不自行進入Phase 3。

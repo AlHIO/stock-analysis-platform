@@ -1,7 +1,8 @@
-"""Audited securities-lending capabilities, not enabled HTTP adapters.
+"""Audited securities-lending capabilities enforced by provider adapters.
 
 Website field mappings are semantic descriptions until literal grouped schemas
-and use rights are reviewed. Only the M6 flat JSON field contract is verified.
+and use rights are reviewed. Only the M6 flat JSON field contract permits an
+approved manual download; other candidate adapters remain disabled.
 """
 from dataclasses import dataclass
 from datetime import date
