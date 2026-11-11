@@ -1,10 +1,10 @@
 # Phase 2 — REST API Contract 草案
 
-狀態更新：2026-11-10，Asia/Taipei。Phase 2B-5實作institutional、2C-2實作ownership、2D-2實作margin、2E-2實作Lending History／Latest／Status及shared chip-data/status的lending_daily分支（[借券實作規格](phase-2e-lending-api.md)）。Runtime OpenAPI／snapshot隨實作更新；泛用chip-metrics仍是未實作提案。
+狀態更新：2026-11-11，Asia/Taipei。Phase 2B-5實作institutional、2C-2實作ownership、2D-2實作margin、2E-2實作Lending History／Latest／Status及shared chip-data/status的lending_daily分支（[借券實作規格](phase-2e-lending-api.md)）。Runtime OpenAPI／snapshot隨實作更新；Phase2F-2已加入泛用chip-metrics，實作與時間語意見[跨來源API規格](phase-2f-chip-api.md)。
 
 ### Phase 2B-5 與早期草案的差異
 
-- 新增 `/api/v1/stocks/{id}/institutional/metrics`，直接委派既有InstitutionalCalculator，period只允許5／10／20／60，與2F泛用metric的1–250提案分開。
+- 新增 `/api/v1/stocks/{id}/institutional/metrics`，直接委派既有InstitutionalCalculator，period只允許5／10／20／60，2F泛用v1也沿用相同的5／10／20／60白名單。
 - 不支援的證券／市場依本次任務回404，而非早期草案的422；目前法人產品只支援TWSE／TPEX的stock。
 - `trade_scope` 可用code或包含五個欄位的嚴格JSON；同code不同flags／basis時須明確選完整scope，否則422。未知code視為無matching canonical的filter，回200空結果，不改接其他scope。
 - 現有trading_calendars沒有已核實範圍、來源證據與版本，預設metrics calendar.verified=false、value=null／status=not_verified；不以行情列或週一至五猜日曆。verified calendar是server-side Port，不接受query自行宣告。
@@ -43,9 +43,9 @@
 
 scope 使用部署中 source contract 的明確 enum；初版只有一個已批准 scope 時可省略，由回應明示預設值。多 scope 存在且未指定時回422 `ambiguous_trade_scope`，不能選較新的一個當相同序列。無法核實的含鉅額／其他範圍為 unspecified；禁止拿來跨來源合計。
 
-`chip-metrics.parameters` 白名單依 metric version：法人累計v1沿用正式InstitutionalCalculator，N僅5／10／20／60個確認交易session（原1–250的廣泛草案未實作）；ownership threshold 是級距可精確表達的整數股數；不能傳任意 SQL／公式。未知 key、bool冒充int、級距中間門檻、未支援的 frequency 在未來HTTP實作應回422。目前不提供跨商品綜合「主力分數」。
+`chip-metrics.parameters` 白名單依 metric version：法人累計v1沿用正式InstitutionalCalculator，N僅5／10／20／60個確認交易session（原1–250的廣泛草案未實作）；ownership threshold 是級距可精確表達的整數股數；不能傳任意 SQL／公式。未知 key、bool冒充int及未支援的frequency回422；合法整數但切穿級距的門檻沿用Calculator回unsupported／null，不能估算。目前不提供跨商品綜合「主力分數」。
 
-Phase2F-1已完成[純分析Engine與公開Ports](phase-2f-chip-engine.md)，含版本、50位Decimal／12位HALF_EVEN、Input Revision及發布／觀察cutoff。`/chip-metrics`仍為未實作的未來路由，這次不新增Pydantic／OpenAPI操作。單產品公式由其公開Calculator唯一維護，只有跨來源比例等新公式放chip_analysis；未核實的scope／Channel／分母相容性不產生比例。
+Phase2F-1已完成[純分析Engine與公開Ports](phase-2f-chip-engine.md)，Phase2F-2已實作[`/chip-metrics`與Pydantic／OpenAPI](phase-2f-chip-api.md)。支援重複metric、1d每日評估／1w原生週觀察、嚴格JSON參數與date cursor；limit以評估日期計最多250，整頁最多1000points。預設as_of_day以當時已知資料對齊；query_as_of模式明確標為查詢時已知資料重算，不宣稱PIT。單產品公式由其公開Calculator唯一維護，只有跨來源新公式放chip_analysis；未核實的scope／Channel／分母相容性不產生比例。
 
 ## 3. Response Schemas 草案
 

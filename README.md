@@ -18,7 +18,7 @@ apps/
       modules/ownership/   TDCC週快照、版本化級距、raw／audit／revision及手動CLI
       modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
       modules/lending/     借券雙Ledger、Source／Channel Metadata、Raw／Revision、CLI與API
-      modules/chip_analysis/ 版本化分析Engine、時間可用性、來源相容性與公開Ports
+      modules/chip_analysis/ 版本化Engine、跨來源Canonical API、時間可用性與公開Ports
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -74,6 +74,32 @@ Phase 2F-1 新增 `chip_analysis` 共用純分析引擎：法人累計／連買�
   apps/api/tests/test_chip_analysis_products.py \
   apps/api/tests/test_chip_analysis_ledgers.py -q
 ```
+
+## 跨來源籌碼 API（Phase 2F-2）
+
+已新增 `GET /api/v1/stocks/{id}/chip-metrics`，使用同一個 PostgreSQL RR READ ONLY snapshot，透過各模組公開 Reader 讀取 Canonical，直接重用2F-1 Engine。支援重複的 `metric`、原生週資料與每日可用時間對齊、參數、來源／Revision／完整度、日期分頁；GET不抓供應商。金融數值與Metadata中的BIGINT為精確字串。
+
+```bash
+# 查看已保存的真實融資／借券與其他來源缺口；明確使用查詢時已知資料重算歷史
+curl -G 'http://localhost:8000/api/v1/stocks/fe53c1d3-e0ca-4475-8ab6-d2c274252e25/chip-metrics' \
+  --data-urlencode 'metric=margin_balance_change' \
+  --data-urlencode 'metric=lending_balance' \
+  --data-urlencode 'metric=institutional_net_sum' \
+  --data-urlencode 'from=2026-11-06' --data-urlencode 'to=2026-11-09' \
+  --data-urlencode 'time_basis=query_as_of'
+
+# TDCC週資料按每日當時已知的時間對齊；原始統計日與age仍保留
+curl -G 'http://localhost:8000/api/v1/stocks/6afb0bb3-9356-4a59-8122-57fed2b36628/chip-metrics' \
+  --data-urlencode 'metric=ownership_large_holder_percent' \
+  --data-urlencode 'evaluation_frequency=1d' \
+  --data-urlencode 'from=2026-11-06' --data-urlencode 'to=2026-11-11'
+```
+
+預設 `time_basis=as_of_day`，未公布／未觀察／未ingest的資料不得提早出現；歷史回補可能回not_yet_available。只有明確選 `time_basis=query_as_of` 才用查詢時已知Canonical重算過去統計，兩者都明示 `point_in_time_supported=false`。週資料不偽造成每日新持股，缺值不補0。
+
+每頁1–250個評估日期、最多1000個metric points；區間最多3660日，參數JSON最多4096字元，單產品輸入最多1000份。`limit`計日期，`count`計metric points；下一頁使用`next_cursor`保留原條件與截止時間。多metric參數用`{"metric_id":{"parameter":value}}`，詳細範例見[跨來源API規格](docs/specs/phase-2f-chip-api.md)。
+
+本機真實驗收：2330／2026-11-06、大戶門檻400001股的集保存量比例 **87.009580453709%**；6488／同日融資餘額日變化 **−1,128,000股**。6488／2026-11-09的借券Canonical可追溯，但Channel／scope未核實，因此分析結果維持not_verified／null。法人Canonical仍為0，沒有以Synthetic資料補足。沒有新增Migration、UI或排程；正式行情與籌碼筆數未變。
 
 ## 借券資料匯入與 API（Phase 2E-2）
 
@@ -632,4 +658,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2F-1；後續分析API／UI、回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2F-2；前端籌碼UI、回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。

@@ -15,6 +15,7 @@ from .domain.ports import (
 from .domain.results import (
     CalculationInput, CalculationStatus, NetCalculationResult, StreakCalculationResult,
 )
+from .domain.queries import InstitutionalQueryError, InstitutionalReadRepository
 
 __all__ = (
     'InstitutionalCalculator', 'InstitutionalCalculationEngine',
@@ -23,8 +24,16 @@ __all__ = (
     'InstitutionalHistory', 'InstitutionalValidationError', 'InvestorFlow',
     'MappingStatus', 'QuantityUnit', 'SourceTiming', 'TradeBasis', 'TradeScope',
     'CalculationInput', 'CalculationStatus', 'NetCalculationResult',
-    'StreakCalculationResult', 'institutional_query_service',
+    'StreakCalculationResult', 'InstitutionalReadRepository', 'InstitutionalQueryError',
+    'institutional_reader', 'institutional_query_service',
 )
+
+
+def institutional_reader(session, *, calendar_reader=None) -> InstitutionalReadRepository:
+    """Canonical reader in the caller's existing transaction; no implicit I/O."""
+    from .infrastructure.query_repository import SqlAlchemyInstitutionalQueryRepository
+    return SqlAlchemyInstitutionalQueryRepository(session, calendar_reader=calendar_reader)
+
 
 def institutional_query_service(session):
     from .application.query_service import InstitutionalQueryService

@@ -12,6 +12,7 @@ from stockapp.modules.institutional.api.routes import (
 from stockapp.modules.ownership.api.routes import router as ownership_router, install_error_handlers as install_ownership_errors
 from stockapp.modules.margin.api.routes import router as margin_router, install_error_handlers as install_margin_errors
 from stockapp.modules.lending.api.routes import router as lending_router, install_error_handlers as install_lending_errors
+from stockapp.modules.chip_analysis.api.routes import router as chip_router, install_error_handlers as install_chip_errors
 from stockapp.shared.infrastructure.database import create_db_engine
 
 
@@ -36,11 +37,13 @@ def create_app() -> FastAPI:
     app.include_router(ownership_router)
     app.include_router(margin_router)
     app.include_router(lending_router)
+    app.include_router(chip_router)
     install_error_handlers(app)
     install_institutional_errors(app)
     install_ownership_errors(app)
     install_margin_errors(app)
     install_lending_errors(app)
+    install_chip_errors(app)
     return app
 
 

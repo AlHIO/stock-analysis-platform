@@ -68,7 +68,7 @@ def parameters(request):
     return values
 
 
-def report_reference(report, product):
+def report_reference(report, product, observations=()):
     """Retain the entire upstream lineage/profile without guessing timestamps."""
     lineage = report.lineage
     ownership = product == 'ownership_weekly'
@@ -88,11 +88,13 @@ def report_reference(report, product):
     else:
         metadata.update(report_kind=report.report_kind.value, channel=primitive(report.channel),
                         formula_policy=primitive(report.ledger.formula_policy))
+    observation = next((v for v in observations if v.revision_id == lineage.revision_id), None)
     return InputRevision(product=product, instrument_id=report.instrument_id, market_id=report.market_id,
         statistics_date=day, revision_id=lineage.revision_id, source_id=lineage.source_id,
         source_contract_version=lineage.source_contract_version, quantity_unit=unit,
-        first_seen_at=timing.first_seen_at, ingested_at=getattr(timing, 'ingested_at', None),
-        last_seen_at=getattr(timing, 'last_seen_at', None),
+        first_seen_at=timing.first_seen_at,
+        ingested_at=observation.ingested_at if observation else getattr(timing, 'ingested_at', None),
+        last_seen_at=observation.last_seen_at if observation else getattr(timing, 'last_seen_at', None),
         source_published_at=timing.source_published_at, source_published_on=timing.source_published_on,
         run_id=lineage.run_id, raw_id=lineage.raw_id,
         timezone_name=getattr(timing, 'timezone_name', getattr(timing, 'timezone', 'Asia/Taipei')),
@@ -206,7 +208,7 @@ class ChipAnalysisEngine:
         # Reattach only actually encountered withheld dates as blocked refs.
         available, blocked = [], set()
         for report in history.reports:
-            ref = report_reference(report, 'institutional_daily')
+            ref = report_reference(report, 'institutional_daily', snapshot.observations)
             if _availability(request, (ref,))[0] is None:
                 available.append(report)
             else:
@@ -217,7 +219,7 @@ class ChipAnalysisEngine:
                   self.institutional.streak(safe_history, category=category, as_of=request.as_of_date))
         revisions = {(ref.trade_date, ref.lineage.revision_id) for ref in result.input_refs}
         revisions.update(key for key in blocked if key[0] in result.missing_dates)
-        refs = tuple(report_reference(report, 'institutional_daily') for report in history.reports
+        refs = tuple(report_reference(report, 'institutional_daily', snapshot.observations) for report in history.reports
                      if (report.trade_date, report.lineage.revision_id) in revisions)
         value = result.value if net else (result.buy_count if request.metric is Metric.INSTITUTIONAL_BUY_STREAK else result.sell_count)
         details = dict(calendar_version=result.calendar_version, session_dates=result.session_dates,
@@ -236,7 +238,7 @@ class ChipAnalysisEngine:
         previous = reports[-2] if len(reports) >= 2 else None
         change = request.metric is Metric.LARGE_HOLDER_CHANGE_PP
         used = (current, previous) if change else (current,)
-        refs = tuple(report_reference(report, 'ownership_weekly') for report in used if report is not None)
+        refs = tuple(report_reference(report, 'ownership_weekly', snapshot.observations) for report in used if report is not None)
         unavailable = self._unavailable_inputs(request, params, refs)
         if unavailable is not None:
             return unavailable
@@ -255,7 +257,7 @@ class ChipAnalysisEngine:
         report = snapshot.margin
         if report is None:
             return self._result(request, params, reasons=('margin_report_missing',))
-        refs = (report_reference(report, 'margin_daily'),)
+        refs = (report_reference(report, 'margin_daily', snapshot.observations),)
         unavailable = self._unavailable_inputs(request, params, refs)
         if unavailable is not None:
             return unavailable
@@ -280,7 +282,7 @@ class ChipAnalysisEngine:
         report = snapshot.lending
         if report is None:
             return self._result(request, params, reasons=('lending_report_missing',))
-        refs = (report_reference(report, 'lending_daily'),)
+        refs = (report_reference(report, 'lending_daily', snapshot.observations),)
         unavailable = self._unavailable_inputs(request, params, refs)
         if unavailable is not None:
             return unavailable

@@ -4,7 +4,7 @@ from .domain.models import (
     ENGINE_VERSION, DECIMAL_PRECISION, OUTPUT_DECIMAL_PLACES, AnalysisRequest,
     AnalyticalResult, AnalyticalSnapshot, AvailabilityPolicy, ChipAnalysisError,
     InputRevision, Metric, MetricStatus, RatioCompatibility, TradedQuantity,
-    lending_profile_hash,
+    lending_profile_hash, RevisionObservation,
 )
 from .domain.ports import ChipCalculationEngine, ChipInputReader
 from .application.service import ChipAnalysisService
@@ -15,4 +15,5 @@ __all__ = (
     'ChipAnalysisError', 'InputRevision', 'Metric', 'MetricStatus', 'RatioCompatibility',
     'TradedQuantity', 'lending_profile_hash', 'DEFINITIONS', 'ENGINE_VERSION',
     'DECIMAL_PRECISION', 'OUTPUT_DECIMAL_PLACES',
+    'RevisionObservation',
 )

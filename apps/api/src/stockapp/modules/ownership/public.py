@@ -8,7 +8,7 @@ from .domain.models import (
     AdjustmentConvention, BucketDefinition, BucketKind, BucketScheme, HoldingBucket,
     OwnershipCompleteness, OwnershipError, OwnershipSourceLineage, OwnershipWeeklyReport,
 )
-from .domain.queries import OwnershipReadRepository
+from .domain.queries import OwnershipQueryError, OwnershipReadRepository
 from .domain.query_results import (
     OwnershipMetricInput, OwnershipMetricResult, OwnershipMetricStatus, WeeklyScheduleSnapshot,
 )
@@ -16,10 +16,17 @@ from .domain.query_results import (
 __all__ = (
     'OwnershipCalculator', 'AdjustmentConvention', 'BucketDefinition', 'BucketKind',
     'BucketScheme', 'HoldingBucket', 'OwnershipCompleteness', 'OwnershipError',
-    'OwnershipSourceLineage', 'OwnershipWeeklyReport', 'OwnershipReadRepository',
+    'OwnershipSourceLineage', 'OwnershipWeeklyReport', 'OwnershipReadRepository', 'OwnershipQueryError',
     'OwnershipMetricInput', 'OwnershipMetricResult', 'OwnershipMetricStatus',
-    'WeeklyScheduleSnapshot', 'ownership_query_service',
+    'WeeklyScheduleSnapshot', 'ownership_reader', 'ownership_query_service',
 )
+
+
+def ownership_reader(session, *, schedule_reader=None) -> OwnershipReadRepository:
+    """Canonical reader in the caller's existing transaction; no implicit I/O."""
+    from .infrastructure.query_repository import SqlAlchemyOwnershipQueryRepository
+    return SqlAlchemyOwnershipQueryRepository(session, schedule_reader=schedule_reader)
+
 
 def ownership_query_service(session):
     from .application.query_service import OwnershipQueryService

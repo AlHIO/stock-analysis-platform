@@ -264,6 +264,23 @@ class RatioCompatibility:
 
 
 @dataclass(frozen=True, kw_only=True)
+class RevisionObservation:
+    """Canonical reader timing evidence absent from some product Domain DTOs."""
+    revision_id: UUID
+    ingested_at: datetime
+    last_seen_at: datetime | None = None
+
+    def __post_init__(self):
+        if not isinstance(self.revision_id, UUID):
+            raise ChipAnalysisError('invalid_observation_revision')
+        _aware(self.ingested_at)
+        if self.last_seen_at is not None:
+            _aware(self.last_seen_at)
+            if self.last_seen_at > self.ingested_at:
+                raise ChipAnalysisError('invalid_observation_order')
+
+
+@dataclass(frozen=True, kw_only=True)
 class AnalyticalSnapshot:
     """Caller-selected canonical revisions in one consistent read snapshot.
 
@@ -277,6 +294,7 @@ class AnalyticalSnapshot:
     lending: LendingDailyReport | None = None
     traded_quantity: TradedQuantity | None = None
     ratio_compatibility: RatioCompatibility | None = None
+    observations: tuple[RevisionObservation, ...] = ()
 
     def __post_init__(self):
         for name, cls in (('institutional', InstitutionalHistory), ('weekly_schedule', WeeklyScheduleSnapshot),
@@ -292,6 +310,12 @@ class AnalyticalSnapshot:
         if reports and any((r.instrument_id, r.market_id) != (reports[0].instrument_id, reports[0].market_id) for r in reports):
             raise ChipAnalysisError('mixed_ownership_identity')
         object.__setattr__(self, 'ownership', reports)
+        if not isinstance(self.observations, (tuple, list)) or not all(isinstance(v, RevisionObservation) for v in self.observations):
+            raise ChipAnalysisError('invalid_observation_evidence')
+        observations = tuple(self.observations)
+        if len({v.revision_id for v in observations}) != len(observations):
+            raise ChipAnalysisError('duplicate_observation_evidence')
+        object.__setattr__(self, 'observations', observations)
 
 
 @dataclass(frozen=True, kw_only=True)

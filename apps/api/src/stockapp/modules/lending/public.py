@@ -14,6 +14,7 @@ from .domain.models import (
 from .domain.ports import (
     LendingCalculationEngine, LendingHistoryReader, LendingRepository,
 )
+from .domain.queries import LendingQueryError, LendingReadRepository
 from .domain.results import (
     ALGORITHM_VERSION, DECIMAL_PRECISION, CalculationInput, CalculationResult,
     CalculationStatus,
@@ -28,8 +29,19 @@ __all__ = (
     'LendingCalculator', 'LendingCalculationEngine', 'LendingHistoryReader',
     'LendingRepository', 'ALGORITHM_VERSION', 'DECIMAL_PRECISION',
     'CalculationInput', 'CalculationResult', 'CalculationStatus',
+    'LendingQueryError', 'LendingReadRepository', 'lending_reader',
     'lending_query_service',
 )
+
+
+def lending_reader(session) -> LendingReadRepository:
+    """Read Canonical reports without changing the caller's transaction.
+
+    Source, Channel, Report Kind and observation timing stay explicit; this port
+    does not choose between ambiguous series or perform provider network I/O.
+    """
+    from .infrastructure.query_repository import SqlAlchemyLendingQueryRepository
+    return SqlAlchemyLendingQueryRepository(session)
 
 
 def lending_query_service(session):

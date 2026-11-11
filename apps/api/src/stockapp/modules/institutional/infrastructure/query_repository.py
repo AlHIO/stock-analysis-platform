@@ -1,7 +1,8 @@
 """Canonical institutional projections inside the caller's read-only snapshot.
 
-Financial reports are reconstructed by the Phase 2B-2 repository. Candidate
-revisions/raw bytes never become query points; status only exposes audit counts.
+Typed revision columns and selected observations are reconstructed in bounded
+batches. Candidate revisions/raw bytes never become query points; status only
+exposes audit counts.
 """
 from datetime import date
 import re
@@ -11,15 +12,21 @@ from sqlalchemy import func, select
 
 from stockapp.modules.market_data.public import market_data_reference_reader
 from stockapp.modules.institutional.domain.models import (
-    CalendarSnapshot, InstitutionalValidationError, QuantityUnit, TradeBasis, TradeScope,
+    CalendarSnapshot, Category, FactLineage, InstitutionalDailyReport, InstitutionalValidationError,
+    InvestorFlow, MappingStatus, QuantityUnit, SourceTiming, TradeBasis, TradeScope,
 )
-from stockapp.modules.institutional.domain.persistence import PromotionPolicy, scope_values
+from stockapp.modules.institutional.domain.persistence import scope_values
 from stockapp.modules.institutional.domain.queries import InstitutionalQueryError
 from .ingestion_models import InstitutionalIngestionJobRecord
-from .repositories import CANONICAL, ITEMS, SqlAlchemyInstitutionalRepository
+from .repositories import CANONICAL, ITEMS, REVISIONS
 from .source_manifest import TPEX_MANIFEST, TWSE_MANIFEST
 
 JOBS = InstitutionalIngestionJobRecord.__table__
+_OBSERVATION_FIELDS = (
+    'id', 'run_id', 'raw_id', 'observed_at', 'ingested_at', 'source_row_locator',
+    'parser_version', 'promotion_policy_version', 'source_published_on', 'source_published_at',
+    'timezone_name',
+)
 _CATALOG = (
     ("TPEX", "TPEX_INSTITUTIONAL_OPENAPI", "證券櫃檯買賣中心上櫃", "證券櫃檯買賣中心：法人 OpenAPI", TPEX_MANIFEST),
     ("TWSE", "TWSE_INSTITUTIONAL_T86", "臺灣證券交易所上市", "臺灣證券交易所：法人 T86", TWSE_MANIFEST),
@@ -35,6 +42,7 @@ class SqlAlchemyInstitutionalQueryRepository:
         self.session = session
         self.references = market_data_reference_reader(session)
         self.calendar_reader = calendar_reader
+        self._sources = {}
 
     def _execute(self, statement):
         return self.session.execute(statement.execution_options(autoflush=False, populate_existing=True))
@@ -46,10 +54,12 @@ class SqlAlchemyInstitutionalQueryRepository:
             raise _stored_error() from exc
 
     def source(self, source_id: UUID):
-        value = self.references.source(source_id)
-        if value is None:
-            raise _stored_error()
-        return value
+        if source_id not in self._sources:
+            value = self.references.source(source_id)
+            if value is None:
+                raise _stored_error()
+            self._sources[source_id] = dict(value)
+        return dict(self._sources[source_id])
 
     def scopes(self, instrument_id: UUID):
         values = self._execute(select(CANONICAL.c.scope).where(
@@ -63,37 +73,65 @@ class SqlAlchemyInstitutionalQueryRepository:
     def _where(instrument_id, scope):
         return (CANONICAL.c.instrument_id == instrument_id, CANONICAL.c.scope == scope_values(scope))
 
-    def _report(self, row):
+    @staticmethod
+    def _select():
+        return select(*REVISIONS.c,
+            *(ITEMS.c[name].label('observation_' + name) for name in _OBSERVATION_FIELDS))\
+            .select_from(CANONICAL).join(REVISIONS, REVISIONS.c.id == CANONICAL.c.revision_id)\
+            .join(ITEMS, ITEMS.c.id == CANONICAL.c.observation_id)
+
+    def _reports(self, rows):
+        if not rows:
+            return ()
         try:
-            policy = PromotionPolicy(source_id=row["source_id"],
-                source_contract_version=row["source_contract_version"], quantity_unit=QuantityUnit(row["quantity_unit"]))
-            scope = TradeScope(**(dict(row["scope"]) | {"basis": TradeBasis(row["scope"]["basis"])}))
-            with self.session.no_autoflush:
-                report = SqlAlchemyInstitutionalRepository(self.session, policy).get_canonical(
-                    row["instrument_id"], row["trade_date"], scope)
-            if report is None:
-                raise _stored_error()
-            return report
+            identifiers = tuple({row['id'] for row in rows})
+            first_seen = dict(self._execute(select(ITEMS.c.revision_id, func.min(ITEMS.c.observed_at)).where(
+                ITEMS.c.revision_id.in_(identifiers), ITEMS.c.disposition == 'accepted')
+                .group_by(ITEMS.c.revision_id)).all())
+            reports = []
+            for row in rows:
+                components = tuple(InvestorFlow(category=category,
+                    buy_quantity=row[f'{category.value}_buy_quantity'],
+                    sell_quantity=row[f'{category.value}_sell_quantity'],
+                    net_quantity=row[f'{category.value}_net_quantity'],
+                    mapping_status=MappingStatus(row[f'{category.value}_mapping_status']))
+                    for category in Category if row[f'{category.value}_present'])
+                reports.append(InstitutionalDailyReport(
+                    instrument_id=row['instrument_id'], market_id=row['market_id'], trade_date=row['trade_date'],
+                    quantity_unit=QuantityUnit(row['quantity_unit']),
+                    scope=TradeScope(**(dict(row['scope']) | {'basis': TradeBasis(row['scope']['basis'])})),
+                    taxonomy_version=row['taxonomy_version'], components=components,
+                    lineage=FactLineage(source_id=row['source_id'], revision_id=row['id'],
+                        source_contract_version=row['source_contract_version'],
+                        parser_version=row['observation_parser_version'], run_id=row['observation_run_id'],
+                        raw_id=row['observation_raw_id'], source_row_locator=row['observation_source_row_locator'],
+                        payload_hash=row['payload_hash'], promotion_policy_version=row['observation_promotion_policy_version']),
+                    timing=SourceTiming(first_seen_at=first_seen[row['id']],
+                        last_seen_at=row['observation_observed_at'], ingested_at=row['observation_ingested_at'],
+                        source_published_on=row['observation_source_published_on'],
+                        source_published_at=row['observation_source_published_at'],
+                        timezone_name=row['observation_timezone_name'])))
+            return tuple(reports)
         except (InstitutionalValidationError, ValueError, KeyError, TypeError) as exc:
             raise _stored_error() from exc
 
     def page(self, instrument_id, scope, start, end, *, after=None, order="asc", limit=250):
         if scope is None:
             return ()
-        statement = select(CANONICAL).where(*self._where(instrument_id, scope),
+        statement = self._select().where(*self._where(instrument_id, scope),
             CANONICAL.c.trade_date >= start, CANONICAL.c.trade_date <= end)
         if after is not None:
             statement = statement.where(CANONICAL.c.trade_date > after if order == "asc" else CANONICAL.c.trade_date < after)
         ordering = CANONICAL.c.trade_date.asc() if order == "asc" else CANONICAL.c.trade_date.desc()
         rows = self._execute(statement.order_by(ordering).limit(limit)).mappings().all()
-        return tuple(self._report(row) for row in rows)
+        return self._reports(rows)
 
     def latest(self, instrument_id, scope):
         if scope is None:
             return None
-        row = self._execute(select(CANONICAL).where(*self._where(instrument_id, scope))
+        row = self._execute(self._select().where(*self._where(instrument_id, scope))
             .order_by(CANONICAL.c.trade_date.desc()).limit(1)).mappings().one_or_none()
-        return self._report(row) if row is not None else None
+        return self._reports([row])[0] if row is not None else None
 
     def extent(self, instrument_id, scope):
         if scope is None:

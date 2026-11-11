@@ -37,6 +37,14 @@
         "title": "Availability",
         "type": "string"
       },
+      "AvailabilityPolicy": {
+        "enum": [
+          "observed_revision_v1",
+          "published_and_observed_revision_v1"
+        ],
+        "title": "AvailabilityPolicy",
+        "type": "string"
+      },
       "BarSchema": {
         "additionalProperties": false,
         "properties": {
@@ -564,6 +572,719 @@
         ],
         "title": "Category",
         "type": "string"
+      },
+      "ChipCoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "const": "not_verified",
+            "title": "Completeness",
+            "type": "string"
+          },
+          "declared_scope": {
+            "const": "current_canonical_only",
+            "title": "Declared Scope",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "const": false,
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "point_in_time_supported": {
+            "const": false,
+            "title": "Point In Time Supported",
+            "type": "boolean"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "completeness",
+          "declared_scope",
+          "expected_dates_known",
+          "truncated",
+          "point_in_time_supported"
+        ],
+        "title": "ChipCoverageSchema",
+        "type": "object"
+      },
+      "ChipInputRevisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingested At"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ChipSafeMetadataValue"
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "quantity_unit": {
+            "enum": [
+              "shares",
+              "units"
+            ],
+            "title": "Quantity Unit",
+            "type": "string"
+          },
+          "raw_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Id"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ChipSourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "source_published_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published On"
+          },
+          "statistics_date": {
+            "format": "date",
+            "title": "Statistics Date",
+            "type": "string"
+          },
+          "timezone_name": {
+            "title": "Timezone Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "instrument_id",
+          "market_id",
+          "statistics_date",
+          "revision_id",
+          "source_id",
+          "source_contract_version",
+          "quantity_unit",
+          "first_seen_at",
+          "ingested_at",
+          "source_published_at",
+          "source_published_on",
+          "last_seen_at",
+          "run_id",
+          "raw_id",
+          "timezone_name",
+          "metadata",
+          "source"
+        ],
+        "title": "ChipInputRevisionSchema",
+        "type": "object"
+      },
+      "ChipMetricPointSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "anchor_statistical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Statistical Date"
+          },
+          "availability_policy": {
+            "$ref": "#/components/schemas/AvailabilityPolicy"
+          },
+          "completeness": {
+            "enum": [
+              "complete_for_requested_inputs",
+              "unavailable"
+            ],
+            "title": "Completeness",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ChipSafeMetadataValue"
+            },
+            "title": "Details",
+            "type": "object"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evaluation_date": {
+            "format": "date",
+            "title": "Evaluation Date",
+            "type": "string"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "input_age_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Age Days"
+          },
+          "input_refs": {
+            "items": {
+              "$ref": "#/components/schemas/ChipInputRevisionSchema"
+            },
+            "title": "Input Refs",
+            "type": "array"
+          },
+          "is_carried_forward": {
+            "title": "Is Carried Forward",
+            "type": "boolean"
+          },
+          "is_provisional": {
+            "title": "Is Provisional",
+            "type": "boolean"
+          },
+          "metric": {
+            "$ref": "#/components/schemas/Metric"
+          },
+          "missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Dates",
+            "type": "array"
+          },
+          "native_frequency": {
+            "enum": [
+              "1d",
+              "1w"
+            ],
+            "title": "Native Frequency",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "reproducibility_key": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Reproducibility Key",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MetricStatus"
+          },
+          "unit": {
+            "enum": [
+              "shares",
+              "units",
+              "percent",
+              "percentage_points",
+              "trading_sessions",
+              "unknown"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "upstream_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Upstream Versions",
+            "type": "array"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "pattern": "^-?(?:0|[1-9][0-9]*)\\.[0-9]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "evaluation_date",
+          "metric",
+          "native_frequency",
+          "anchor_statistical_date",
+          "input_age_days",
+          "is_carried_forward",
+          "value",
+          "status",
+          "unit",
+          "parameters",
+          "formula",
+          "engine_version",
+          "algorithm_version",
+          "upstream_versions",
+          "evaluated_at",
+          "availability_policy",
+          "reasons",
+          "missing_dates",
+          "is_provisional",
+          "completeness",
+          "reproducibility_key",
+          "details",
+          "input_refs"
+        ],
+        "title": "ChipMetricPointSchema",
+        "type": "object"
+      },
+      "ChipMetricsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "items": {
+              "$ref": "#/components/schemas/ChipProductAvailabilitySchema"
+            },
+            "title": "Availability",
+            "type": "array"
+          },
+          "availability_policy": {
+            "$ref": "#/components/schemas/AvailabilityPolicy"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/ChipCoverageSchema"
+          },
+          "evaluation_count": {
+            "minimum": 0.0,
+            "title": "Evaluation Count",
+            "type": "integer"
+          },
+          "evaluation_frequency": {
+            "enum": [
+              "1d",
+              "1w"
+            ],
+            "title": "Evaluation Frequency",
+            "type": "string"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            },
+            "title": "Metrics",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ChipMetricPointSchema"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/ChipPrecisionSchema"
+          },
+          "product": {
+            "const": "chip_metrics",
+            "title": "Product",
+            "type": "string"
+          },
+          "query_as_of": {
+            "format": "date-time",
+            "title": "Query As Of",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ChipSourceSchema"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "time_basis": {
+            "enum": [
+              "as_of_day",
+              "query_as_of"
+            ],
+            "title": "Time Basis",
+            "type": "string"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "metrics",
+          "evaluation_frequency",
+          "from",
+          "to",
+          "query_as_of",
+          "read_at",
+          "time_basis",
+          "availability_policy",
+          "points",
+          "count",
+          "evaluation_count",
+          "next_cursor",
+          "precision",
+          "coverage",
+          "sources",
+          "availability"
+        ],
+        "title": "ChipMetricsResponse",
+        "type": "object"
+      },
+      "ChipPrecisionSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "internal_digits": {
+            "const": 50,
+            "title": "Internal Digits",
+            "type": "integer"
+          },
+          "output_decimal_places": {
+            "const": 12,
+            "title": "Output Decimal Places",
+            "type": "integer"
+          },
+          "rounding": {
+            "const": "ROUND_HALF_EVEN",
+            "title": "Rounding",
+            "type": "string"
+          }
+        },
+        "required": [
+          "internal_digits",
+          "output_decimal_places",
+          "rounding"
+        ],
+        "title": "ChipPrecisionSchema",
+        "type": "object"
+      },
+      "ChipProductAvailabilitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency": {
+            "enum": [
+              "1d",
+              "1w"
+            ],
+            "title": "Frequency",
+            "type": "string"
+          },
+          "ingested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingested At"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "loaded_reports": {
+            "minimum": 0.0,
+            "title": "Loaded Reports",
+            "type": "integer"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "source_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Ids",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "loaded_reports",
+          "stored_from",
+          "stored_to",
+          "latest_source_published_at",
+          "last_seen_at",
+          "ingested_at",
+          "source_ids",
+          "state",
+          "reasons"
+        ],
+        "title": "ChipProductAvailabilitySchema",
+        "type": "object"
+      },
+      "ChipSafeMetadataValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/ChipSafeMetadataValue"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ChipSafeMetadataValue"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ChipSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "ChipSourceSchema",
+        "type": "object"
       },
       "Completeness": {
         "enum": [
@@ -4955,6 +5676,40 @@
         "title": "MarketStateSchema",
         "type": "object"
       },
+      "Metric": {
+        "enum": [
+          "institutional_net_sum",
+          "institutional_buy_streak",
+          "institutional_sell_streak",
+          "ownership_large_holder_percent",
+          "ownership_large_holder_change_pp",
+          "margin_balance_change",
+          "lending_balance",
+          "lending_balance_change",
+          "lending_daily_flow",
+          "lending_short_sale_ratio"
+        ],
+        "title": "Metric",
+        "type": "string"
+      },
+      "MetricStatus": {
+        "enum": [
+          "complete",
+          "missing_data",
+          "not_verified",
+          "insufficient_history",
+          "incompatible_data",
+          "truncated_history",
+          "no_sessions",
+          "unsupported",
+          "unavailable",
+          "not_applicable",
+          "invalid",
+          "not_yet_available"
+        ],
+        "title": "MetricStatus",
+        "type": "string"
+      },
       "NetResultSchema": {
         "additionalProperties": false,
         "properties": {
@@ -8798,6 +9553,305 @@
         "summary": "Get Bars",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/chip-metrics": {
+      "get": {
+        "description": "Current canonical revisions with explicit clocks, never a PIT guarantee.",
+        "operationId": "chip_metrics_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "metric",
+            "required": true,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/Metric"
+              },
+              "maxItems": 10,
+              "minItems": 1,
+              "title": "Metric",
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evaluation_frequency",
+            "required": false,
+            "schema": {
+              "default": "1d",
+              "enum": [
+                "1d",
+                "1w"
+              ],
+              "title": "Evaluation Frequency",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parameters",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parameters"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "time_basis",
+            "required": false,
+            "schema": {
+              "default": "as_of_day",
+              "enum": [
+                "as_of_day",
+                "query_as_of"
+              ],
+              "title": "Time Basis",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability_policy",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AvailabilityPolicy",
+              "default": "observed_revision_v1"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 250,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "institutional_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Institutional Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "margin_scope",
+            "required": false,
+            "schema": {
+              "default": "margin_trading",
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Margin Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lending_scope",
+            "required": false,
+            "schema": {
+              "default": "unspecified",
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Lending Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lending_channel",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lending Channel"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel_family",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Channel Family"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_kind",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportKind",
+              "default": "lending_short_sales"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChipMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "Chip metrics"
         ]
       }
     },

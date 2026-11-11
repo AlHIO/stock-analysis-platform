@@ -14,6 +14,7 @@ from .domain.ports import (
     MarginCalculationEngine, MarginHistoryReader, MarginRepository,
     UnitConversionReader,
 )
+from .domain.queries import MarginQueryError, MarginReadRepository
 from .domain.results import (
     ALGORITHM_VERSION, DECIMAL_PRECISION, CalculationInput, CalculationResult,
     CalculationStatus,
@@ -27,8 +28,19 @@ __all__ = (
     'SourceTiming', 'MarginCalculator', 'MarginCalculationEngine',
     'MarginHistoryReader', 'MarginRepository', 'UnitConversionReader',
     'ALGORITHM_VERSION', 'DECIMAL_PRECISION', 'CalculationInput',
-    'CalculationResult', 'CalculationStatus', 'margin_query_service',
+    'CalculationResult', 'CalculationStatus', 'MarginQueryError',
+    'MarginReadRepository', 'margin_reader', 'margin_query_service',
 )
+
+
+def margin_reader(session) -> MarginReadRepository:
+    """Read Canonical reports inside the caller's existing transaction snapshot.
+
+    The returned port never starts or commits a transaction, fetches a provider,
+    or writes data. The caller applies its own bounds and availability policy.
+    """
+    from .infrastructure.query_repository import SqlAlchemyMarginQueryRepository
+    return SqlAlchemyMarginQueryRepository(session)
 
 
 def margin_query_service(session):

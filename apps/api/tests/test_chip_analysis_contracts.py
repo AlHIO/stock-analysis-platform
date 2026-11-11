@@ -199,8 +199,10 @@ def test_cross_module_dependencies_use_only_public_facades():
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith('stockapp.modules.'):
                 if not node.module.startswith('stockapp.modules.chip_analysis.'):
-                    assert node.module.endswith('.public'), (path, node.module)
-            if isinstance(node, ast.Import):
+                    assert node.module.endswith('.public') or (
+                        'api' in path.relative_to(root).parts and node.module.endswith('.public_api')
+                    ), (path, node.module)
+            if isinstance(node, ast.Import) and path.relative_to(root).parts[0] in ('domain', 'application'):
                 assert all(not alias.name.startswith(('sqlalchemy', 'fastapi', 'redis', 'httpx')) for alias in node.names)
 
 
