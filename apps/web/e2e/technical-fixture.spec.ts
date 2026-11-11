@@ -19,6 +19,10 @@ import {
   latestFixture,
 } from "../tests/fixtures/market-api";
 import { indicatorFixture } from "../tests/fixtures/technical";
+import {
+  institutionalHistoryFixture,
+  institutionalMetricsFixture,
+} from "../tests/fixtures/chip";
 
 const instrument = {
   ...instrumentFixture,
@@ -163,6 +167,28 @@ test("synthetic fixture renders nonempty SMA EMA RSI MACD and volume average", a
     `**/api/market/stocks/${instrument.id}/**`,
     async (route) => {
       const url = new URL(route.request().url());
+      // The stock page also mounts the chip panel. Keep this numerical indicator
+      // test offline and explicitly empty instead of passing synthetic IDs to DB.
+      if (url.pathname.endsWith("/institutional")) {
+        const fixture = institutionalHistoryFixture();
+        return route.fulfill({ json: {
+          ...fixture, instrument, items: [], count: 0,
+          from: url.searchParams.get("from"), to: url.searchParams.get("to"),
+          coverage: { ...fixture.coverage, stored_from: null, stored_to: null, stored_report_count: 0 },
+          freshness: { ...fixture.freshness, latest_trade_date: null, latest_as_of_date: null, assessment: "no_data" },
+        } });
+      }
+      if (url.pathname.endsWith("/institutional/metrics")) {
+        const fixture = institutionalMetricsFixture(url.searchParams.get("category") ?? "foreign_ex_dealers");
+        return route.fulfill({ json: {
+          ...fixture, instrument, count: 0, daily: null,
+          from: url.searchParams.get("from"), to: url.searchParams.get("to"),
+          cumulative: fixture.cumulative.map((point) => ({ ...point, value: null, status: "missing_data", input_refs: [], session_dates: [] })),
+          streak: { ...fixture.streak, buy_count: null, sell_count: null, buy_lower_bound: 0, sell_lower_bound: 0, status: "missing_data", input_refs: [], session_dates: [] },
+          coverage: { ...fixture.coverage, stored_from: null, stored_to: null, stored_report_count: 0 },
+          freshness: { ...fixture.freshness, latest_trade_date: null, latest_as_of_date: null, assessment: "no_data" },
+        } });
+      }
       if (url.pathname.endsWith("/latest"))
         return route.fulfill({ json: latest });
       if (url.pathname.endsWith("/bars")) {

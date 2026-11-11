@@ -1,0 +1,87 @@
+.figure {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line, #263240);
+  border-radius: 12px;
+  background: #111923;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 14px 16px 8px;
+}
+.heading h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.heading span { color: #8c9bad; font-size: 11px; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 16px;
+  min-height: 36px;
+  padding: 0 16px 10px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #8c9bad;
+}
+.legend strong { margin-left: 5px; color: #edf2f6; font-weight: 500; }
+.legend time { font-family: ui-monospace, monospace; color: #c1cedd; }
+.stage { position: relative; min-width: 0; }
+.canvas { width: 100%; height: 285px; }
+.tooltip {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 12px;
+  display: grid;
+  gap: 3px;
+  max-width: calc(100% - 80px);
+  padding: 9px 12px;
+  border: 1px solid #35475a;
+  border-radius: 7px;
+  background: #172333ed;
+  box-shadow: 0 6px 20px #0003;
+  pointer-events: none;
+  color: #dbe4ee;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.tooltip time { font-family: ui-monospace, monospace; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #a4b2c5;
+  background: #111923ea;
+  text-align: center;
+  font-size: 12px;
+}
+.empty {
+  min-height: 180px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #a4b2c5;
+  text-align: center;
+  font-size: 12px;
+}
+.caption {
+  margin: 0;
+  padding: 9px 16px 12px;
+  border-top: 1px solid #263240;
+  color: #8c9bad;
+  font-size: 10px;
+}
+@media (max-width: 640px) {
+  .heading { padding: 12px 12px 8px; }
+  .legend { padding: 0 12px 9px; gap: 5px 10px; }
+  .canvas { height: 245px; }
+  .tooltip { left: 7px; font-size: 10px; max-width: calc(100% - 70px); }
+  .caption { padding: 9px 12px; }
+}

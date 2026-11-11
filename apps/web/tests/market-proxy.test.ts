@@ -7,6 +7,23 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 const call = (path: string[], search = "") => GET(new Request(`http://localhost:3000/api/market/${path.join("/")}${search}`) as NextRequest, { params: Promise.resolve({ path }) });
 
 describe("read-only market proxy", () => {
+  it.each([
+    ["institutional"], ["institutional","metrics"], ["ownership"],
+    ["ownership","metrics"], ["margin"], ["lending"],
+  ])("allows only documented chip read paths %j",async(...suffix)=>{
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({})));
+    expect((await call(["stocks",instrumentFixture.id,...suffix],"?from=2026-01-01&to=2026-01-31")).status).toBe(200);
+  });
+  it.each(["?report_kind=borrowed_positions&report_kind=lending_short_sales","?url=https://evil.example","?source_url=https://evil.example"])("rejects unsafe chip query inputs",async(query)=>{
+    const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
+    expect((await call(["stocks",instrumentFixture.id,"lending"],query)).status).toBe(422);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("preserves a public source ambiguity code but removes internal diagnostics",async()=>{
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({detail:{code:"ambiguous_lending_channel",message:"private SQL/DSN",errors:["SECRET"]}},{status:422})));
+    const response=await call(["stocks",instrumentFixture.id,"lending"]);
+    expect(await response.json()).toEqual({detail:{code:"ambiguous_lending_channel",message:"Request parameters are invalid.",errors:null}});
+  });
   it("uses the server backend origin with an explicit API path and no cache", async () => {
     vi.stubEnv("BACKEND_URL", "http://backend:8000");
     const fetcher = vi.fn().mockResolvedValue(Response.json({ items: [] })); vi.stubGlobal("fetch", fetcher);

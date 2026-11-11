@@ -1,6 +1,6 @@
 # Stock Analysis Platform
 
-台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、SMA／EMA／RSI／MACD／成交量均線、官方日行情匯入 CLI、REST API 與 TDCC 集保週資料匯入管線。行情僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
+台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、技術指標、個股籌碼 Dashboard、官方資料匯入 CLI 與 REST API。行情與籌碼僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
 
 ## 目錄與邊界
 
@@ -74,6 +74,35 @@ Phase 2F-1 新增 `chip_analysis` 共用純分析引擎：法人累計／連買�
   apps/api/tests/test_chip_analysis_products.py \
   apps/api/tests/test_chip_analysis_ledgers.py -q
 ```
+
+## 個股籌碼 Dashboard（Phase 2G-1）
+
+在既有 `/stocks/<instrument UUID>` 個股頁，價格 K 線與技術指標下方可切換「三大法人／集保持股／融資融券／借券賣出」。支援近1個月、近3個月、近1年與自訂區間（最多366個日曆日）；籌碼區間獨立於價格圖表，不會重設既有技術指標。已造訪的 Tab 保留圖表、選擇及縮放視窗，同一區間切回不重複載入。
+
+- 法人：每日外資／投信／自營商買賣超、後端5／10／20／60交易日累計及連買連賣，並以相同日期區間的獨立收盤價圖對照。
+- 集保：原生週統計、大戶比例與百分點週變化、各級距持有人數／股數／官方比例。門檻為官方可精確表示的400,001股或1,000,001股起，不估算切穿級距的門檻。
+- 融資融券：兩個Ledger分圖，呈現餘額及後端計算的每日增減。
+- 借券：借券賣出與借券未還分開選擇；餘額與每日流量分圖，多個Channel須選擇單一序列，來源範圍未核實時保留提示。
+
+每個Tab顯示統計日、來源、發布／首次觀察／匯入時間、完整度與Revision。空資料為Unavailable；缺值留白，週資料不日化。來源未核實發布SLA時顯示「時效未核實」，只有API明確回傳延遲狀態才標示Stale。金融數值以字串保留精度，前端不重算金融公式。
+
+瀏覽器只呼叫既有 `/api/market/...` 同源Proxy，不連TWSE／TPEx／TDCC。現有後端及資料庫即可使用，這次沒有Migration或新環境變數，也不會因開啟畫面自動匯入資料。開發驗證：
+
+```bash
+npm ci
+# 第一個終端；BACKEND_URL僅供Next伺服器使用
+BACKEND_URL=http://localhost:8000 npm run dev --workspace @stockapp/web -- --port 3100
+# Windows瀏覽器開啟 http://localhost:3100，搜尋股票進入個股頁
+# 第二個終端
+npm test
+npm run typecheck
+npm exec --workspace @stockapp/web -- playwright install chromium
+BROWSER_BASE_URL=http://localhost:3100 npm run test:browser --workspace @stockapp/web -- chip-dashboard.spec.ts
+# 結束dev server後執行，避免同時寫入.next
+npm run build
+```
+
+Dashboard E2E使用明確標記SYNTHETIC的同源API攔截資料，只驗證畫面行為，不代表正式資料覆蓋率。本機真實資料與來源限制、測試結果見 [籌碼 Dashboard 規格](docs/specs/phase-2g-chip-dashboard.md)。目前法人Canonical為空、集保只有一週、融資／借券各只有一檔的已驗證觀察；缺週變化、完整累計與尚未核准的借券未還功能維持Unavailable，不宣稱十年籌碼資料完整。
 
 ## 跨來源籌碼 API（Phase 2F-2）
 
@@ -658,4 +687,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2F-2；前端籌碼UI、回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2G-1；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍，不自行進入Phase 3。

@@ -31,6 +31,11 @@ vi.mock("../src/lib/market-api", async (importOriginal) => ({
 vi.mock("../src/components/stock-search", () => ({
   StockSearch: () => <div aria-label="測試搜尋" />,
 }));
+// Keep these existing price-page unit tests scoped to price behavior. The real
+// child integration is exercised by ChipDashboard tests and browser E2E.
+vi.mock("../src/components/chip-dashboard", () => ({
+  ChipDashboard: () => <div aria-label="籌碼分析測試區" />,
+}));
 vi.mock("../src/components/stock-chart", () => ({
   StockChart: ({ bars, timeframe }: { bars: Bar[]; timeframe: Timeframe }) => (
     <div data-testid="stock-chart" data-timeframe={timeframe}>

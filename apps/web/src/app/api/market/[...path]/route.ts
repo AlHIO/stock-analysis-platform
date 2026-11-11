@@ -26,6 +26,17 @@ const ERROR_CODES = new Set([
   "too_many_indicator_points",
   "invalid_indicator_parameters",
   "invalid_price_basis",
+  "ambiguous_trade_scope",
+  "ambiguous_lending_channel",
+  "unsupported_instrument_product",
+  "invalid_date_range",
+  "invalid_cursor",
+  "query_limit_exceeded",
+  "query_input_limit_exceeded",
+  "invalid_stored_chip_data",
+  "invalid_stored_ownership_data",
+  "invalid_stored_margin_data",
+  "invalid_stored_lending_data",
 ]);
 function failure(status: number, code: string): Response {
   const message =
@@ -64,6 +75,18 @@ function allowedQuery(path: string[]): readonly string[] | null {
         "to",
         "price_basis",
       ];
+    if (path[2] === "institutional")
+      return ["from", "to", "trade_scope", "limit", "cursor", "order"];
+    if (path[2] === "ownership")
+      return ["from", "to", "limit", "cursor", "order"];
+    if (path[2] === "margin")
+      return ["from", "to", "balance_scope", "limit", "cursor", "order"];
+    if (path[2] === "lending")
+      return ["from", "to", "report_kind", "trade_scope", "lending_channel", "channel_family", "limit", "cursor", "order"];
+  }
+  if (path.length === 4 && path[0] === "stocks" && UUID.test(path[1]) && path[3] === "metrics") {
+    if (path[2] === "institutional") return ["from", "to", "trade_scope", "category", "period"];
+    if (path[2] === "ownership") return ["from", "to", "threshold", "threshold_unit", "limit", "cursor", "order"];
   }
   if (path.length === 2 && path[0] === "data" && path[1] === "status")
     return ["limit"];

@@ -27,6 +27,7 @@ import {
 import { analyzeHistoryGaps } from "../lib/history-gaps";
 import { IndicatorWorkspace } from "./indicator-workspace";
 import { StockSearch } from "./stock-search";
+import { ChipDashboard } from "./chip-dashboard";
 
 type Load<T> =
   | { status: "loading" }
@@ -361,7 +362,7 @@ export function StockDetail({ id }: { id: string }) {
             </div>
           )}
 
-          <section className="chart-panel" aria-label="歷史 K 線">
+          <section id="stock-price-chart" className="chart-panel" aria-label="歷史 K 線">
             <div className="chart-toolbar">
               <div>
                 <h2>
@@ -566,6 +567,8 @@ export function StockDetail({ id }: { id: string }) {
               </>
             )}
           </section>
+
+          <ChipDashboard key={id} id={id} marketDate={data.freshness.market_local_date} currency={data.instrument.market.currency}/>
 
           <section className="provenance-panel" aria-label="資料來源與限制">
             <div>
