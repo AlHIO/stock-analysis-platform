@@ -2,6 +2,127 @@
 
 台灣上市／上櫃股票分析平台。採 Monorepo、Modular Monolith + Data Workers；目前包含股票搜尋、日／週／月 K 線、技術指標、個股籌碼 Dashboard、官方資料匯入 CLI 與 REST API。行情與籌碼僅讀 PostgreSQL 已保存資料，非即時報價；沒有回測、選股器或即時交易功能。
 
+## 快速啟動與日常使用（WSL Ubuntu + Docker）
+
+> **第一次使用請先看本節。** 所有指令都在 **WSL Ubuntu 終端機、Repository 根目錄**執行，網頁使用同一台 Windows 電腦的 Chrome / Edge 開啟。資料庫使用持久化 Docker Volume，**不要為了重新啟動而刪除 Volume**。
+
+### 1. 第一次啟動（或更新程式後重建）
+
+前置條件：Windows Docker Desktop 已啟動，並啟用該 Ubuntu 的 WSL Integration。先檢查 `docker version` 和 `docker compose version` 能正常顯示。
+
+```bash
+# 進入本機專案（若你的路徑不同，請自行調整）
+cd /root/nycu/project/stockapp/stock-analysis-platform
+
+# 確認 Docker
+ docker version
+ docker compose version
+
+# 不覆蓋既有 .env
+ test -f .env || cp .env.example .env
+
+# 檢查配置並建置/啟動主要服務
+ docker compose config --quiet
+ docker compose up -d --build --wait --wait-timeout 300
+
+# 檢查資料庫目前版本與最新版本
+ docker compose exec backend alembic current
+ docker compose exec backend alembic heads
+
+# 若版本尚未更新，先審查 Migration，再執行：
+ docker compose exec backend alembic upgrade head
+ docker compose exec backend alembic check
+
+# 檢查所有服務
+ docker compose ps
+ curl --fail http://localhost:8000/health
+ curl --fail http://localhost:8000/health/ready
+```
+
+> Migration 會正式修改資料庫 Schema；如果資料已很重要，升級前應先備份並審查 Migration。若 Backend 在舊 Schema 上無法通過健康檢查，可先 `docker compose up -d --wait postgres redis`，接著在審查後執行 `docker compose run --rm backend alembic upgrade head`，最後啟動全部服務。
+
+| 項目 | 網址 | 功能 |
+| --- | --- | --- |
+| **股票分析網站** | **http://localhost:3000** | 股票搜尋、K 線、技術指標、籌碼 Dashboard |
+| FastAPI Swagger UI | http://localhost:8000/docs | API 文件和測試 |
+| 存活狀態 | http://localhost:8000/health | 後端程序檢查 |
+| 就緒狀態 | http://localhost:8000/health/ready | PostgreSQL、Redis 連線檢查 |
+
+預設啟動 `postgres`、`redis`、`backend`、`frontend` 四個服務。網站只會顯示 PostgreSQL **已保存**的資料，不是即時報價。籌碼來源可能因授權、時間與身分證據限制而顯示 `Unavailable`／`Partial`，不等於服務啟動失敗。
+
+### 2. 平常每天開啟專案
+
+第一次建置成功後，通常不需要再次建置或重跑 Migration：
+
+```bash
+cd /root/nycu/project/stockapp/stock-analysis-platform
+docker compose up -d --wait
+docker compose ps
+curl --fail http://localhost:8000/health/ready
+```
+
+然後在 Windows 開啟 **http://localhost:3000**。只有在本地程式碼、依賴或 Dockerfile 更新後，才考慮 `docker compose up -d --build --wait`；如有新增 Migration，先審查後套用。單純啟動網站**不會觸發歷史回補**。
+
+### 3. 可選：每天 20:00 同步最新資料
+
+`daily-worker` 使用獨立的 Compose `daily` Profile，**一般 `docker compose up -d` 不會首次建立它**。
+
+```bash
+# 首次啟用或更新 worker 時
+docker compose --profile daily up -d --build daily-worker
+
+# 查看服務與同步紀錄
+docker compose --profile daily ps
+docker compose --profile daily logs --tail=50 daily-worker
+docker compose exec daily-worker stockapp daily status --limit 5
+
+# 選用：立即同步一次（會存取已核准的官方資料來源）
+docker compose run --rm daily-worker stockapp daily run
+```
+
+每天排程使用 **Asia/Taipei 20:00**，但電腦與 Docker 必須持續運作；休眠期間不會執行。只有符合來源授權、日期與證券身分要求的資料才可能晉升為正式 Canonical。完整限制見 [每日同步操作手冊](docs/operations/daily-sync.md)。
+
+`history-worker` 屬於另一個 `history` Profile，**只想看網站時不需要啟動**。歷史回補操作參考下方「最近十年歷史回補」。
+
+### 4. 停止、重啟與查看日誌
+
+```bash
+# 主要服務狀態
+docker compose ps
+
+# 前後端日誌
+docker compose logs --tail=100 backend frontend
+
+# 也查看選用 Profile
+docker compose --profile history --profile daily ps
+
+# 停止主要服務，不刪資料
+docker compose stop
+
+# 下次啟動
+docker compose up -d --wait
+
+# 移除 Compose 容器、保留 named volumes
+docker compose down
+```
+
+如果 `daily-worker`／`history-worker` 正在執行同步，關閉服務前先確認它們的任務狀態。**不要把 `docker compose down -v` 當作一般重啟指令**，因為它會刪除 PostgreSQL／Redis 的 named volumes，可能失去已匯入行情及籌碼資料。
+
+### 5. 常見問題
+
+| 問題 | 檢查方式 |
+| --- | --- |
+| Docker daemon 無法連線 | 開啟 Docker Desktop，檢查 WSL Integration |
+| `localhost:3000` 無法開啟 | `docker compose ps`、`docker compose logs --tail=100 frontend` |
+| 後端 API 回 503 | `curl http://localhost:8000/health/ready`、`docker compose logs --tail=100 backend postgres` |
+| 資料表或欄位不存在 | `docker compose exec backend alembic current` 和 `heads`，檢查 Migration |
+| 查不到股票行情或籌碼 | 先確認該來源是否已成功匯入 Canonical，缺資料不等於 Docker 出錯 |
+| Port 3000／8000 被占用 | `ss -ltnp`、`docker compose ps` |
+
+以下保留原本的完整功能規格、歷史回補、匯入命令、API 與開發測試說明。
+
+---
+
 ## 目錄與邊界
 
 ```text
