@@ -1,4 +1,4 @@
-"""Manual market-data operations. No scheduling or implicit migration."""
+"""Market-data operations and explicit opt-in daily scheduling; no implicit migration."""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +8,7 @@ from dataclasses import asdict
 from datetime import date, datetime
 import json
 from pathlib import Path
+import re
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -96,6 +97,48 @@ def _institutional_limit(value: str) -> int:
     if not 1 <= limit <= 100:
         raise argparse.ArgumentTypeError("--limit must be between 1 and 100")
     return limit
+
+
+def _daily_time(value: str) -> str:
+    if re.fullmatch(r'(?:[01][0-9]|2[0-3]):[0-5][0-9]', value) is None:
+        raise argparse.ArgumentTypeError("--at must use HH:MM in Asia/Taipei")
+    return value
+
+
+def _daily_integer(minimum: int, maximum: int):
+    def parse(value: str) -> int:
+        try:
+            number = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"Use an integer between {minimum} and {maximum}") from None
+        if not minimum <= number <= maximum:
+            raise argparse.ArgumentTypeError(f"Use an integer between {minimum} and {maximum}")
+        return number
+    return parse
+
+
+def _register_daily(commands):
+    daily = commands.add_parser("daily", help="Check and sync approved latest sources, or run the opt-in daily worker")
+    actions = daily.add_subparsers(dest="daily_action", required=True)
+    for action in ("run", "worker"):
+        command = actions.add_parser(action, help="Check approved sources once" if action == "run" else
+                                     "Run at the configured Asia/Taipei time; no implicit schema migration")
+        if action == "worker":
+            command.add_argument("--at", type=_daily_time, default="20:00",
+                                 help="Daily HH:MM in Asia/Taipei (default 20:00)")
+        command.add_argument("--market-scope", choices=["stocks", "securities"], default="stocks",
+                             help="Only approved source capabilities run; pending securities routes stay blocked")
+        for product in ("ownership", "margin", "lending", "institutional"):
+            command.add_argument(f"--{product}-evidence", type=Path,
+                                 help=f"Reviewed {product} identity/unit evidence; no evidence is generated")
+        command.add_argument("--max-attempts", type=_daily_integer(1, 3), default=3,
+                             help="Maximum persisted attempts per job (default 3)")
+        command.add_argument("--retry-delay-seconds", type=_daily_integer(60, 86400), default=900,
+                             help="Delay before retrying a transient job failure (default 900)")
+        command.add_argument("--job-timeout-seconds", type=_daily_integer(60, 3600), default=1800,
+                             help="Bound one job invocation (default 1800)")
+    status = actions.add_parser("status", help="Read persisted daily cycles and source outcomes without downloading")
+    status.add_argument("--limit", type=_institutional_limit, default=20)
 
 
 def _register_institutional(commands):
@@ -234,6 +277,7 @@ def _parser():
     _register_ownership(commands)
     _register_margin(commands)
     _register_lending(commands)
+    _register_daily(commands)
     return parser
 
 
@@ -382,6 +426,13 @@ def main(argv=None) -> int:
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "daily":
+            from stockapp.operations.daily.runtime import execute_daily
+            reports = asyncio.run(execute_daily(engine, args, settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            if args.daily_action in {"status", "worker"}:
+                return 0
+            return 0 if reports and all(report.get("status") in {"succeeded", "unchanged"} for report in reports) else 2
         if args.command == "lending":
             from stockapp.modules.lending.infrastructure import operations
             reports=asyncio.run(operations.execute(engine,args,settings))
@@ -419,6 +470,10 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "daily":
+            print(json.dumps({"error": type(exc).__name__,
+                              "hint": "Check database connectivity and approved migrations, then inspect stockapp daily status"}))
+            return 1
         if args.command == "lending":
             from stockapp.modules.lending.domain.models import LendingError
             if isinstance(exc,LendingError):

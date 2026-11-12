@@ -1,6 +1,6 @@
 # Data Workers
 
-歷史回補目前由可手動啟動的 Compose `history-worker` 執行，共用 API 套件的 Domain／Application／Repository，沒有另一套指標或匯入公式，也沒有排程器或微服務。
+歷史回補由可手動啟動的 Compose `history-worker` 執行，共用 API 套件的 Domain／Application／Repository。它本身不排程；另有明確啟用的`daily-worker`，每天台灣時間20:00檢查已核准來源的最新快照，詳見 [每日同步操作](../docs/operations/daily-sync.md)。兩者沒有另一套指標／匯入公式，也沒有拆微服務。
 
 先執行 `stockapp history plan` 取得工作 UUID，再使用：
 

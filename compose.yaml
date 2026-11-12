@@ -68,6 +68,33 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+  daily-worker:
+    profiles: [daily]
+    build: ./apps/api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stockapp}:${POSTGRES_PASSWORD:?Copy .env.example to .env first}@postgres:5432/${POSTGRES_DB:-stockapp}
+      INGESTION_MIN_INTERVAL_SECONDS: ${INGESTION_MIN_INTERVAL_SECONDS:-5}
+      INGESTION_MAX_ATTEMPTS: ${INGESTION_MAX_ATTEMPTS:-3}
+      INGESTION_MAX_RESPONSE_BYTES: ${INGESTION_MAX_RESPONSE_BYTES:-20000000}
+      DAILY_SYNC_INSTITUTIONAL_EVIDENCE: ${DAILY_SYNC_INSTITUTIONAL_EVIDENCE:-}
+      DAILY_SYNC_OWNERSHIP_EVIDENCE: ${DAILY_SYNC_OWNERSHIP_EVIDENCE:-}
+      DAILY_SYNC_MARGIN_EVIDENCE: ${DAILY_SYNC_MARGIN_EVIDENCE:-}
+      DAILY_SYNC_LENDING_EVIDENCE: ${DAILY_SYNC_LENDING_EVIDENCE:-}
+    command: ["stockapp", "daily", "worker", "--at", "${DAILY_SYNC_AT:-20:00}"]
+    volumes:
+      - ${DAILY_SYNC_EVIDENCE_DIR:-./.tools/daily-evidence}:/evidence:ro
+    stop_signal: SIGTERM
+    stop_grace_period: 65m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "stockapp", "daily", "status", "--limit", "1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
   frontend:
     build:
       context: .

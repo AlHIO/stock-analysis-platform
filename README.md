@@ -24,6 +24,7 @@ apps/
       config.py          環境設定
       main.py            FastAPI composition root
       cli.py             官方同步、archive 重播、歷史工作與匯入狀態查詢
+      operations/daily/  每日20:00排程、核准來源組裝與持久化同步斷點
     tests/               Pytest 單元與真實服務整合測試
     migrations/          Alembic schema revisions（啟動時不自動執行）
     requirements.lock    含雜湊的 runtime／test 依賴鎖檔
@@ -74,6 +75,22 @@ Phase 2F-1 新增 `chip_analysis` 共用純分析引擎：法人累計／連買�
   apps/api/tests/test_chip_analysis_products.py \
   apps/api/tests/test_chip_analysis_ledgers.py -q
 ```
+
+## 每天20:00自動檢查與同步
+
+新增明確啟用的`daily-worker`，每天 **Asia/Taipei 20:00** 檢查股票日行情與已核准籌碼來源，沿用Raw／Audit／Revision／Canonical管線。保留官方統計日、原始日期與Canonical日期，支援重啟續跑、跨Worker鎖、有限重試及同日修訂；不因休市補零，不啟用使用權未核實的ETF／權證全證券匯出、TWSE T86或借券未還。
+
+```bash
+docker compose build daily-worker
+docker compose run --rm daily-worker alembic upgrade head
+docker compose --profile daily up -d daily-worker
+docker compose run --rm daily-worker stockapp daily status --limit 5
+docker compose --profile daily logs --tail=50 -f daily-worker
+# 立即檢查一次（會下載已核准來源）
+docker compose run --rm daily-worker stockapp daily run
+```
+
+Migration `0010_daily_sync`只增加排程紀錄表；本次交付沒有自行套用正式Migration或啟動服務。電腦／Docker休眠時無法執行，恢復後只補最近一次到期的latest檢查，不冒充補齊所有缺日。籌碼若缺有效身分／單位／日期Evidence，會保存Raw並明確標示Partial／Blocked，**不表示網站已更新Canonical**。完整啟用、Evidence設定、結果判讀與測試見 [每日同步操作](docs/operations/daily-sync.md)。
 
 ## Phase 2整合驗收（Phase 2G-2）
 
@@ -691,4 +708,4 @@ CI 執行上述測試、Next.js production build，並在 Docker Compose 內啟�
 
 ## 後續開發
 
-遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。本次止於 Phase 2G-2系統驗收；回測、選股器、警示、AI 分析、即時行情與真實下單不在本次範圍，不自行進入Phase 3。
+遵循 [AGENTS.md](AGENTS.md) 與 [架構決策](docs/architecture/foundation.md)。已完成Phase 2G-2系統驗收，並依明確需求加入每日最新資料同步維運；沒有進入Phase 3。回測、選股器、警示、AI 分析、即時行情與真實下單仍不在本次範圍。

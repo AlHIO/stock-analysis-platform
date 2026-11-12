@@ -40,6 +40,7 @@ pytestmark = [
 ]
 API_ROOT = Path(__file__).resolve().parents[1]
 TABLES = {
+    "daily_sync_cycles", "daily_sync_items",
     "markets", "instruments", "trading_calendars", "daily_bars", "data_sources",
     "ingestion_runs", "daily_bar_revisions", "ingestion_requests", "raw_market_payloads", "ingestion_items",
     "history_jobs", "history_days",

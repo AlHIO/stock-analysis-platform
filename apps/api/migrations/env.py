@@ -10,6 +10,7 @@ from stockapp.modules.institutional.infrastructure import ingestion_models as in
 from stockapp.modules.ownership.infrastructure import models as ownership_models  # noqa: F401
 from stockapp.modules.margin.infrastructure import models as margin_models  # noqa: F401
 from stockapp.modules.lending.infrastructure import models as lending_models  # noqa: F401
+from stockapp.operations.daily import models as daily_sync_models  # noqa: F401
 
 
 def migrate(connection):
