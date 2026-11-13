@@ -54,6 +54,10 @@ TABLES = {
     "margin_ingestion_items", "margin_daily_reports", "margin_ingestion_jobs",
     "lending_source_audits", "lending_raw_payloads", "lending_metadata",
     "lending_revisions", "lending_ingestion_items", "lending_daily_reports", "lending_ingestion_jobs",
+    "broker_flow_brokers", "broker_flow_branches", "broker_flow_branch_identities",
+    "broker_flow_scopes", "broker_flow_source_audits", "broker_flow_raw_payloads",
+    "broker_flow_revisions", "broker_flow_trades", "broker_flow_ingestion_items",
+    "broker_flow_daily_reports", "broker_flow_metric_definitions",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

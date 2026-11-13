@@ -140,6 +140,7 @@ apps/
       modules/margin/      融資／融券雙Ledger、raw／audit／revision、匯入CLI與唯讀API
       modules/lending/     借券雙Ledger、Source／Channel Metadata、Raw／Revision、CLI與API
       modules/chip_analysis/ 版本化Engine、跨來源Canonical API、時間可用性與公開Ports
+      modules/broker_flow/ 券商分點歷史身分、純Domain、Raw／Audit／Revision與PostgreSQL儲存
       shared/domain/     資料來源 DataSource Protocol
       shared/infrastructure/ SQLAlchemy Base 與 engine factory
       config.py          環境設定
@@ -212,6 +213,25 @@ docker compose run --rm daily-worker stockapp daily run
 ```
 
 Migration `0010_daily_sync`只增加排程紀錄表；本次交付沒有自行套用正式Migration或啟動服務。電腦／Docker休眠時無法執行，恢復後只補最近一次到期的latest檢查，不冒充補齊所有缺日。籌碼若缺有效身分／單位／日期Evidence，會保存Raw並明確標示Partial／Blocked，**不表示網站已更新Canonical**。完整啟用、Evidence設定、結果判讀與測試見 [每日同步操作](docs/operations/daily-sync.md)。
+
+## 券商分點 Domain 與資料庫（Phase 2H-2）
+
+新增 `broker_flow` 的券商／分點歷史身分、來源與交易口徑契約、整份報表 Revision、Raw／Audit、Canonical Repository，以及 `0011_broker_flow` Migration。代碼保留前導零與大小寫；不同來源、市場及口徑分開，缺值不補零，舊 Raw 重播不能倒退 Canonical。資料表、ERD、晉升規則及驗證見 [Broker Persistence 規格](docs/specs/phase-2h-broker-persistence.md)。
+
+本次只在獨立臨時 PostgreSQL 資料庫與私有 Schema 驗證；沒有修改正式 Schema、重啟 Worker 或匯入分點資料。正式下載與公開展示權仍為 **Blocked**，目前沒有 Broker CLI、API、圖表或「主力」分析引擎，也沒有加入每日同步來源。先前 Phase 2H-1 的[來源查證](docs/specs/phase-2h-data-sources.md)與[指標定義](docs/specs/phase-2h-metric-definitions.md)是設計依據，不能視為已啟用功能。
+
+```bash
+# 純 Domain 測試：不連供應商或資料庫
+.tools/api-venv/bin/python -m pytest apps/api/tests/test_broker_flow_domain.py -q
+
+# PostgreSQL：runner 建立並於結束後刪除獨立臨時資料庫；測試再建立私有 Schema
+cd apps/api
+../../.tools/api-venv/bin/python scripts/run_institutional_validation.py \
+  --output-dir ../../.tools/validation/phase-2h2 \
+  -- tests/test_broker_flow_postgres.py tests/test_broker_flow_concurrency_postgres.py -q --tb=short
+```
+
+新 Migration 的正式安裝方式與非空 Downgrade 保護見上述規格；執行前確認映像含新檔案並審查 DDL。Migration 本身不會啟用來源或新增前端畫面。
 
 ## Phase 2整合驗收（Phase 2G-2）
 
