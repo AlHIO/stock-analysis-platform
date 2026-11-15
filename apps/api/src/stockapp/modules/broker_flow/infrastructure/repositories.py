@@ -10,6 +10,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from hashlib import sha256
 import json
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, insert, select, text, update
@@ -226,7 +227,7 @@ class SqlAlchemyBrokerAuditRepository:
         # current value at the persistence boundary before writing any bytes.
         raw = RawPayload(**asdict(raw))
         if raw.replay_of_raw_id is not None:
-            original = self.get_raw(raw.replay_of_raw_id)
+            original = self.get_raw_metadata(raw.replay_of_raw_id)
             if original is None or (raw.source_id, raw.source_contract_version, raw.sha256, raw.fetched_at) != (
                     original.source_id, original.source_contract_version, original.sha256, original.fetched_at):
                 raise BrokerFlowError("raw_replay_origin_mismatch")
@@ -241,6 +242,17 @@ class SqlAlchemyBrokerAuditRepository:
         return RawPayload(**{name: bytes(row[name]) if name == "body" else row[name]
                              for name in RawPayload.__dataclass_fields__})
 
+    def get_raw_metadata(self, raw_id: UUID):
+        """Read verified lineage without repeatedly loading or hashing raw bytes.
+
+        The immutable raw table checks SHA-256 against its body on INSERT. This
+        private infrastructure projection is enough for report/audit writes;
+        public archive retrieval still returns the original complete payload.
+        """
+        columns = [column for column in RAW.c if column.name != "body"]
+        row = self.session.execute(select(*columns).where(RAW.c.id == raw_id)).mappings().one_or_none()
+        return SimpleNamespace(**dict(row)) if row is not None else None
+
     def add_item(self, *, raw_id: UUID, row_index: int, disposition: str, reason: str,
                  raw_row: dict | None = None):
         """Retain rejected/unresolved records without guessing a canonical identity."""
@@ -248,7 +260,7 @@ class SqlAlchemyBrokerAuditRepository:
             raise BrokerFlowError("accepted_item_requires_report_upsert")
         if type(row_index) is not int or row_index < 0:
             raise BrokerFlowError("invalid_row_index")
-        raw = self.get_raw(raw_id)
+        raw = self.get_raw_metadata(raw_id)
         if raw is None:
             raise BrokerFlowError("broker_raw_payload_not_found")
         values = dict(id=uuid4(), run_id=raw.run_id, raw_id=raw.id, source_id=raw.source_id,
@@ -327,7 +339,7 @@ class SqlAlchemyBrokerFlowRepository:
                 or instrument.quantity_unit != report.quantity_unit.value
                 or (report.currency is not None and instrument.quote_currency != report.currency)):
             raise BrokerFlowError("instrument_identity_mismatch")
-        raw = SqlAlchemyBrokerAuditRepository(self.session).get_raw(report.lineage.raw_payload_id)
+        raw = SqlAlchemyBrokerAuditRepository(self.session).get_raw_metadata(report.lineage.raw_payload_id)
         if raw is None or (raw.run_id, raw.source_id, raw.sha256, raw.source_contract_version) != (
                 report.lineage.run_id, report.lineage.source_id, report.lineage.payload_sha256,
                 report.lineage.source_contract_version):

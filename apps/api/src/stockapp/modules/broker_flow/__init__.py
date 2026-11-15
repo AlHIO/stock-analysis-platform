@@ -1,5 +1,5 @@
-"""Broker branch identities and report persistence.
+"""Broker identities, report persistence and manual offline ingestion.
 
-Phase 2H-2 supplies domain contracts and storage only. No source download,
-ingestion command, analytical engine or HTTP route is enabled by this package.
+Official downloads remain disabled. No analytical engine or HTTP route is
+enabled by this package; licensed-provider delivery requires a separate review.
 """

@@ -218,7 +218,7 @@ Migration `0010_daily_sync`只增加排程紀錄表；本次交付沒有自行�
 
 新增 `broker_flow` 的券商／分點歷史身分、來源與交易口徑契約、整份報表 Revision、Raw／Audit、Canonical Repository，以及 `0011_broker_flow` Migration。代碼保留前導零與大小寫；不同來源、市場及口徑分開，缺值不補零，舊 Raw 重播不能倒退 Canonical。資料表、ERD、晉升規則及驗證見 [Broker Persistence 規格](docs/specs/phase-2h-broker-persistence.md)。
 
-本次只在獨立臨時 PostgreSQL 資料庫與私有 Schema 驗證；沒有修改正式 Schema、重啟 Worker 或匯入分點資料。正式下載與公開展示權仍為 **Blocked**，目前沒有 Broker CLI、API、圖表或「主力」分析引擎，也沒有加入每日同步來源。先前 Phase 2H-1 的[來源查證](docs/specs/phase-2h-data-sources.md)與[指標定義](docs/specs/phase-2h-metric-definitions.md)是設計依據，不能視為已啟用功能。
+2H-2 交付時只在獨立臨時 PostgreSQL 資料庫與私有 Schema 驗證，沒有執行正式 Migration 或匯入分點資料；該階段尚無 CLI／API／圖表。後續離線 CLI 見下節 2H-3。正式下載與公開展示權仍為 **Blocked**，沒有「主力」分析引擎或每日同步來源。先前 Phase 2H-1 的[來源查證](docs/specs/phase-2h-data-sources.md)與[指標定義](docs/specs/phase-2h-metric-definitions.md)是設計依據。
 
 ```bash
 # 純 Domain 測試：不連供應商或資料庫
@@ -232,6 +232,25 @@ cd apps/api
 ```
 
 新 Migration 的正式安裝方式與非空 Downgrade 保護見上述規格；執行前確認映像含新檔案並審查 DDL。Migration 本身不會啟用來源或新增前端畫面。
+
+## 券商分點離線匯入（Phase 2H-3）
+
+新增版本化 CSV／ZIP Adapter、UTF-8／Big5、Raw-first、逐列 Audit、整份報表原子 Revision、手動 Replay／Resume 與 Status。使用平台 `stockapp.broker-flow.offline.v1` 交換格式，**不宣稱能直接解析尚未核實的 TWSE／TPEx 官方原檔**。正式下載仍停用，本次沒有新增 API、圖表或排程。
+
+需要先審查並安裝 `0012_broker_ingestion`，以及準備已核實的 Source／Instrument／Broker Branch 身分與合法離線契約。未知分點不自動建檔；缺證據的資料標示 Partial／Unresolved，不能用合法部分冒充完整 Canonical。
+
+```bash
+# 本機 API 已安裝時，在 Repository 根目錄執行
+.tools/api-venv/bin/stockapp broker-flow import \
+  --file /path/to/lawful/report.zip --contract /path/to/reviewed/contract.json --encoding big5
+.tools/api-venv/bin/stockapp broker-flow status --limit 10
+.tools/api-venv/bin/stockapp broker-flow replay --raw RAW_UUID
+.tools/api-venv/bin/stockapp broker-flow replay --resume RUN_UUID
+```
+
+`interrupted` 表示已有凍結計畫、可從 checkpoint 續跑的未結束工作；終止失敗／已完成 Run 保持不可變。再次讀到相同舊檔會保留最早觀察時間，不會因今天重新匯入而冒充較新修訂。ZIP 僅在記憶體讀取，不執行 EXE／自解壓程式或寫出 member。
+
+完整 19 欄 Schema、Docker 唯讀掛載範例、錯誤／狀態、Migration 與測試指令見 [Broker Ingestion 規格](docs/specs/phase-2h-broker-ingestion.md)；JSON 鍵可參考[預設停用的契約範本](docs/examples/broker-import-contract.disabled.example.json)。本次正式分點資料為 0，尚未套用正式 Migration；沒有將 Synthetic Fixture 當成真實行情。
 
 ## Phase 2整合驗收（Phase 2G-2）
 

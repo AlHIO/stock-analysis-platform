@@ -1,0 +1,67 @@
+{
+  "contract_version": "stockapp.broker-flow.import-contract.v1",
+  "source_id": "00000000-0000-0000-0000-000000000001",
+  "source_namespace": "REPLACE_WITH_REVIEWED_SOURCE_NAMESPACE",
+  "source_contract_version": "REPLACE_WITH_REVIEWED_SOURCE_CONTRACT_VERSION",
+  "schema_version": "stockapp.broker-flow.offline.v1",
+  "parser_version": "broker-offline-parser-1.0.0",
+  "market_id": "00000000-0000-0000-0000-000000000002",
+  "market_code": "REPLACE_WITH_REGISTERED_MARKET_CODE",
+  "market_timezone": "Asia/Taipei",
+  "identity_version": "REPLACE_WITH_REVIEWED_BRANCH_MAPPING_VERSION",
+  "identity_policy_version": "as_reported_branch_v1",
+  "record_kind": "branch_totals",
+  "source_quantity_unit": "shares",
+  "price_basis": "raw",
+  "price_quantity_basis": "unknown",
+  "currency": "TWD",
+  "usage": {
+    "offline_import": false,
+    "raw_retention": false,
+    "revision_retention": false,
+    "internal_processing": false,
+    "evidence_ref": "REPLACE_WITH_REVIEWED_OFFLINE_PERMISSION_REFERENCE"
+  },
+  "scopes": [
+    {
+      "id": "00000000-0000-0000-0000-000000000003",
+      "source_id": "00000000-0000-0000-0000-000000000001",
+      "market_id": "00000000-0000-0000-0000-000000000002",
+      "code": "REPLACE_WITH_SOURCE_SCOPE",
+      "version": "REPLACE_WITH_SCOPE_VERSION",
+      "session": "REPLACE_WITH_REVIEWED_SESSION",
+      "participant_universe": "REPLACE_WITH_DOCUMENTED_PARTICIPANT_UNIVERSE",
+      "correction_basis": "REPLACE_WITH_SOURCE_CORRECTION_BASIS",
+      "description": "DISABLED TEMPLATE; NOT AN OFFICIAL SOURCE OR REPORT",
+      "odd_lot_included": null,
+      "block_trade_included": null,
+      "verified": false
+    }
+  ],
+  "reports": [
+    {
+      "report_id": "REPLACE_WITH_STABLE_SOURCE_REPORT_ID",
+      "instrument_symbol": "REPLACE_WITH_DATED_SOURCE_SYMBOL",
+      "trade_date": "YYYY-MM-DD",
+      "scope_code": "REPLACE_WITH_SOURCE_SCOPE",
+      "scope_version": "REPLACE_WITH_SCOPE_VERSION",
+      "expected_rows": 1,
+      "branch_universe_complete": false,
+      "evidence_ref": "REPLACE_WITH_DATE_AND_EXPECTED_ROW_COUNT_EVIDENCE"
+    }
+  ],
+  "instruments": [
+    {
+      "instrument_id": "00000000-0000-0000-0000-000000000004",
+      "market_id": "00000000-0000-0000-0000-000000000002",
+      "market_code": "REPLACE_WITH_REGISTERED_MARKET_CODE",
+      "symbol": "REPLACE_WITH_DATED_SOURCE_SYMBOL",
+      "quantity_unit": "shares",
+      "currency": "TWD",
+      "valid_from": "YYYY-MM-DD",
+      "valid_through": "YYYY-MM-DD",
+      "evidence_ref": "REPLACE_WITH_REVIEWED_DATED_INSTRUMENT_UUID_EVIDENCE"
+    }
+  ],
+  "unit_conversions": []
+}

@@ -1,0 +1,2 @@
+schema_version,report_id,market_code,instrument_symbol,trade_date,scope_code,scope_version,branch_code,quantity_unit,buy_quantity,sell_quantity,reported_net_quantity,price,buy_amount,sell_amount,currency,source_generated_at,source_published_at,row_id
+stockapp.broker-flow.offline.v1,SYNTHETIC-合成報表,SYNTHETIC-MARKET,SYNTHETIC1,2026-01-09,SYNTHETIC-regular,SYNTHETIC-scope-v1,00Aa,shares,"1,000",100,900,0.10000001,100.000010000000,10.000001000000,TWD,2026-01-09T08:30:00Z,,SYNTHETIC-row-1

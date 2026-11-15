@@ -173,6 +173,10 @@ def _build_tables(metadata):
 
 BROKERS, BRANCHES, IDENTITIES, SCOPES, AUDITS, RAW, REVISIONS, TRADES, ITEMS, CANONICAL, METRICS = _build_tables(Base.metadata)
 
+# Added by 0012_broker_ingestion; 0011 remains a frozen migration snapshot.
+Index("ix_broker_raw_content_first_seen", RAW.c.source_id, RAW.c.source_contract_version,
+      RAW.c.sha256, RAW.c.fetched_at)
+
 
 class BrokerRecord(Base): __table__ = BROKERS
 class BrokerBranchRecord(Base): __table__ = BRANCHES

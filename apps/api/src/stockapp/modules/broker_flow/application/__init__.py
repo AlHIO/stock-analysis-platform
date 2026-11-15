@@ -1,1 +1,1 @@
-"""Application boundary; provider ingestion belongs to Phase 2H-3."""
+"""Offline normalization and manual raw-first broker ingestion use cases."""

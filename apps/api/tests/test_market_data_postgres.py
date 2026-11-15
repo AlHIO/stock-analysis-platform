@@ -58,6 +58,7 @@ TABLES = {
     "broker_flow_scopes", "broker_flow_source_audits", "broker_flow_raw_payloads",
     "broker_flow_revisions", "broker_flow_trades", "broker_flow_ingestion_items",
     "broker_flow_daily_reports", "broker_flow_metric_definitions",
+    "broker_flow_ingestion_jobs", "broker_flow_import_groups", "broker_flow_import_rows",
 }
 OBSERVED_AT = datetime(2026, 1, 5, 13, tzinfo=timezone.utc)
 

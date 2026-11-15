@@ -233,6 +233,22 @@ def _register_lending(commands):
     status.add_argument("--limit",type=_institutional_limit,default=20)
 
 
+def _register_broker_flow(commands):
+    broker = commands.add_parser("broker-flow", help="Offline broker CSV/ZIP import and archive inspection")
+    actions = broker.add_subparsers(dest="broker_flow_action", required=True)
+    ingest = actions.add_parser("import", help="Archive a lawful offline file using an explicit reviewed contract")
+    ingest.add_argument("--file", type=Path, required=True, help="Regular CSV or ZIP file; executable archives are rejected")
+    ingest.add_argument("--contract", type=Path, required=True, help="Versioned offline contract with usage and dated identity evidence")
+    ingest.add_argument("--encoding", choices=["utf-8", "big5"], default="utf-8")
+    replay = actions.add_parser("replay", help="Replay original bytes or resume a frozen processing plan without downloads")
+    selection = replay.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--raw", type=UUID, help="Archived raw UUID; creates a new run with the original observation time")
+    selection.add_argument("--resume", type=UUID, help="Resume the saved checkpoint and contract of an interrupted run")
+    status = actions.add_parser("status", help="Read import counts, row rejections and checkpoints without parsing files")
+    status.add_argument("--id", type=UUID)
+    status.add_argument("--limit", type=_institutional_limit, default=20)
+
+
 def _parser():
     parser = argparse.ArgumentParser(prog="stockapp", description="Official Taiwan daily market data ingestion")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -277,6 +293,7 @@ def _parser():
     _register_ownership(commands)
     _register_margin(commands)
     _register_lending(commands)
+    _register_broker_flow(commands)
     _register_daily(commands)
     return parser
 
@@ -426,6 +443,11 @@ def main(argv=None) -> int:
     try:
         settings = Settings(_env_file=Path(".env")) if Path(".env").is_file() else Settings()
         engine = create_db_engine(settings.database_url)
+        if args.command == "broker-flow":
+            from stockapp.modules.broker_flow.infrastructure import operations
+            reports = asyncio.run(operations.execute(engine, args, settings))
+            print(json.dumps(reports, ensure_ascii=False, indent=2, default=str))
+            return operations.exit_code(args, reports)
         if args.command == "daily":
             from stockapp.operations.daily.runtime import execute_daily
             reports = asyncio.run(execute_daily(engine, args, settings))
@@ -470,6 +492,15 @@ def main(argv=None) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
+        if args.command == "broker-flow":
+            from stockapp.modules.broker_flow.domain.models import BrokerFlowError
+            if isinstance(exc, BrokerFlowError):
+                print(json.dumps({"error": "BrokerFlowError", "code": exc.code,
+                                  "hint": "Inspect stockapp broker-flow status; source usage, identity and format gates remain enforced"}))
+                return 2
+            print(json.dumps({"error": "broker_flow_dependency_error",
+                              "hint": "Check database connectivity and reviewed broker migrations, then inspect stockapp broker-flow status"}))
+            return 1
         if args.command == "daily":
             print(json.dumps({"error": type(exc).__name__,
                               "hint": "Check database connectivity and approved migrations, then inspect stockapp daily status"}))
