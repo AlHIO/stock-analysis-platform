@@ -2,6 +2,8 @@
 
 狀態更新：2026-11-11，Asia/Taipei。Phase 2B-5實作institutional、2C-2實作ownership、2D-2實作margin、2E-2實作Lending History／Latest／Status及shared chip-data/status的lending_daily分支（[借券實作規格](phase-2e-lending-api.md)）。Runtime OpenAPI／snapshot隨實作更新；Phase2F-2已加入泛用chip-metrics，實作與時間語意見[跨來源API規格](phase-2f-chip-api.md)。
 
+2026-11-18 補充：Phase 2H-5 已加入 Broker Flow History／Latest／TOP Branches／Metrics／Status。路由為 `/api/v1/stocks/{id}/broker-flow`、`/latest`、`/top-branches`、`/metrics` 及 `/api/v1/broker-flow/status`，完整契約見 [H5 Broker API](phase-2h-broker-api.md)。Broker Scope／Source 以 UUID 精確選擇；History 保留獨立報表，彙總查詢不得混合 Scope。History 限 250 份完整日報、計算輸入 1,000 份／20,000 Trades；GET 只讀 Canonical、同一次 RR READ ONLY Snapshot。來源權利、日曆及 PIT 未核實時保留 Blocked／Not Verified，不改變下列其他產品的既有契約。
+
 ### Phase 2B-5 與早期草案的差異
 
 - 新增 `/api/v1/stocks/{id}/institutional/metrics`，直接委派既有InstitutionalCalculator，period只允許5／10／20／60，2F泛用v1也沿用相同的5／10／20／60白名單。

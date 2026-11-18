@@ -12,6 +12,7 @@ from .domain.analytics import (
 from .domain.engine import BROKER_METRICS, BrokerFlowCalculator, BrokerFlowEngine
 from .domain.models import BrokerFlowError, BrokerMetricDefinition, MetricKind
 from .domain.ports import BrokerAnalysisReader, BrokerCalculationEngine, BrokerPriceReader
+from .domain.query import BrokerCalendarReader, BrokerQueryError, BrokerReadRepository, BrokerSelection
 
 __all__ = (
     "ALGORITHM_VERSION", "DECIMAL_PRECISION", "ENGINE_VERSION", "OUTPUT_DECIMAL_PLACES",
@@ -21,4 +22,17 @@ __all__ = (
     "BrokerFlowCalculator", "BrokerFlowEngine", "BrokerFlowError",
     "BrokerMetricDefinition", "MetricKind", "BrokerAnalysisReader",
     "BrokerCalculationEngine", "BrokerPriceReader",
+    "BrokerCalendarReader", "BrokerQueryError", "BrokerReadRepository", "BrokerSelection",
+    "broker_flow_reader", "broker_query_service",
 )
+
+
+def broker_flow_reader(session, *, calendar_reader=None, prices=None) -> BrokerReadRepository:
+    """Compose read-only Canonical access in the caller's existing SQL snapshot."""
+    from .infrastructure.query_repository import SqlAlchemyBrokerQueryRepository
+    return SqlAlchemyBrokerQueryRepository(session, calendar_reader=calendar_reader, prices=prices)
+
+
+def broker_query_service(session, *, now=None, calendar_reader=None, prices=None):
+    from .application.query_service import BrokerQueryService
+    return BrokerQueryService(broker_flow_reader(session, calendar_reader=calendar_reader, prices=prices), now=now)

@@ -402,6 +402,1686 @@
         "title": "BorrowingLedgerSchema",
         "type": "object"
       },
+      "BrokerAlgorithm": {
+        "enum": [
+          "broker.branch_net_quantity",
+          "broker.branch_net_amount",
+          "broker.branch_range_net_quantity",
+          "broker.top_branches",
+          "broker.branch_session_cumulative_net",
+          "broker.branch_buy_streak",
+          "broker.branch_sell_streak",
+          "broker.active_buy_branch_count",
+          "broker.active_sell_branch_count",
+          "broker.active_buy_sell_count_difference",
+          "broker.net_buy_branch_count",
+          "broker.net_sell_branch_count",
+          "broker.net_buy_sell_count_difference",
+          "broker.period_active_branch_counts",
+          "broker.period_net_branch_counts",
+          "broker.gross_turnover_branch_share",
+          "broker.top_n_gross_turnover_share",
+          "broker.gross_turnover_hhi",
+          "proxy.broker_top_n_net_imbalance",
+          "proxy.broker_daily_top_n_imbalance_sum",
+          "proxy.broker_daily_gross_amount_threshold_net",
+          "broker.flow_price_alignment",
+          "broker.source_coverage",
+          "investor.medium_large_net_flow"
+        ],
+        "title": "BrokerAlgorithm",
+        "type": "string"
+      },
+      "BrokerAvailabilityPolicy": {
+        "enum": [
+          "observed_revision_v1",
+          "published_and_observed_revision_v1"
+        ],
+        "title": "BrokerAvailabilityPolicy",
+        "type": "string"
+      },
+      "BrokerCoverageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "const": "not_verified",
+            "title": "Completeness",
+            "type": "string"
+          },
+          "expected_dates_known": {
+            "const": false,
+            "title": "Expected Dates Known",
+            "type": "boolean"
+          },
+          "known_missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Known Missing Dates",
+            "type": "array"
+          },
+          "stored_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored From"
+          },
+          "stored_report_count": {
+            "minimum": 0.0,
+            "title": "Stored Report Count",
+            "type": "integer"
+          },
+          "stored_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored To"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored_from",
+          "stored_to",
+          "stored_report_count",
+          "completeness",
+          "expected_dates_known",
+          "known_missing_dates",
+          "truncated"
+        ],
+        "title": "BrokerCoverageSchema",
+        "type": "object"
+      },
+      "BrokerExactJson": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "BrokerFactCalculationSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_id": {
+            "title": "Algorithm Id",
+            "type": "string"
+          },
+          "algorithm_version": {
+            "const": "1.0.0",
+            "title": "Algorithm Version",
+            "type": "string"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          }
+        },
+        "required": [
+          "algorithm_id",
+          "algorithm_version",
+          "formula"
+        ],
+        "title": "BrokerFactCalculationSchema",
+        "type": "object"
+      },
+      "BrokerFreshnessSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "age_calendar_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Calendar Days"
+          },
+          "assessment": {
+            "enum": [
+              "no_data",
+              "not_verified"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Seen At"
+          },
+          "ingested_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingested At"
+          },
+          "is_realtime": {
+            "const": false,
+            "title": "Is Realtime",
+            "type": "boolean"
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "latest_trade_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Trade Date"
+          }
+        },
+        "required": [
+          "latest_trade_date",
+          "latest_source_published_at",
+          "first_seen_at",
+          "ingested_at",
+          "age_calendar_days",
+          "assessment",
+          "is_realtime"
+        ],
+        "title": "BrokerFreshnessSchema",
+        "type": "object"
+      },
+      "BrokerHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/BrokerCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/BrokerFreshnessSchema"
+          },
+          "from": {
+            "format": "date",
+            "title": "From",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerReportSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 250.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "product": {
+            "const": "broker_flow_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "to": {
+            "format": "date",
+            "title": "To",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/BrokerUsageSchema"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "from",
+          "to",
+          "items",
+          "count",
+          "limit",
+          "next_cursor",
+          "read_at",
+          "freshness",
+          "coverage",
+          "usage"
+        ],
+        "title": "BrokerHistoryResponse",
+        "type": "object"
+      },
+      "BrokerIdentitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_code": {
+            "title": "Branch Code",
+            "type": "string"
+          },
+          "branch_id": {
+            "format": "uuid",
+            "title": "Branch Id",
+            "type": "string"
+          },
+          "branch_name": {
+            "title": "Branch Name",
+            "type": "string"
+          },
+          "broker_code": {
+            "title": "Broker Code",
+            "type": "string"
+          },
+          "broker_id": {
+            "format": "uuid",
+            "title": "Broker Id",
+            "type": "string"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "identity_version": {
+            "title": "Identity Version",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "identity_id",
+          "broker_id",
+          "branch_id",
+          "broker_code",
+          "branch_code",
+          "branch_name",
+          "identity_version",
+          "valid_from",
+          "valid_to",
+          "verified"
+        ],
+        "title": "BrokerIdentitySchema",
+        "type": "object"
+      },
+      "BrokerInputReferenceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "statistics_date": {
+            "format": "date",
+            "title": "Statistics Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "instrument_id",
+          "market_id",
+          "statistics_date",
+          "revision_id",
+          "source_id",
+          "source_contract_version",
+          "first_seen_at",
+          "ingested_at",
+          "source_published_at",
+          "metadata"
+        ],
+        "title": "BrokerInputReferenceSchema",
+        "type": "object"
+      },
+      "BrokerLatestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "coverage": {
+            "$ref": "#/components/schemas/BrokerCoverageSchema"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/BrokerFreshnessSchema"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrokerReportSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product": {
+            "const": "broker_flow_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/BrokerUsageSchema"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "point",
+          "read_at",
+          "freshness",
+          "coverage",
+          "usage"
+        ],
+        "title": "BrokerLatestResponse",
+        "type": "object"
+      },
+      "BrokerLineageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "identity_policy_version": {
+            "title": "Identity Policy Version",
+            "type": "string"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "payload_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Payload Sha256",
+            "type": "string"
+          },
+          "raw_payload_id": {
+            "format": "uuid",
+            "title": "Raw Payload Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BrokerSourceSchema"
+          },
+          "source_contract_version": {
+            "title": "Source Contract Version",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_namespace": {
+            "title": "Source Namespace",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "revision_id",
+          "source_id",
+          "run_id",
+          "raw_payload_id",
+          "payload_sha256",
+          "source_namespace",
+          "source_contract_version",
+          "schema_version",
+          "parser_version",
+          "identity_policy_version"
+        ],
+        "title": "BrokerLineageSchema",
+        "type": "object"
+      },
+      "BrokerMetricRequestSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "availability_policy": {
+            "$ref": "#/components/schemas/BrokerAvailabilityPolicy"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "engine_version": {
+            "const": "broker-flow-engine-1.0.0",
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "query_as_of": {
+            "format": "date-time",
+            "title": "Query As Of",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "timezone_name": {
+            "title": "Timezone Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "metric",
+          "start",
+          "end",
+          "query_as_of",
+          "parameters",
+          "availability_policy",
+          "timezone_name",
+          "engine_version"
+        ],
+        "title": "BrokerMetricRequestSchema",
+        "type": "object"
+      },
+      "BrokerMetricResultSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "anyOf": [
+              {
+                "const": "1.0.0",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Algorithm Version"
+          },
+          "details": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "title": "Details",
+            "type": "object"
+          },
+          "engine_version": {
+            "const": "broker-flow-engine-1.0.0",
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "expected_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Expected Dates",
+            "type": "array"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula"
+          },
+          "input_refs": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerInputReferenceSchema"
+            },
+            "title": "Input Refs",
+            "type": "array"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "missing_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Missing Dates",
+            "type": "array"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BrokerExactJson"
+            },
+            "title": "Parameters",
+            "type": "object"
+          },
+          "point_in_time_supported": {
+            "title": "Point In Time Supported",
+            "type": "boolean"
+          },
+          "provisional": {
+            "title": "Provisional",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "reproducibility_key": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Reproducibility Key",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/BrokerMetricRequestSchema"
+          },
+          "selected_branch_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Selected Branch Ids",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BrokerMetricStatus"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "$ref": "#/components/schemas/BrokerExactJson"
+          }
+        },
+        "required": [
+          "request",
+          "metric",
+          "value",
+          "status",
+          "formula",
+          "parameters",
+          "unit",
+          "reasons",
+          "expected_dates",
+          "missing_dates",
+          "input_refs",
+          "details",
+          "selected_branch_ids",
+          "provisional",
+          "point_in_time_supported",
+          "algorithm_version",
+          "engine_version",
+          "reproducibility_key"
+        ],
+        "title": "BrokerMetricResultSchema",
+        "type": "object"
+      },
+      "BrokerMetricStatus": {
+        "enum": [
+          "complete",
+          "partial",
+          "missing_data",
+          "not_verified",
+          "insufficient_history",
+          "incompatible_data",
+          "truncated_history",
+          "no_sessions",
+          "unsupported",
+          "unavailable",
+          "invalid",
+          "not_yet_available"
+        ],
+        "title": "BrokerMetricStatus",
+        "type": "string"
+      },
+      "BrokerMetricsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "product": {
+            "const": "broker_flow_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/BrokerMetricResultSchema"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerSourceSchema"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/BrokerUsageSchema"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "result",
+          "sources",
+          "read_at",
+          "usage"
+        ],
+        "title": "BrokerMetricsResponse",
+        "type": "object"
+      },
+      "BrokerQualitySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "point_in_time_supported": {
+            "const": false,
+            "title": "Point In Time Supported",
+            "type": "boolean"
+          },
+          "provisional": {
+            "title": "Provisional",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BrokerMetricStatus"
+          }
+        },
+        "required": [
+          "status",
+          "reasons",
+          "provisional",
+          "point_in_time_supported"
+        ],
+        "title": "BrokerQualitySchema",
+        "type": "object"
+      },
+      "BrokerQuantityUnit": {
+        "enum": [
+          "shares",
+          "units"
+        ],
+        "title": "BrokerQuantityUnit",
+        "type": "string"
+      },
+      "BrokerReportCompleteness": {
+        "enum": [
+          "complete",
+          "partial"
+        ],
+        "title": "BrokerReportCompleteness",
+        "type": "string"
+      },
+      "BrokerReportSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_universe_complete": {
+            "title": "Branch Universe Complete",
+            "type": "boolean"
+          },
+          "calculations": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerFactCalculationSchema"
+            },
+            "title": "Calculations",
+            "type": "array"
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/BrokerReportCompleteness"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "date_evidence_reference": {
+            "title": "Date Evidence Reference",
+            "type": "string"
+          },
+          "filtered": {
+            "title": "Filtered",
+            "type": "boolean"
+          },
+          "instrument_id": {
+            "format": "uuid",
+            "title": "Instrument Id",
+            "type": "string"
+          },
+          "lineage": {
+            "$ref": "#/components/schemas/BrokerLineageSchema"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "observation_id": {
+            "format": "uuid",
+            "title": "Observation Id",
+            "type": "string"
+          },
+          "price_basis": {
+            "title": "Price Basis",
+            "type": "string"
+          },
+          "price_quantity_basis": {
+            "title": "Price Quantity Basis",
+            "type": "string"
+          },
+          "promotion_policy_version": {
+            "title": "Promotion Policy Version",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/BrokerQualitySchema"
+          },
+          "quantity_unit": {
+            "$ref": "#/components/schemas/BrokerQuantityUnit"
+          },
+          "report_kind": {
+            "title": "Report Kind",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/BrokerScopeSchema"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/BrokerTimingSchema"
+          },
+          "total_branch_count": {
+            "minimum": 0.0,
+            "title": "Total Branch Count",
+            "type": "integer"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          },
+          "trades": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerTradeSchema"
+            },
+            "title": "Trades",
+            "type": "array"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "market_id",
+          "trade_date",
+          "scope",
+          "quantity_unit",
+          "report_kind",
+          "price_basis",
+          "price_quantity_basis",
+          "currency",
+          "completeness",
+          "branch_universe_complete",
+          "total_branch_count",
+          "filtered",
+          "trades",
+          "observation_id",
+          "promotion_policy_version",
+          "date_evidence_reference",
+          "timing",
+          "lineage",
+          "quality",
+          "calculations"
+        ],
+        "title": "BrokerReportSchema",
+        "type": "object"
+      },
+      "BrokerRunSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "safe_failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Failure Code"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "finished_at",
+          "counts",
+          "safe_failure_code"
+        ],
+        "title": "BrokerRunSchema",
+        "type": "object"
+      },
+      "BrokerScopeSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "block_trade_included": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Trade Included"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "correction_basis": {
+            "title": "Correction Basis",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "market_id": {
+            "format": "uuid",
+            "title": "Market Id",
+            "type": "string"
+          },
+          "odd_lot_included": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odd Lot Included"
+          },
+          "participant_universe": {
+            "title": "Participant Universe",
+            "type": "string"
+          },
+          "session": {
+            "title": "Session",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_id",
+          "market_id",
+          "code",
+          "version",
+          "session",
+          "participant_universe",
+          "correction_basis",
+          "description",
+          "odd_lot_included",
+          "block_trade_included",
+          "verified"
+        ],
+        "title": "BrokerScopeSchema",
+        "type": "object"
+      },
+      "BrokerSourceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "BrokerSourceSchema",
+        "type": "object"
+      },
+      "BrokerSourceStatusSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_counts": {
+            "additionalProperties": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Audit Counts",
+            "type": "object"
+          },
+          "canonical_count": {
+            "minimum": 0.0,
+            "title": "Canonical Count",
+            "type": "integer"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/BrokerStatusCapabilitiesSchema"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/BrokerCoverageSchema"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "latest_canonical_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Canonical Date"
+          },
+          "latest_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrokerRunSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Source Published At"
+          },
+          "raw_count": {
+            "minimum": 0.0,
+            "title": "Raw Count",
+            "type": "integer"
+          },
+          "revision_count": {
+            "minimum": 0.0,
+            "title": "Revision Count",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BrokerSourceSchema"
+          }
+        },
+        "required": [
+          "source",
+          "canonical_count",
+          "revision_count",
+          "raw_count",
+          "audit_counts",
+          "coverage",
+          "latest_canonical_date",
+          "latest_source_published_at",
+          "last_seen_at",
+          "latest_run",
+          "capabilities"
+        ],
+        "title": "BrokerSourceStatusSchema",
+        "type": "object"
+      },
+      "BrokerStatusCapabilitiesSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "automated_ingestion_enabled": {
+            "const": false,
+            "title": "Automated Ingestion Enabled",
+            "type": "boolean"
+          },
+          "derived_display_verified": {
+            "const": false,
+            "title": "Derived Display Verified",
+            "type": "boolean"
+          },
+          "license_status": {
+            "const": "blocked",
+            "title": "License Status",
+            "type": "string"
+          },
+          "public_display_verified": {
+            "const": false,
+            "title": "Public Display Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "automated_ingestion_enabled",
+          "public_display_verified",
+          "derived_display_verified",
+          "license_status"
+        ],
+        "title": "BrokerStatusCapabilitiesSchema",
+        "type": "object"
+      },
+      "BrokerStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerSourceStatusSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "product": {
+            "const": "broker_flow_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/BrokerUsageSchema"
+          }
+        },
+        "required": [
+          "product",
+          "frequency",
+          "items",
+          "count",
+          "read_at",
+          "usage",
+          "truncated"
+        ],
+        "title": "BrokerStatusResponse",
+        "type": "object"
+      },
+      "BrokerTimingSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "source_generated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Generated At"
+          },
+          "source_published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Published At"
+          },
+          "trade_date": {
+            "format": "date",
+            "title": "Trade Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trade_date",
+          "source_published_at",
+          "source_generated_at",
+          "first_seen_at",
+          "ingested_at"
+        ],
+        "title": "BrokerTimingSchema",
+        "type": "object"
+      },
+      "BrokerTopBranchesResponse": {
+        "additionalProperties": false,
+        "description": "The same versioned H4 result contract, with a fixed ranking algorithm.",
+        "properties": {
+          "frequency": {
+            "const": "1d",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/InstrumentSchema"
+          },
+          "product": {
+            "const": "broker_flow_daily",
+            "title": "Product",
+            "type": "string"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/BrokerMetricResultSchema"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/BrokerSourceSchema"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/BrokerUsageSchema"
+          }
+        },
+        "required": [
+          "instrument",
+          "product",
+          "frequency",
+          "result",
+          "sources",
+          "read_at",
+          "usage"
+        ],
+        "title": "BrokerTopBranchesResponse",
+        "type": "object"
+      },
+      "BrokerTopN": {
+        "enum": [
+          5,
+          10,
+          15,
+          30
+        ],
+        "title": "BrokerTopN",
+        "type": "integer"
+      },
+      "BrokerTradeSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "format": "uuid",
+            "title": "Branch Id",
+            "type": "string"
+          },
+          "buy_amount": {
+            "anyOf": [
+              {
+                "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,12})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Amount"
+          },
+          "buy_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Quantity"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/BrokerIdentitySchema"
+          },
+          "identity_id": {
+            "format": "uuid",
+            "title": "Identity Id",
+            "type": "string"
+          },
+          "net_amount": {
+            "anyOf": [
+              {
+                "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,12})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Amount"
+          },
+          "net_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Quantity"
+          },
+          "quantity_unit": {
+            "$ref": "#/components/schemas/BrokerQuantityUnit"
+          },
+          "reported_net_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Net Quantity"
+          },
+          "sell_amount": {
+            "anyOf": [
+              {
+                "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,12})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Amount"
+          },
+          "sell_quantity": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "pattern": "^-?(?:0|[1-9][0-9]*)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sell Quantity"
+          }
+        },
+        "required": [
+          "branch_id",
+          "identity_id",
+          "identity",
+          "quantity_unit",
+          "buy_quantity",
+          "sell_quantity",
+          "reported_net_quantity",
+          "net_quantity",
+          "buy_amount",
+          "sell_amount",
+          "net_amount"
+        ],
+        "title": "BrokerTradeSchema",
+        "type": "object"
+      },
+      "BrokerUsageSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "const": "not_verified",
+            "title": "Assessment",
+            "type": "string"
+          },
+          "automated_download_enabled": {
+            "const": false,
+            "title": "Automated Download Enabled",
+            "type": "boolean"
+          },
+          "derived_display_verified": {
+            "const": false,
+            "title": "Derived Display Verified",
+            "type": "boolean"
+          },
+          "public_display_verified": {
+            "const": false,
+            "title": "Public Display Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "automated_download_enabled",
+          "public_display_verified",
+          "derived_display_verified",
+          "assessment"
+        ],
+        "title": "BrokerUsageSchema",
+        "type": "object"
+      },
       "BucketKind": {
         "enum": [
           "regular",
@@ -8739,6 +10419,89 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/broker-flow/status": {
+      "get": {
+        "description": "Saved counts and sanitized ingestion outcomes; download/display remain disabled.",
+        "operationId": "broker_flow_ingestion_status",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "Broker flow"
+        ]
+      }
+    },
     "/api/v1/chip-data/status": {
       "get": {
         "description": "Read source/run metadata; ownership is global and rejects market filters.",
@@ -9553,6 +11316,776 @@
         "summary": "Get Bars",
         "tags": [
           "Market queries"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/broker-flow": {
+      "get": {
+        "description": "Whole saved source/scope reports; filters never imply full-market coverage.",
+        "operationId": "broker_flow_daily_history",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "const": "1d",
+              "default": "1d",
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "broker",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Broker"
+            }
+          },
+          {
+            "in": "query",
+            "name": "branch",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 250,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "Broker flow"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/broker-flow/latest": {
+      "get": {
+        "description": "Latest stored report in one selected scope; never an official-live claim.",
+        "operationId": "broker_flow_latest_report",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "broker",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Broker"
+            }
+          },
+          {
+            "in": "query",
+            "name": "branch",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Latest",
+        "tags": [
+          "Broker flow"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/broker-flow/metrics": {
+      "get": {
+        "description": "Delegate exact parameters to H4; unsupported or incomplete values stay null.",
+        "operationId": "broker_flow_metrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "algorithm",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BrokerAlgorithm",
+              "default": "broker.source_coverage"
+            }
+          },
+          {
+            "in": "query",
+            "name": "algorithm_parameters",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Algorithm Parameters"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "const": "1d",
+              "default": "1d",
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "broker",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Broker"
+            }
+          },
+          {
+            "in": "query",
+            "name": "branch",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability_policy",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BrokerAvailabilityPolicy",
+              "default": "observed_revision_v1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Metrics",
+        "tags": [
+          "Broker flow"
+        ]
+      }
+    },
+    "/api/v1/stocks/{id}/broker-flow/top-branches": {
+      "get": {
+        "description": "Aggregate the full compatible universe before ranking and output filtering.",
+        "operationId": "broker_flow_top_branches",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trade_scope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Scope"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top_n",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BrokerTopN",
+              "default": 15
+            }
+          },
+          {
+            "in": "query",
+            "name": "side",
+            "required": false,
+            "schema": {
+              "default": "net_buyers",
+              "enum": [
+                "net_buyers",
+                "net_sellers"
+              ],
+              "title": "Side",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "broker",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Broker"
+            }
+          },
+          {
+            "in": "query",
+            "name": "branch",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Branch"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrokerTopBranchesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Top Branches",
+        "tags": [
+          "Broker flow"
         ]
       }
     },

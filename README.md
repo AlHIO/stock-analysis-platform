@@ -269,6 +269,52 @@ cd apps/api
 
 完整指標 ID、參數、公式、輸入契約及驗證見 [Broker Engine 規格](docs/specs/phase-2h-broker-engine.md)。本階段沒有新增 API、前端或 Migration，也沒有匯入正式分點資料。分點不能識別個別投資人或真實庫存；中實戶／大戶真實流量維持 Unsupported，正式下載及公開展示仍受來源授權 Blocked 限制。
 
+## 券商分點查詢 API（Phase 2H-5）
+
+已新增下列 GET API，只讀已保存的 Canonical；單次請求使用 PostgreSQL `REPEATABLE READ READ ONLY` 快照，重用 H4 引擎，不下載供應商資料：
+
+- `/api/v1/stocks/{id}/broker-flow`：每日完整報表、分點買進／賣出／淨額、日期分頁及 Broker／Branch 篩選。
+- `/api/v1/stocks/{id}/broker-flow/latest`：單一來源口徑的最新已保存報表。
+- `/api/v1/stocks/{id}/broker-flow/top-branches`：區間先彙總再排序，TOP 5／10／15／30。
+- `/api/v1/stocks/{id}/broker-flow/metrics`：H4 版本化指標、嚴格 JSON 參數、來源／Revision／完整度。
+- `/api/v1/broker-flow/status`：已保存來源、Canonical／Revision／Audit／Raw 數量與去敏的匯入狀態。
+
+`id` 是 Instrument UUID。`trade_scope` 與 `source` 使用精確 UUID；可先由 History 的 `items[].scope.id`／`lineage.source.id` 取得。History 將同日不同來源／口徑分開；Latest、TOP、Metrics 選到多個 Scope 時回 422，須明確選擇。History 的 `limit` 計完整報表，預設 50、最大 250，單頁不超過 20,000 筆分點交易。
+
+```bash
+curl -G 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/broker-flow' \
+  --data-urlencode 'from=2026-11-01' --data-urlencode 'to=2026-11-12' \
+  --data-urlencode 'limit=10'
+
+curl -G 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/broker-flow/top-branches' \
+  --data-urlencode 'from=2026-11-12' --data-urlencode 'to=2026-11-12' \
+  --data-urlencode 'trade_scope=<SCOPE_UUID>' --data-urlencode 'top_n=15' \
+  --data-urlencode 'side=net_sellers'
+
+curl -G 'http://localhost:8000/api/v1/stocks/<INSTRUMENT_UUID>/broker-flow/metrics' \
+  --data-urlencode 'from=2026-11-01' --data-urlencode 'to=2026-11-12' \
+  --data-urlencode 'trade_scope=<SCOPE_UUID>' \
+  --data-urlencode 'algorithm=broker.branch_session_cumulative_net' \
+  --data-urlencode 'branch=<BRANCH_UUID>' \
+  --data-urlencode 'algorithm_parameters={"sessions":5}'
+
+curl 'http://localhost:8000/api/v1/broker-flow/status?limit=20'
+```
+
+範例日期只是查詢參數，不代表已有該日分點資料。金融數值為字串，缺值保留 null；每份報表及指標含來源、Revision、發布／觀察／匯入時間與公式版本。既有交易日曆沒有已核實覆蓋證據，期間指標預設可能回 `not_verified`／null；不能因有數筆日報就宣稱完整累計。尚未接入公開 Price Reader 時，股價對照回明確缺價狀態。
+
+本階段沒有新 Migration。正式庫唯讀複查仍為 `0010_daily_sync`，尚無分點資料表；本次沒有更新執行中的 Backend 映像或執行正式 Upgrade。要在現有 Docker 網站啟用 API，先備份、審查 H2／H3 的 `0011_broker_flow`、`0012_broker_ingestion`，再執行：
+
+```bash
+docker compose build backend
+docker compose run --rm backend alembic current
+docker compose run --rm backend alembic upgrade head
+docker compose up -d backend
+curl 'http://localhost:8000/health'
+```
+
+升級不會產生分點資料，也不會新增前端 Tab。正式下載與公開展示仍為 Blocked；API 的 `usage`／Status 保留權利未核實狀態，不能將內部離線查詢視為公開展示許可。完整契約、測試及缺口見 [H5 Query API 規格](docs/specs/phase-2h-broker-api.md)。
+
 ## Phase 2整合驗收（Phase 2G-2）
 
 完整功能、真實資料覆蓋、來源Partial／Blocked、隔離PostgreSQL／Migration回歸、正式資料保護、API／瀏覽器與實測效能，見 [Phase 2最終驗收報告](docs/specs/phase-2-final-validation.md)。軟體測試通過不代表已取得完整法人、借券未還或十年籌碼資料；正式來源缺口與公開發布前置條件保留在報告中。本階段不新增功能、不部署或進入Phase 3。
