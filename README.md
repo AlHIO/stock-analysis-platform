@@ -218,7 +218,7 @@ Migration `0010_daily_sync`只增加排程紀錄表；本次交付沒有自行�
 
 新增 `broker_flow` 的券商／分點歷史身分、來源與交易口徑契約、整份報表 Revision、Raw／Audit、Canonical Repository，以及 `0011_broker_flow` Migration。代碼保留前導零與大小寫；不同來源、市場及口徑分開，缺值不補零，舊 Raw 重播不能倒退 Canonical。資料表、ERD、晉升規則及驗證見 [Broker Persistence 規格](docs/specs/phase-2h-broker-persistence.md)。
 
-2H-2 交付時只在獨立臨時 PostgreSQL 資料庫與私有 Schema 驗證，沒有執行正式 Migration 或匯入分點資料；該階段尚無 CLI／API／圖表。後續離線 CLI 見下節 2H-3。正式下載與公開展示權仍為 **Blocked**，沒有「主力」分析引擎或每日同步來源。先前 Phase 2H-1 的[來源查證](docs/specs/phase-2h-data-sources.md)與[指標定義](docs/specs/phase-2h-metric-definitions.md)是設計依據。
+2H-2 交付時只在獨立臨時 PostgreSQL 資料庫與私有 Schema 驗證，沒有執行正式 Migration 或匯入分點資料；該階段尚無 CLI／API／圖表。後續離線 CLI 見下節 2H-3，純 Domain 分析引擎見 2H-4。正式下載與公開展示權仍為 **Blocked**，尚無分點每日同步來源。先前 Phase 2H-1 的[來源查證](docs/specs/phase-2h-data-sources.md)與[指標定義](docs/specs/phase-2h-metric-definitions.md)是設計依據。
 
 ```bash
 # 純 Domain 測試：不連供應商或資料庫
@@ -251,6 +251,23 @@ cd apps/api
 `interrupted` 表示已有凍結計畫、可從 checkpoint 續跑的未結束工作；終止失敗／已完成 Run 保持不可變。再次讀到相同舊檔會保留最早觀察時間，不會因今天重新匯入而冒充較新修訂。ZIP 僅在記憶體讀取，不執行 EXE／自解壓程式或寫出 member。
 
 完整 19 欄 Schema、Docker 唯讀掛載範例、錯誤／狀態、Migration 與測試指令見 [Broker Ingestion 規格](docs/specs/phase-2h-broker-ingestion.md)；JSON 鍵可參考[預設停用的契約範本](docs/examples/broker-import-contract.disabled.example.json)。本次正式分點資料為 0，尚未套用正式 Migration；沒有將 Synthetic Fixture 當成真實行情。
+
+## 券商分點分析引擎（Phase 2H-4）
+
+新增純 Domain `BrokerFlowEngine`，透過 `stockapp.modules.broker_flow.public` 提供版本化 Request／Result 與 Reader Ports。支援每日分點買賣超、期間 TOP 5／10／15／30、核實交易日累計與連買連賣、兩種家數差、交易集中度、三種具公式的 Proxy，以及分點或每日 TOP N Proxy 與股價的日期對照。算法版本 `1.0.0`，Engine 版本 `broker-flow-engine-1.0.0`。
+
+排行榜先彙總區間再排名；每日重選 Proxy 使用獨立算法。缺日、身分不明、來源／口徑不相容及不完整母體會回傳狀態與空值，不補零。金融輸出為精確字串；來源 Revision、當日身分、交易日曆及 As-of 證據保留於結果。未核實發布時間時標記 Provisional，不宣稱歷史 Point-in-Time 保證。
+
+```bash
+# 全部為明確標記 SYNTHETIC 的固定數值與純 Domain 測試；不連資料庫或供應商
+.tools/api-venv/bin/python -m pytest \
+  apps/api/tests/test_broker_flow_analytics_contracts.py \
+  apps/api/tests/test_broker_flow_flow_calculations.py \
+  apps/api/tests/test_broker_flow_proxy_calculations.py \
+  apps/api/tests/test_broker_flow_engine.py -q
+```
+
+完整指標 ID、參數、公式、輸入契約及驗證見 [Broker Engine 規格](docs/specs/phase-2h-broker-engine.md)。本階段沒有新增 API、前端或 Migration，也沒有匯入正式分點資料。分點不能識別個別投資人或真實庫存；中實戶／大戶真實流量維持 Unsupported，正式下載及公開展示仍受來源授權 Blocked 限制。
 
 ## Phase 2整合驗收（Phase 2G-2）
 

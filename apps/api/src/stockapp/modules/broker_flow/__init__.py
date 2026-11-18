@@ -1,5 +1,5 @@
-"""Broker identities, report persistence and manual offline ingestion.
+"""Broker identities, persistence, offline ingestion and pure analytical engine.
 
-Official downloads remain disabled. No analytical engine or HTTP route is
-enabled by this package; licensed-provider delivery requires a separate review.
+Official downloads remain disabled. No HTTP route is enabled by this package;
+licensed-provider delivery and public display require separate evidence.
 """
