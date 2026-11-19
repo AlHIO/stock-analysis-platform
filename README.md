@@ -350,6 +350,10 @@ docker compose run --rm backend alembic upgrade head
 docker compose up -d backend frontend
 ```
 
+## 券商分點完整驗收（Phase 2H-7）
+
+Phase 2H-7 的 Domain、離線 Adapter／Import／Replay、Migration、PostgreSQL、API／OpenAPI 與桌面／手機 UI 完整驗證，見 [Broker Flow 最終驗收](docs/specs/phase-2h-final-validation.md)。本次後端 Unit 3,301、PostgreSQL／Migration 614、Vitest 428、Playwright 26 項通過。正式 Broker 來源與真實 TOP15 仍為 Blocked，現有 Docker 尚未安裝／啟用分點功能；軟體測試不代表正式資料已上線。
+
 ## Phase 2整合驗收（Phase 2G-2）
 
 完整功能、真實資料覆蓋、來源Partial／Blocked、隔離PostgreSQL／Migration回歸、正式資料保護、API／瀏覽器與實測效能，見 [Phase 2最終驗收報告](docs/specs/phase-2-final-validation.md)。軟體測試通過不代表已取得完整法人、借券未還或十年籌碼資料；正式來源缺口與公開發布前置條件保留在報告中。本階段不新增功能、不部署或進入Phase 3。
