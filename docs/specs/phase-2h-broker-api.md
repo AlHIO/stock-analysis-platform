@@ -2,6 +2,8 @@
 
 實作／驗證日期：2026-11-18，Asia/Taipei。依據 [H1 指標定義](phase-2h-metric-definitions.md)、[H2 Persistence](phase-2h-broker-persistence.md)、[H3 Ingestion](phase-2h-broker-ingestion.md)及 [H4 Engine](phase-2h-broker-engine.md)。本次建立 Canonical 查詢、Application Services、公開 Reader、HTTP Schemas／Routes、OpenAPI、離線及隔離 PostgreSQL HTTP 測試；沒有開發前端或啟用下載。
 
+2026-11-19 H6 補充：TOP API 可選 `sessions=1/5/10/20/60`，只使用 H4 核實日曆視窗；結果含 `details.session_window`，缺證據維持 Not Verified／null。區間 Proxy Details 增加選中分點實際 Buy／Sell 合計，不改原 Net 公式。契約及數值測試見 [H6 規格](phase-2h-broker-dashboard.md#4-必要的後端契約補充)。
+
 ## 1. 契約決策
 
 原 [Phase 2 API Contract](phase-2-api-contract.md)沒有 Broker Flow 的正式路由；本階段新增下述五條 `/api/v1` 路由，不更換既有產品契約。Instrument 沿用 UUID，不以股票代碼當全域 ID。

@@ -281,3 +281,47 @@ def test_openapi_exposes_all_broker_routes_exact_financial_types_and_query_limit
     assert parameters["limit"]["schema"]["maximum"] == 250
     assert parameters["trade_scope"]["schema"]["anyOf"][0]["format"] == "uuid"
     assert {"404", "422", "503"} <= schema["paths"][base + "/metrics"]["get"]["responses"].keys()
+
+
+@pytest.mark.parametrize("count", [1, 5, 10, 20, 60])
+def test_session_ranking_requires_a_verified_calendar_instead_of_last_n_observations(count):
+    with client() as http:
+        response = http.get(path("/top-branches"), params=dates() | {"sessions": count})
+    assert response.status_code == 200, response.text
+    result = response.json()["result"]
+    assert result["metric"] == "broker.top_branches" and result["value"] is None
+    assert result["status"] == "not_verified"
+    assert result["details"]["session_window"] == dict(requested_sessions=count, verified=False,
+        query_from=DAY.isoformat(), query_to=DAY.isoformat(), expected_dates=[])
+
+
+def test_session_top_window_uses_server_calendar_across_year_boundary():
+    days = (date(2025, 12, 30), date(2025, 12, 31), DAY, date(2026, 1, 5), date(2026, 1, 6))
+    rows = tuple(synthetic_input(day, values=((1000, 100), (100, 1000))) for day in days)
+    class VerifiedReader(SyntheticReader):
+        def load(self, request, *, selection):
+            assert request.metric == "broker.branch_session_cumulative_net"
+            return BrokerAnalysisHistory(reports=self.rows, calendar=CalendarSnapshot(market_id=MARKET,
+                start=days[0], end=days[-1], open_dates=days, version="SYNTHETIC-cross-year-v1",
+                evidence_reference="SYNTHETIC only", verified=True, observed_at=SEEN))
+    query = BrokerQueryService(VerifiedReader(rows), now=lambda: NOW)
+    with client(query) as http:
+        response = http.get(path("/top-branches"), params={"from": str(days[-1]), "to": str(days[-1]), "sessions": 5})
+    assert response.status_code == 200, response.text
+    result = response.json()["result"]
+    assert result["status"] == "complete" and result["value"][0]["net_quantity"] == "4500"
+    assert result["request"]["start"] == str(days[0]) and result["request"]["end"] == str(days[-1])
+    assert result["details"]["session_window"]["query_from"] == str(days[-1])
+    assert result["expected_dates"] == [str(day) for day in days]
+
+
+def test_proxy_actual_selected_sides_are_not_positive_and_negative_net_magnitudes():
+    with client() as http:
+        response = http.get(path("/metrics"), params=dates() | {"algorithm": "proxy.broker_top_n_net_imbalance"})
+    assert response.status_code == 200, response.text
+    result = response.json()["result"]
+    assert result["value"] == "0"
+    assert result["details"]["selected_buy_quantity"] == "1900"
+    assert result["details"]["selected_sell_quantity"] == "1900"
+    assert result["details"]["top_positive_net"] == "1100"
+    assert result["details"]["selection_basis"] == "union_of_top_net_buyers_and_sellers"

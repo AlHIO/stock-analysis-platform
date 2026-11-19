@@ -331,6 +331,13 @@ def test_verified_session_cumulative_streak_and_formula_use_domain_engine(databa
         assert streak.status_code == 200, streak.text
         assert streak.json()["result"]["status"] == "complete"
         assert streak.json()["result"]["value"] == 3
+        ranked = http.get(path(refs, "/top-branches"), params={"from": str(DAY), "to": str(DAY), "sessions": 5})
+        assert ranked.status_code == 200, ranked.text
+        window = ranked.json()["result"]
+        assert window["status"] == "complete"
+        assert window["request"]["start"] == str(dates[0]) and window["request"]["end"] == str(DAY)
+        assert window["details"]["session_window"]["requested_sessions"] == 5
+        assert window["value"][0]["net_quantity"] == "500"
 
 
 def test_missing_branch_in_complete_daily_delivery_is_not_silently_no_activity(database, refs):

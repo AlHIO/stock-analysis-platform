@@ -269,9 +269,21 @@ class BrokerQueryService:
         except (BrokerFlowError, ValueError):
             raise BrokerQueryError("invalid_metric_parameters", "Unsupported broker-flow algorithm or parameters.") from None
 
-    def _calculate(self, instrument, request, selection, read_at, *, broker=None, branch=None, output_filter=False):
+    def _calculate(self, instrument, request, selection, read_at, *, broker=None, branch=None,
+                   output_filter=False, sessions=None):
         selection = self._unique_selection(instrument["id"], request.start, request.end, selection)
-        history = self.repository.load(request, selection=selection)
+        window = None
+        load_request = request
+        if sessions is not None:
+            if type(sessions) is not int or sessions not in {1, 5, 10, 20, 60}:
+                raise BrokerQueryError("invalid_session_count", "Use 1, 5, 10, 20 or 60 verified trading sessions.")
+            # Reuse H4's verified-calendar window selection; no new financial
+            # formula or weekday/last-observation inference belongs here.
+            load_request = replace(request, metric="broker.branch_session_cumulative_net",
+                                   parameters={"sessions": sessions})
+        history = self.repository.load(load_request, selection=selection)
+        if sessions is not None:
+            window = prepare_context(load_request, history)
         if broker is not None and not output_filter:
             selected_branch = request.parameters.get("branch_id")
             if selected_branch is None:
@@ -281,9 +293,19 @@ class BrokerQueryService:
             if known and known != {broker}:
                 raise BrokerQueryError("branch_broker_mismatch", "The branch does not match this broker.")
         try:
-            result = self.engine.calculate(request, history)
+            if window is not None and window.status is not MetricStatus.COMPLETE:
+                result = replace(window.result(None, formula=BROKER_METRICS[request.metric].formula,
+                    parameters=request.parameters), request=request)
+            else:
+                effective = (replace(request, start=window.expected_dates[0], end=window.expected_dates[-1])
+                             if window is not None else request)
+                result = self.engine.calculate(effective, history)
         except BrokerFlowError:
             raise BrokerQueryError("invalid_stored_broker_data", "Stored broker-flow inputs cannot be analyzed.", 503) from None
+        if window is not None:
+            result = replace(result, details=dict(result.details) | {"session_window": dict(
+                requested_sessions=sessions, verified=window.calendar_verified,
+                query_from=request.start, query_to=request.end, expected_dates=window.expected_dates)})
         if output_filter and (broker is not None or branch is not None):
             allowed = {identity.branch_id for item in history.reports for identity in item.identities
                        if (broker is None or identity.broker_id == broker) and (branch is None or identity.branch_id == branch)}
@@ -298,14 +320,14 @@ class BrokerQueryService:
                     read_at=read_at, usage=dict(USAGE))
 
     def top_branches(self, identifier, *, start=None, end=None, trade_scope=None, source=None,
-                     top_n=15, side="net_buyers", broker=None, branch=None):
+                     top_n=15, side="net_buyers", broker=None, branch=None, sessions=None):
         instrument = self._instrument(identifier)
         read_at, zone = self._clock(instrument)
         self._filters(broker, branch)
         request = self._request(instrument, "broker.top_branches", dict(top_n=top_n, side=side),
             start, end, read_at, zone, None, AvailabilityPolicy.OBSERVED, "1d")
         return self._calculate(instrument, request, self._selection(trade_scope, source), read_at,
-                               broker=broker, branch=branch, output_filter=True)
+                               broker=broker, branch=branch, output_filter=True, sessions=sessions)
 
     def metrics(self, identifier, *, algorithm="broker.source_coverage", algorithm_parameters=None,
                 start=None, end=None, trade_scope=None, source=None, broker=None, branch=None,

@@ -3,12 +3,14 @@ import React from "react";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChipChart, type ChipSeries } from "../src/components/chip-chart";
+import { connectChartSync } from "../src/lib/chart-sync";
 
 const mock = vi.hoisted(() => ({
   create: vi.fn(), add: vi.fn(), removeSeries: vi.fn(), remove: vi.fn(), resize: vi.fn(),
   crosshair: vi.fn(), uncrosshair: vi.fn(), rangeChange: vi.fn(), unrangeChange: vi.fn(),
   getRange: vi.fn(), setRange: vi.fn(), getTime: vi.fn(), setTime: vi.fn(), fit: vi.fn(),
   observe: vi.fn(), disconnect: vi.fn(), series: [] as { setData: ReturnType<typeof vi.fn> }[],
+  timeChange: vi.fn(), untimeChange: vi.fn(), setCursor: vi.fn(), clearCursor: vi.fn(),
 }));
 
 vi.mock("lightweight-charts", () => ({
@@ -37,9 +39,11 @@ beforeEach(() => {
   mock.create.mockReturnValue({
     addSeries: mock.add, removeSeries: mock.removeSeries, remove: mock.remove, resize: mock.resize,
     subscribeCrosshairMove: mock.crosshair, unsubscribeCrosshairMove: mock.uncrosshair,
+    setCrosshairPosition: mock.setCursor, clearCrosshairPosition: mock.clearCursor,
     timeScale: () => ({ fitContent: mock.fit, getVisibleLogicalRange: mock.getRange,
       setVisibleLogicalRange: mock.setRange, getVisibleRange: mock.getTime, setVisibleRange: mock.setTime,
-      subscribeVisibleLogicalRangeChange: mock.rangeChange, unsubscribeVisibleLogicalRangeChange: mock.unrangeChange }),
+      subscribeVisibleLogicalRangeChange: mock.rangeChange, unsubscribeVisibleLogicalRangeChange: mock.unrangeChange,
+      subscribeVisibleTimeRangeChange: mock.timeChange, unsubscribeVisibleTimeRangeChange: mock.untimeChange }),
   });
   vi.stubGlobal("ResizeObserver", class {
     constructor(callback: ResizeObserverCallback) { resizeCallback = callback; }
@@ -51,6 +55,36 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("ChipChart", () => {
+  it("shares only exact weekly observations, keeps absent daily dates blank and cleans subscriptions", async () => {
+    const sender = connectChartSync("SYNTHETIC-week-sync", { cursor() {}, range() {} });
+    const view = render(<ChipChart chartId="week-sync" title="週觀察" unit="%" frequency="1w" series={series} syncGroup="SYNTHETIC-week-sync" />);
+    await waitFor(() => expect(mock.timeChange).toHaveBeenCalled());
+    act(() => sender.publishCursor("2026-01-02"));
+    expect(mock.setCursor).toHaveBeenCalledWith(60.123456789012, "2026-01-02", mock.series[0]);
+    act(() => sender.publishCursor("2026-01-05"));
+    expect(mock.clearCursor).toHaveBeenCalled();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("此日無觀察");
+    expect(screen.getByRole("tooltip")).not.toHaveTextContent("70.234567890123");
+    view.unmount(); sender.dispose();
+    expect(mock.untimeChange).toHaveBeenCalledOnce();
+  });
+
+  it("shares calendar-time ranges across frequencies and suppresses programmatic clamp echoes", async () => {
+    const remote = { cursor: vi.fn(), range: vi.fn() };
+    const sender = connectChartSync("SYNTHETIC-window-sync", remote);
+    const view = render(<ChipChart chartId="window-sync" title="週視窗" unit="%" frequency="1w" series={series} syncGroup="SYNTHETIC-window-sync" />);
+    await waitFor(() => expect(mock.timeChange).toHaveBeenCalled());
+    mock.getTime.mockReturnValue({ from: "2026-01-02", to: "2026-01-09" });
+    act(() => sender.publishRange({ from: "2025-12-31", to: "2026-01-16" }));
+    expect(mock.setTime).toHaveBeenLastCalledWith({ from: "2026-01-02", to: "2026-01-09" });
+    act(() => mock.timeChange.mock.calls[0][0]());
+    expect(remote.range).not.toHaveBeenCalled();
+    mock.getTime.mockReturnValue({ from: "2026-01-02", to: "2026-01-05" });
+    act(() => mock.timeChange.mock.calls[0][0]());
+    expect(remote.range).toHaveBeenCalledWith({ from: "2026-01-02", to: "2026-01-05" });
+    view.unmount(); sender.dispose();
+  });
+
   it("renders real source weekly dates, accessible unit and exact crosshair values", async () => {
     render(<ChipChart chartId="synthetic-weekly" title="測試週比例" unit="%" frequency="1w" series={series} />);
     await waitFor(() => expect(mock.add).toHaveBeenCalled());

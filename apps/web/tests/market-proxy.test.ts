@@ -8,6 +8,39 @@ const call = (path: string[], search = "") => GET(new Request(`http://localhost:
 
 describe("read-only market proxy", () => {
   it.each([
+    ["stocks",instrumentFixture.id,"broker-flow"],
+    ["stocks",instrumentFixture.id,"broker-flow","latest"],
+    ["stocks",instrumentFixture.id,"broker-flow","top-branches"],
+    ["stocks",instrumentFixture.id,"broker-flow","metrics"],
+    ["broker-flow","status"],
+  ])("allows canonical broker route %j",async(...path)=>{
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({})));
+    expect((await call(path)).status).toBe(200);
+  });
+  it("forwards session requests only to broker TOP and keeps provider origin fixed",async()=>{
+    const fetcher=vi.fn().mockResolvedValue(Response.json({}));vi.stubGlobal("fetch",fetcher);
+    const response=await call(["stocks",instrumentFixture.id,"broker-flow","top-branches"],"?sessions=5&top_n=15&side=net_buyers");
+    expect(response.status).toBe(200);
+    expect(new URL(fetcher.mock.calls[0][0]).searchParams.get("sessions")).toBe("5");
+    expect((await call(["stocks",instrumentFixture.id,"broker-flow","metrics"],"?sessions=5")).status).toBe(422);
+  });
+  it.each(["?source_url=https://evil.example","?source=a&source=b","?trade_scope=a&trade_scope=b","?calendar_verified=true","?algorithm_parameters="+"x".repeat(4097)])("rejects unsafe broker parameters before upstreamfetch",async query=>{
+    const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
+    expect((await call(["stocks",instrumentFixture.id,"broker-flow","metrics"],query)).status).toBe(422);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("accepts the H5 bounded JSON parameter payload without widening unrelated endpoints",async()=>{
+    const fetcher=vi.fn().mockResolvedValue(Response.json({}));vi.stubGlobal("fetch",fetcher);
+    const query="?algorithm_parameters="+encodeURIComponent(JSON.stringify({label:"x".repeat(2200)}));
+    expect((await call(["stocks",instrumentFixture.id,"broker-flow","metrics"],query)).status).toBe(200);
+    expect((await call(["instruments"],"?q="+"x".repeat(2200))).status).toBe(422);
+  });
+  it("retains safe broker budget error codes without internal diagnostics",async()=>{
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(Response.json({detail:{code:"broker_query_limit_exceeded",message:"postgresql://secret",errors:["SECRET"]}},{status:422})));
+    const response=await call(["stocks",instrumentFixture.id,"broker-flow"]);
+    expect(await response.json()).toEqual({detail:{code:"broker_query_limit_exceeded",message:"Request parameters are invalid.",errors:null}});
+  });
+  it.each([
     ["institutional"], ["institutional","metrics"], ["ownership"],
     ["ownership","metrics"], ["margin"], ["lending"],
   ])("allows only documented chip read paths %j",async(...suffix)=>{

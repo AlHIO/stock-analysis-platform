@@ -178,3 +178,13 @@
     margin-left: 7px;
   }
 }
+.volumeToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  color: #9bb9c4;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.volumeToggle input { accent-color: #66ccb5; }

@@ -136,6 +136,10 @@ def period_top_n_proxy(context):
     if _missing_quantities(rows):
         return _missing_result(context, rows)
     value, positive, negative, details = _net_selection(rows, context.request.parameters["top_n"])
+    chosen = positive + negative
+    details.update(selected_buy_quantity=str(sum(row.buy_quantity for row in chosen)),
+                   selected_sell_quantity=str(sum(row.sell_quantity for row in chosen)),
+                   selection_basis="union_of_top_net_buyers_and_sellers")
     return _result(context, value, unit=_quantity_unit(context),
         details=details | {"selection": "period_aggregate", "interpretation": "derived proxy, not investor inventory"},
         selected_branch_ids=tuple(row.branch_id for row in positive + negative))

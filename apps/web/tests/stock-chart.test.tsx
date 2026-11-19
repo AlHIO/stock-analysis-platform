@@ -8,6 +8,7 @@ import type {
   IndicatorResponse,
 } from "../src/lib/technical-types";
 import { latestFixture } from "./fixtures/market-api";
+import { connectChartSync } from "../src/lib/chart-sync";
 
 const chartMock = vi.hoisted(() => {
   const series = () => ({ setData: vi.fn(), createPriceLine: vi.fn() });
@@ -21,6 +22,8 @@ const chartMock = vi.hoisted(() => {
     subscribe: vi.fn(),
     unsubscribe: vi.fn(),
     fitContent: vi.fn(),
+    getRange: vi.fn(), setRange: vi.fn(), getTime: vi.fn(), setTime: vi.fn(),
+    subscribeTime: vi.fn(), unsubscribeTime: vi.fn(), setCursor: vi.fn(), clearCursor: vi.fn(),
     stretch: vi.fn(),
     disconnect: vi.fn(),
     observe: vi.fn(),
@@ -120,6 +123,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   chartMock.lines.length = 0;
   chartMock.histograms.length = 0;
+  chartMock.getRange.mockReturnValue(null);
+  chartMock.getTime.mockReturnValue(null);
   chartMock.addSeries.mockImplementation(
     (definition: { type: string }, options: { title?: string } = {}) => {
       if (definition.type === "candles") return chartMock.candles;
@@ -142,7 +147,10 @@ beforeEach(() => {
     remove: chartMock.remove,
     subscribeCrosshairMove: chartMock.subscribe,
     unsubscribeCrosshairMove: chartMock.unsubscribe,
-    timeScale: () => ({ fitContent: chartMock.fitContent }),
+    setCrosshairPosition: chartMock.setCursor, clearCrosshairPosition: chartMock.clearCursor,
+    timeScale: () => ({ fitContent: chartMock.fitContent, getVisibleLogicalRange: chartMock.getRange,
+      setVisibleLogicalRange: chartMock.setRange, getVisibleRange: chartMock.getTime, setVisibleRange: chartMock.setTime,
+      subscribeVisibleTimeRangeChange: chartMock.subscribeTime, unsubscribeVisibleTimeRangeChange: chartMock.unsubscribeTime }),
     panes: () =>
       Array.from({ length: 4 }, () => ({
         setStretchFactor: chartMock.stretch,
@@ -168,6 +176,36 @@ afterEach(() => {
 });
 
 describe("StockChart lifecycle", () => {
+  it("hides the volume pane without losing price data or recreating fake zero volume", async () => {
+    render(<StockChart bars={[bar]} timeframe="1d" showVolume={false} />);
+    await waitFor(() => expect(chartMock.candles.setData).toHaveBeenCalled());
+    expect(chartMock.volume.setData).not.toHaveBeenCalled();
+    expect(chartMock.addSeries).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("figure")).toHaveAttribute("aria-label", "日 K價格圖");
+  });
+
+  it("preserves the same-period viewport while indicator or volume settings change", async () => {
+    const view = render(<StockChart bars={[bar]} timeframe="1d" />);
+    await waitFor(() => expect(chartMock.fitContent).toHaveBeenCalledTimes(1));
+    chartMock.getRange.mockReturnValue({ from: -.5, to: .5 });
+    view.rerender(<StockChart bars={[bar]} timeframe="1d" showVolume={false} />);
+    await waitFor(() => expect(chartMock.setRange).toHaveBeenCalledWith({ from: -.5, to: .5 }));
+    expect(chartMock.fitContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses exact shared dates and clears missing-week observations instead of borrowing the last bar", async () => {
+    const source = connectChartSync("SYNTHETIC-stock-weekly", { cursor() {}, range() {} });
+    const view = render(<StockChart bars={[bar]} timeframe="1w" syncGroup="SYNTHETIC-stock-weekly" />);
+    await waitFor(() => expect(chartMock.subscribeTime).toHaveBeenCalled());
+    act(() => source.publishCursor("2026-01-09"));
+    expect(chartMock.setCursor).toHaveBeenCalledWith(104, "2026-01-09", chartMock.candles);
+    act(() => source.publishCursor("2026-01-08"));
+    expect(screen.getByLabelText("圖表選取行情")).toHaveTextContent("此日期無週 K觀察");
+    expect(chartMock.clearCursor).toHaveBeenCalled();
+    view.unmount(); source.dispose();
+    expect(chartMock.unsubscribeTime).toHaveBeenCalledOnce();
+  });
+
   it("creates actual candle and volume series, resizes and releases chart resources", async () => {
     const view = render(<StockChart bars={[bar]} timeframe="1w" />);
     await waitFor(() => expect(chartMock.candles.setData).toHaveBeenCalled());

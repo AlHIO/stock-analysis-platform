@@ -315,6 +315,41 @@ curl 'http://localhost:8000/health'
 
 升級不會產生分點資料，也不會新增前端 Tab。正式下載與公開展示仍為 Blocked；API 的 `usage`／Status 保留權利未核實狀態，不能將內部離線查詢視為公開展示許可。完整契約、測試及缺口見 [H5 Query API 規格](docs/specs/phase-2h-broker-api.md)。
 
+## 主力分點與 K 線副圖（Phase 2H-6）
+
+個股頁的籌碼 Dashboard 新增「主力分點」Tab，延伸現有搜尋、K 線及技術指標，不另建網站。提供來源／交易口徑選擇、TOP 15 買超／賣超榜、1 日／5／10／20／60 交易日與自訂期間、指定分點累計、兩種家數差，以及具公式、版本與來源的 Proxy 摘要。
+
+摘要的買進／賣出是後端回傳的「選中分點實際買賣數量」，不是正／負 Net Magnitude；分點不能識別個人、真實中實戶或持倉。沒有核實的商品日期換算係數時，張數顯示 Not Available，不一律除以 1,000。N 交易日視窗由後端查核；日曆尚未核實時，控制項仍保留，但結果為 Not Available，不用最近 N 筆或平日猜測。
+
+既有價格圖下方可開關法人、分點 TOP N Proxy、家數差、集保大戶比例、融資／融券與借券賣出副圖；成交量也可開關。副圖參數獨立，與價格圖共用實際日期十字線及日期視窗，各自保留單位。週資料只在來源統計日出現；不補每日點、缺值或假柱狀圖。切換 Tab／副圖保留設定及視窗。
+
+```bash
+# 本機開發；在 Repository 根目錄
+BACKEND_URL=http://localhost:8000 npm run dev --workspace @stockapp/web -- --hostname 127.0.0.1 --port 3100
+# Windows / WSL 瀏覽器開啟 http://localhost:3100，搜尋股票後選「主力分點」
+
+# 單元／型別檢查
+npm test
+npm run typecheck
+
+# 相容 Chromium，保存在專案忽略目錄
+PLAYWRIGHT_BROWSERS_PATH="$PWD/.tools/ms-playwright" npm exec --workspace @stockapp/web -- playwright install chromium
+PLAYWRIGHT_BROWSERS_PATH="$PWD/.tools/ms-playwright" BROWSER_BASE_URL=http://localhost:3100 \
+  npm run test:browser --workspace @stockapp/web -- broker-dashboard.spec.ts broker-real.spec.ts
+# 停止 dev server 後執行，避免同時寫入 .next
+npm run build
+```
+
+只有已安裝 H2／H3 Schema、含 H5／H6 API 的 Backend，以及合法匯入的 Canonical 才會出現正式分點榜。缺資料、未核實日曆或 API 未啟用時會明確顯示狀態。Synthetic 瀏覽器測試不代表正式分點資料覆蓋；本階段沒有正式匯入、Migration、Docker 重啟或公開部署。完整驗證與未支援項目見 [H6 Dashboard 規格](docs/specs/phase-2h-broker-dashboard.md)。
+
+要更新目前 Docker 的 `http://localhost:3000` 畫面，先備份並審查 H5 節說明的既有 Migration，再手動執行以下指令；只重建 Backend／Frontend，不啟動下一階段或更動 Worker：
+
+```bash
+docker compose build backend frontend
+docker compose run --rm backend alembic upgrade head
+docker compose up -d backend frontend
+```
+
 ## Phase 2整合驗收（Phase 2G-2）
 
 完整功能、真實資料覆蓋、來源Partial／Blocked、隔離PostgreSQL／Migration回歸、正式資料保護、API／瀏覽器與實測效能，見 [Phase 2最終驗收報告](docs/specs/phase-2-final-validation.md)。軟體測試通過不代表已取得完整法人、借券未還或十年籌碼資料；正式來源缺口與公開發布前置條件保留在報告中。本階段不新增功能、不部署或進入Phase 3。

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEventParams, Time } from "lightweight-charts";
+import type { LogicalRange, MouseEventParams, Time } from "lightweight-charts";
 import type { Bar, Timeframe } from "../lib/market-types";
 import type { IndicatorResponse } from "../lib/technical-types";
 import { toIndicatorChartData } from "../lib/indicator-chart";
+import { connectChartSync, overlappingChartRange, type ChartDateRange, type ChartSyncConnection } from "../lib/chart-sync";
 import {
   chartPricePrecision,
   chartTimeKey,
@@ -31,15 +32,21 @@ export function StockChart({
   bars,
   timeframe,
   indicators = NO_INDICATORS,
+  syncGroup,
+  showVolume = true,
 }: {
   bars: Bar[];
   timeframe: Timeframe;
   indicators?: IndicatorResponse[];
+  syncGroup?: string;
+  showVolume?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<Bar | null>(null);
   const [chartError, setChartError] = useState(false);
   const [ready, setReady] = useState(false);
+  const [sharedDate, setSharedDate] = useState<string | null>(null);
+  const viewport = useRef<{ key: string; logical: LogicalRange | null; time: ChartDateRange | null } | null>(null);
   const converted = useMemo(() => {
     try {
       return toChartData(bars);
@@ -61,14 +68,16 @@ export function StockChart({
     (item) =>
       item.source.indicator === "rsi" || item.source.indicator === "macd",
   ).length;
-  const selected =
-    hovered ?? (converted ? [...converted.barsByDate.values()].at(-1) : null);
+  const selected = sharedDate
+    ? converted?.barsByDate.get(sharedDate) ?? null
+    : hovered ?? (converted ? [...converted.barsByDate.values()].at(-1) : null);
 
   useEffect(() => {
     const element = container.current;
     if (!element || !converted || !converted.candles.length) return;
     let disposed = false;
     let disposeChart: (() => void) | undefined;
+    setSharedDate(null);
     setHovered(null);
     setChartError(false);
     setReady(false);
@@ -120,9 +129,24 @@ export function StockChart({
         });
         let observer: ResizeObserver | undefined;
         let onCrosshair: ((event: MouseEventParams<Time>) => void) | undefined;
+        let onTimeRange: (() => void) | undefined;
+        let sync: ChartSyncConnection | undefined;
+        let applyingSync = false;
+        let ignoreCursor: string | null | undefined;
+        let lastAppliedRange = "";
+        const firstDate = converted.candles[0].time as string;
+        const lastDate = converted.candles.at(-1)!.time as string;
+        const viewportKey = `${syncGroup ?? "stock"}/${timeframe}/${firstDate}/${lastDate}/${bars.length}`;
         disposeChart = () => {
+          try {
+            const range = chart.timeScale().getVisibleRange();
+            viewport.current = { key: viewportKey, logical: chart.timeScale().getVisibleLogicalRange(),
+              time: range ? { from: chartTimeKey(range.from), to: chartTimeKey(range.to) } : null };
+          } catch { /* A failed renderer has no reusable viewport. */ }
+          sync?.dispose();
           observer?.disconnect();
           if (onCrosshair) chart.unsubscribeCrosshairMove(onCrosshair);
+          if (onTimeRange) chart.timeScale().unsubscribeVisibleTimeRangeChange(onTimeRange);
           chart.remove();
         };
         const precision = chartPricePrecision(bars);
@@ -135,7 +159,8 @@ export function StockChart({
           wickDownColor: DOWN_COLOR,
           priceFormat: { type: "price", precision, minMove: 10 ** -precision },
         });
-        const volume = chart.addSeries(
+        const hasVolumePane = showVolume || indicatorData.data.some(item => item.source.indicator === "volume_sma");
+        const volume = showVolume ? chart.addSeries(
           library.HistogramSeries,
           {
             priceFormat: { type: "volume" },
@@ -143,12 +168,11 @@ export function StockChart({
             lastValueVisible: false,
           },
           1,
-        );
+        ) : undefined;
         chart.panes()[0].setStretchFactor(4);
-        chart.panes()[1].setStretchFactor(1);
         candles.setData(converted.candles);
-        volume.setData(converted.volume);
-        let nextPane = 2;
+        volume?.setData(converted.volume);
+        let nextPane = hasVolumePane ? 2 : 1;
         // Separate line series prevent the library bridging whitespace across a
         // missing-input reset. Histogram gaps need no connecting segment.
         for (const indicator of indicatorData.data) {
@@ -222,10 +246,22 @@ export function StockChart({
                 title: String(level),
               });
           }
-          if (paneIndex > 1) chart.panes()[paneIndex].setStretchFactor(1.5);
+          if (paneIndex > 0) chart.panes()[paneIndex].setStretchFactor(1.5);
         }
-        chart.timeScale().fitContent();
+        if (hasVolumePane) chart.panes()[1].setStretchFactor(1);
+        const saved = viewport.current;
+        if (saved?.key === viewportKey && saved.logical) chart.timeScale().setVisibleLogicalRange(saved.logical);
+        else {
+          const overlap = saved?.time ? overlappingChartRange(saved.time, firstDate, lastDate) : null;
+          if (overlap) chart.timeScale().setVisibleRange(overlap);
+          else chart.timeScale().fitContent();
+        }
         onCrosshair = (event: MouseEventParams<Time>) => {
+          if (applyingSync) return;
+          const date = event.time ? chartTimeKey(event.time) : null;
+          if (ignoreCursor !== undefined && ignoreCursor === date) { ignoreCursor = undefined; return; }
+          ignoreCursor = undefined;
+          setSharedDate(null);
           if (
             !event.time ||
             !event.point ||
@@ -235,13 +271,51 @@ export function StockChart({
             event.point.y > element.clientHeight
           ) {
             setHovered(null);
+            sync?.publishCursor(null);
             return;
           }
           setHovered(
             converted.barsByDate.get(chartTimeKey(event.time)) ?? null,
           );
+          sync?.publishCursor(date);
         };
         chart.subscribeCrosshairMove(onCrosshair);
+        if (syncGroup) {
+          sync = connectChartSync(syncGroup, {
+            cursor(date) {
+              applyingSync = true;
+              setSharedDate(date);
+              const bar = date ? converted.barsByDate.get(date) : undefined;
+              setHovered(bar ?? null);
+              try {
+                ignoreCursor = bar ? date : null;
+                if (bar) chart.setCrosshairPosition(Number(bar.close), date!, candles);
+                else chart.clearCrosshairPosition();
+              } finally { applyingSync = false; }
+            },
+            range(value) {
+              const overlap = overlappingChartRange(value, firstDate, lastDate);
+              if (!overlap) return;
+              applyingSync = true;
+              try {
+                chart.timeScale().setVisibleRange(overlap);
+                const visible = chart.timeScale().getVisibleRange();
+                lastAppliedRange = visible ? `${chartTimeKey(visible.from)}/${chartTimeKey(visible.to)}` : "";
+              } catch { /* A hidden chart can join again after its next resize. */ }
+              finally { applyingSync = false; }
+            },
+          });
+          onTimeRange = () => {
+            if (applyingSync || disposed || !element.clientWidth || !element.clientHeight) return;
+            const visible = chart.timeScale().getVisibleRange();
+            if (!visible) return;
+            const value = { from: chartTimeKey(visible.from), to: chartTimeKey(visible.to) };
+            if (`${value.from}/${value.to}` === lastAppliedRange) return;
+            lastAppliedRange = "";
+            sync?.publishRange(value);
+          };
+          chart.timeScale().subscribeVisibleTimeRangeChange(onTimeRange);
+        }
         observer = new ResizeObserver((entries) => {
           if (disposed) return;
           const rect = entries[0]?.contentRect;
@@ -260,7 +334,7 @@ export function StockChart({
       disposed = true;
       disposeChart?.();
     };
-  }, [converted, timeframe, indicatorData]);
+  }, [converted, timeframe, indicatorData, syncGroup, showVolume]);
 
   if (!bars.length)
     return (
@@ -278,7 +352,7 @@ export function StockChart({
   return (
     <figure
       className={styles.figure}
-      aria-label={`${PERIOD_LABELS[timeframe]}與成交量圖`}
+      aria-label={`${PERIOD_LABELS[timeframe]}${showVolume ? "與成交量" : "價格"}圖`}
     >
       {selected && (
         <div className={styles.legend} aria-label="圖表選取行情">
@@ -300,6 +374,7 @@ export function StockChart({
           </span>
         </div>
       )}
+      {sharedDate && !selected && <div className={styles.legend} aria-label="圖表選取行情">{sharedDate} · 此日期無{PERIOD_LABELS[timeframe]}觀察，不沿用其他日期。</div>}
       {indicatorData.error && (
         <p className={styles.indicatorWarning} role="alert">
           部分指標數值無法安全繪圖；價格與成交量仍可檢視。

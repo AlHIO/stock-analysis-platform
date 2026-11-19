@@ -1608,6 +1608,17 @@
         "title": "BrokerScopeSchema",
         "type": "object"
       },
+      "BrokerSessionCount": {
+        "enum": [
+          1,
+          5,
+          10,
+          20,
+          60
+        ],
+        "title": "BrokerSessionCount",
+        "type": "integer"
+      },
       "BrokerSourceSchema": {
         "additionalProperties": false,
         "properties": {
@@ -11990,6 +12001,22 @@
             "schema": {
               "$ref": "#/components/schemas/BrokerTopN",
               "default": 15
+            }
+          },
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BrokerSessionCount"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sessions"
             }
           },
           {

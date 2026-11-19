@@ -1,5 +1,6 @@
 /** Same-origin canonical clients. No financial formulas or provider requests. */
 import { ApiError, request } from "./market-api";
+export { getBrokerHistory, getBrokerLatest, getBrokerTopBranches, getBrokerMetrics, getBrokerStatus } from "./broker-api";
 import { isInstitutionalHistoryResponse, isInstitutionalMetricsResponse, isOwnershipHistoryResponse, isOwnershipMetricsResponse, isMarginHistoryResponse, isLendingHistoryResponse, type ChipRange, type InstitutionalCategory, type LendingKind } from "./chip-types";
 
 const invalid = () => new ApiError(502,"invalid_response","籌碼 API 回傳的資料與查詢條件不一致，無法安全顯示。");

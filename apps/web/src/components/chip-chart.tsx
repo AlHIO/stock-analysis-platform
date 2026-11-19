@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { IChartApi, ISeriesApi, LogicalRange, MouseEventParams, Time } from "lightweight-charts";
 import { chartTimeKey, displayPrice } from "../lib/chart-data";
 import { toChipChartData, type ChipSeries } from "../lib/chip-chart";
+import { connectChartSync, overlappingChartRange, type ChartSyncConnection } from "../lib/chart-sync";
 import styles from "./chip-chart.module.css";
 
 export type { ChipDatum, ChipSeries } from "../lib/chip-chart";
 
 type Library = typeof import("lightweight-charts");
-type Renderer = { chart: IChartApi; library: Library; series: ISeriesApi<"Line" | "Histogram">[]; fitted: boolean; extent: string };
+type Renderer = { chart: IChartApi; library: Library; series: ISeriesApi<"Line" | "Histogram">[]; fitted: boolean; extent: string;
+  anchors: Map<string, { value: number; series: ISeriesApi<"Line" | "Histogram"> }> };
 
 function loadViewport(key: string): LogicalRange | null {
   try {
@@ -24,15 +26,20 @@ function loadViewport(key: string): LogicalRange | null {
   return null;
 }
 
-export function ChipChart({ chartId, title, unit, series, frequency }: {
+export function ChipChart({ chartId, title, unit, series, frequency, syncGroup }: {
   chartId: string;
   title: string;
   unit: string;
   series: readonly ChipSeries[];
   frequency: "1d" | "1w";
+  syncGroup?: string;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const renderer = useRef<Renderer | null>(null);
+  const sync = useRef<ChartSyncConnection | null>(null);
+  const detachSync = useRef<(() => void) | null>(null);
+  const applyingSync = useRef(false);
+  const ignoreCursor = useRef<string | null | undefined>(undefined);
   const converted = useMemo(() => {
     try { return toChipChartData(series); } catch { return null; }
   }, [series]);
@@ -71,17 +78,22 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
         handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: true },
         localization: { locale: "zh-TW", dateFormat: "yyyy/MM/dd" },
       });
-      const instance: Renderer = { chart, library, series: [], fitted: false, extent: "" };
+      const instance: Renderer = { chart, library, series: [], fitted: false, extent: "", anchors: new Map() };
       renderer.current = instance;
       const onRange = (range: LogicalRange | null) => {
         if (!range) return;
         try { sessionStorage.setItem(cacheRef.current, JSON.stringify(range)); } catch { /* Optional persistence. */ }
       };
       const onHover = (event: MouseEventParams<Time>) => {
+        if (applyingSync.current) return;
         const time = event.time !== undefined ? chartTimeKey(event.time) : "";
         const inside = event.point && event.point.x >= 0 && event.point.y >= 0 &&
           event.point.x <= element.clientWidth && event.point.y <= element.clientHeight;
-        setHovered(inside && dataRef.current?.some((item) => item.exactByDate.has(time)) ? time : null);
+        const date = inside && dataRef.current?.some((item) => item.exactByDate.has(time)) ? time : null;
+        if (ignoreCursor.current !== undefined && ignoreCursor.current === date) { ignoreCursor.current = undefined; return; }
+        ignoreCursor.current = undefined;
+        setHovered(date);
+        sync.current?.publishCursor(date);
       };
       chart.subscribeCrosshairMove(onHover);
       chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
@@ -93,6 +105,7 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
       });
       resize.observe(element);
       destroy = () => {
+        detachSync.current?.();
         onRange(chart.timeScale().getVisibleLogicalRange());
         resize.disconnect();
         chart.unsubscribeCrosshairMove(onHover);
@@ -119,6 +132,7 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
       const previousTime = instance.fitted && !unchangedExtent ? chart.timeScale().getVisibleRange() : null;
       for (const old of instance.series) chart.removeSeries(old);
       instance.series = [];
+      instance.anchors.clear();
       for (const item of converted) {
         if (item.source.kind === "histogram") {
           const histogram = chart.addSeries(library.HistogramSeries, { title: item.source.label,
@@ -126,6 +140,9 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
             priceFormat: { type: "price", precision: item.precision, minMove: 10 ** -item.precision } });
           histogram.setData(item.data);
           instance.series.push(histogram);
+          for (const point of item.data) if ("value" in point && !instance.anchors.has(chartTimeKey(point.time))) {
+            instance.anchors.set(chartTimeKey(point.time), { value: point.value, series: histogram });
+          }
         } else {
           for (const segment of item.segments) {
             const line = chart.addSeries(library.LineSeries, { title: item.source.label,
@@ -134,6 +151,9 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
               priceFormat: { type: "price", precision: item.precision, minMove: 10 ** -item.precision } });
             line.setData(segment);
             instance.series.push(line);
+            for (const point of segment) if (!instance.anchors.has(chartTimeKey(point.time))) {
+              instance.anchors.set(chartTimeKey(point.time), { value: point.value, series: line });
+            }
           }
           // A whitespace-only companion retains explicit missing dates on the
           // shared time axis without connecting the separated valid segments.
@@ -160,6 +180,61 @@ export function ChipChart({ chartId, title, unit, series, frequency }: {
       setFailed(false);
     } catch { setFailed(true); }
   }, [converted, ready, cacheKey, frequency, extent, earliestDate, latestDate]);
+
+  useEffect(() => {
+    const instance = renderer.current;
+    if (!ready || !syncGroup || !hasValues || !instance) return;
+    const { chart } = instance;
+    let lastAppliedRange = "";
+    const connection = connectChartSync(syncGroup, {
+      cursor(date) {
+        applyingSync.current = true;
+        setHovered(date);
+        const anchor = date ? instance.anchors.get(date) : undefined;
+        try {
+          ignoreCursor.current = anchor ? date : null;
+          if (anchor) chart.setCrosshairPosition(anchor.value, date!, anchor.series);
+          else chart.clearCrosshairPosition();
+        } finally { applyingSync.current = false; }
+      },
+      range(value) {
+        const dates = dataRef.current?.flatMap(item => [...item.exactByDate.keys()]).sort() ?? [];
+        const first = dates[0], last = dates.at(-1);
+        const overlap = first && last ? overlappingChartRange(value, first, last) : null;
+        if (!overlap) return;
+        applyingSync.current = true;
+        try {
+          chart.timeScale().setVisibleRange(overlap);
+          const visible = chart.timeScale().getVisibleRange();
+          lastAppliedRange = visible ? `${chartTimeKey(visible.from)}/${chartTimeKey(visible.to)}` : "";
+        } catch { /* A hidden renderer may have no measurable time scale yet. */ }
+        finally { applyingSync.current = false; }
+      },
+    });
+    sync.current = connection;
+    let disposed = false;
+    const onTimeRange = () => {
+      const element = container.current;
+      if (applyingSync.current || !element?.clientWidth || !element.clientHeight) return;
+      const visible = chart.timeScale().getVisibleRange();
+      if (!visible) return;
+      const value = { from: chartTimeKey(visible.from), to: chartTimeKey(visible.to) };
+      if (`${value.from}/${value.to}` === lastAppliedRange) return;
+      lastAppliedRange = "";
+      connection.publishRange(value);
+    };
+    chart.timeScale().subscribeVisibleTimeRangeChange(onTimeRange);
+    const detach = () => {
+      if (disposed) return;
+      disposed = true;
+      connection.dispose();
+      if (sync.current === connection) sync.current = null;
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(onTimeRange);
+      if (detachSync.current === detach) detachSync.current = null;
+    };
+    detachSync.current = detach;
+    return detach;
+  }, [ready, syncGroup, hasValues, chartId, frequency]);
 
   const frequencyLabel = frequency === "1w" ? "每週統計" : "每日資料";
   return (

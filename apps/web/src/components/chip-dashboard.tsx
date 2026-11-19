@@ -10,6 +10,7 @@ import type { ChipSeries } from "../lib/chip-chart";
 import { alignDailySeries, calculationValue, chipRange, chipStatus, quantityValue, validChipRange } from "../lib/chip-display";
 import { decimal, dateLabel, timestamp } from "../lib/format";
 import { ChipChart } from "./chip-chart";
+import { BrokerFlowPanel } from "./broker-flow-panel";
 import styles from "./chip-dashboard.module.css";
 
 type Resource<T> = { key: string; revision: number; status: "loading"|"ready"|"error"; data?: T; error?: unknown };
@@ -87,9 +88,9 @@ const CATEGORIES: {id:InstitutionalCategory;label:string;color:string}[] = [
   {id:"investment_trust",label:"投信",color:"#b4a4f5"},
   {id:"dealer_total",label:"自營商合計",color:"#e6b66d"},
 ];
-type PanelProps = {id:string;range:ChipRange;active:boolean;currency:string};
+type PanelProps = {id:string;range:ChipRange;active:boolean;currency:string;syncGroup?:string};
 
-function InstitutionalPanel({id,range,active,currency}:PanelProps) {
+function InstitutionalPanel({id,range,active,currency,syncGroup}:PanelProps) {
   const [category,setCategory] = useState<InstitutionalCategory>("foreign_ex_dealers");
   const key=JSON.stringify([id,range]);
   const history=useResource(key,active,signal=>getInstitutionalHistory(id,range,signal));
@@ -119,14 +120,14 @@ function InstitutionalPanel({id,range,active,currency}:PanelProps) {
     </div>
     {!rows.length && history.status==="ready" && <Empty>尚無已收錄三大法人資料</Empty>}
     {rows.length>0 && <div className={styles.chartGrid}>
-      <div><ChipChart chartId={`${id}-institutional-flow`} title="法人每日買賣超" unit={unit} series={aligned.slice(0,3)} frequency="1d"/></div>
-      <div><LoadingError state={price}/><ChipChart chartId={`${id}-institutional-price`} title="區間收盤價" unit={currency} series={aligned.slice(3)} frequency="1d"/></div>
+      <div><ChipChart syncGroup={syncGroup} chartId={`${id}-institutional-flow`} title="法人每日買賣超" unit={unit} series={aligned.slice(0,3)} frequency="1d"/></div>
+      <div><LoadingError state={price}/><ChipChart syncGroup={syncGroup} chartId={`${id}-institutional-price`} title="區間收盤價" unit={currency} series={aligned.slice(3)} frequency="1d"/></div>
     </div>}
     <p className={styles.note}>股價與法人數量分開座標軸，依同一查詢區間的實際日期對照；缺值留白。外資／投信／自營商口徑或完整交易日曆不足時，累計與連續統計顯示 Unavailable。</p>
   </div>;
 }
 
-function OwnershipPanel({id,range,active}:PanelProps) {
+function OwnershipPanel({id,range,active,syncGroup}:PanelProps) {
   const [threshold,setThreshold]=useState(400001);
   const [distributionDate,setDistributionDate]=useState("");
   const key=JSON.stringify([id,range]);
@@ -144,7 +145,7 @@ function OwnershipPanel({id,range,active}:PanelProps) {
     <div className={styles.cards}><Metric label="大戶持股比例" calculation={latestMetric?.ratio} unit="%"/><Metric label="持股比例週變化" calculation={latestMetric?.change_pp} unit="百分點"/><Metric label="官方集保存量" value={last?.source_total_quantity} unit={last?.quantity_unit==="units"?"單位":"股"}/><Metric label="持有人數" value={last?.source_total_holders} unit="人"/></div>
     {!rows.length && history.status==="ready" && <Empty>尚無已收錄集保週資料</Empty>}
     {rows.length>0 && <>
-      <div className={styles.chartGrid}><ChipChart chartId={`${id}-ownership-ratio-${threshold}`} title="大戶持股比例" unit="%" series={[ratio]} frequency="1w"/><ChipChart chartId={`${id}-ownership-change-${threshold}`} title="持股比例週變化" unit="百分點" series={[change]} frequency="1w"/></div>
+      <div className={styles.chartGrid}><ChipChart syncGroup={syncGroup} chartId={`${id}-ownership-ratio-${threshold}`} title="大戶持股比例" unit="%" series={[ratio]} frequency="1w"/><ChipChart syncGroup={syncGroup} chartId={`${id}-ownership-change-${threshold}`} title="持股比例週變化" unit="百分點" series={[change]} frequency="1w"/></div>
       <label className={styles.channel}>級距分布統計日<select value={distribution?.as_of_date??""} onChange={e=>setDistributionDate(e.target.value)}>{rows.map(row=><option key={row.as_of_date} value={row.as_of_date}>{dateLabel(row.as_of_date)}</option>)}</select></label>
       <div className={styles.tableWrap}><table><caption>{dateLabel(distribution?.as_of_date)} 持股級距分布 · {distribution?.buckets.length} 個來源級距</caption><thead><tr><th>級距／類型</th><th>持有人數</th><th>持有數量（{distribution?.quantity_unit==="units"?"單位":"股"}）</th><th>來源持股比例</th></tr></thead><tbody>{distribution?.buckets.map(bucket=><tr key={bucket.code} data-kind={bucket.kind}><th>{bucket.label}<small>{bucket.kind==="regular"?"一般級距":bucket.kind==="adjustment"?"差異調整（獨立保存）":"官方合計"}</small></th><td>{decimal(bucket.holder_count)}</td><td>{decimal(bucket.quantity)}</td><td>{decimal(bucket.reported_percent)}{bucket.reported_percent!=null?"%":""}</td></tr>)}</tbody></table></div>
       {distribution && <details className={styles.status}><summary>所選週報來源與版本</summary><dl className={styles.metadata}>
@@ -158,7 +159,7 @@ function OwnershipPanel({id,range,active}:PanelProps) {
   </div>;
 }
 
-function MarginPanel({id,range,active}:PanelProps) {
+function MarginPanel({id,range,active,syncGroup}:PanelProps) {
   const state=useResource(JSON.stringify([id,range]),active,signal=>getMarginHistory(id,range,signal));
   const rows=state.data?.items??[];const last=rows.at(-1);const unit=last?.quantity_unit==="units"?"單位":"股";
   const series=(key:"financing"|"short_margin",change=false):ChipSeries=>({id:key,label:key==="financing"?"融資":"融券",color:key==="financing"?"#68d3c2":"#b4a4f5",kind:"line",points:rows.map(r=>({date:r.trade_date,value:change?calculationValue(r[key].daily_change):quantityValue(r[key].balance)}))});
@@ -166,12 +167,12 @@ function MarginPanel({id,range,active}:PanelProps) {
     <LoadingError state={state}/>{state.data && <DataStatus data={state.data} points={rows} lastDate={last?.trade_date} frequency="1d"/>}
     <div className={styles.cards}><Metric label="融資餘額" value={quantityValue(last?.financing.balance)} unit={unit}/><Metric label="融資餘額日增減" calculation={last?.financing.daily_change} unit={unit}/><Metric label="融券餘額" value={quantityValue(last?.short_margin.balance)} unit={unit}/><Metric label="融券餘額日增減" calculation={last?.short_margin.daily_change} unit={unit}/></div>
     {!rows.length && state.status==="ready" && <Empty>尚無已收錄融資融券資料</Empty>}
-    {rows.length>0 && <><div className={styles.chartGrid}><ChipChart chartId={`${id}-financing`} title="融資餘額" unit={unit} series={[series("financing")]} frequency="1d"/><ChipChart chartId={`${id}-short-margin`} title="融券餘額" unit={unit} series={[series("short_margin")]} frequency="1d"/></div><ChipChart chartId={`${id}-margin-change`} title="餘額日增減" unit={unit} series={[series("financing",true),series("short_margin",true)]} frequency="1d"/></>}
+    {rows.length>0 && <><div className={styles.chartGrid}><ChipChart syncGroup={syncGroup} chartId={`${id}-financing`} title="融資餘額" unit={unit} series={[series("financing")]} frequency="1d"/><ChipChart syncGroup={syncGroup} chartId={`${id}-short-margin`} title="融券餘額" unit={unit} series={[series("short_margin")]} frequency="1d"/></div><ChipChart syncGroup={syncGroup} chartId={`${id}-margin-change`} title="餘額日增減" unit={unit} series={[series("financing",true),series("short_margin",true)]} frequency="1d"/></>}
     <p className={styles.note}>每日增減使用後端的「當日餘額 − 官方前日餘額」結果，不假設前一曆日有交易。數量由來源經核實後正規化，前端不自行乘以 1,000；融券不包含借券賣出。</p>
   </div>;
 }
 
-function LendingPanel({id,range,active}:PanelProps) {
+function LendingPanel({id,range,active,syncGroup}:PanelProps) {
   const [kind,setKind]=useState<LendingKind>("lending_short_sales");
   const [channel,setChannel]=useState("");
   const state=useResource(JSON.stringify([id,range,kind]),active,signal=>getLendingHistory(id,kind,range,signal));
@@ -189,15 +190,15 @@ function LendingPanel({id,range,active}:PanelProps) {
     {last && <div className={styles.scope}><strong>來源範圍：{last.trade_scope==="unspecified"?"未核實（unspecified）":last.trade_scope}</strong><p>Channel：{last.lending_channel.family} / {last.lending_channel.code} · {last.lending_channel.verified?"已核實":"來源範圍未核實"}</p><p>以下為單一來源報表值；不因公式可核對就宣稱已確認所有管道，亦不計算未知分母的跨來源比例。</p></div>}
     <div className={styles.cards}><Metric label={short?"借券賣出餘額":"借券未還餘額"} value={quantityValue(last?.ledger.balance)} unit={unit}/><Metric label={short?"當日借券賣出":"當日新增借券"} value={quantityValue(short?last?.ledger.short_sales:last?.ledger.borrowed_quantity)} unit={unit}/><Metric label="當日還券" value={quantityValue(short?last?.ledger.short_returns:last?.ledger.returned_quantity)} unit={unit}/><Metric label="來源調整數" value={quantityValue(last?.ledger.signed_adjustment)} unit={unit}/></div>
     {!all.length && state.status==="ready" && <Empty>{short?"尚無已收錄借券賣出資料":"尚無可用的借券未還報表"}</Empty>}
-    {rows.length>0 && <div className={styles.chartGrid}><ChipChart chartId={`${id}-${kind}-balance-${selected}`} title={short?"借券賣出餘額":"借券未還餘額"} unit={unit} series={[{id:"balance",label:"來源報表餘額",color:"#68d3c2",kind:"line",points:rows.map(r=>({date:r.trade_date,value:quantityValue(r.ledger.balance)}))}]} frequency="1d"/><ChipChart chartId={`${id}-${kind}-flow-${selected}`} title={short?"當日借券賣出與還券":"當日借入與還券"} unit={unit} series={flows} frequency="1d"/></div>}
+    {rows.length>0 && <div className={styles.chartGrid}><ChipChart syncGroup={syncGroup} chartId={`${id}-${kind}-balance-${selected}`} title={short?"借券賣出餘額":"借券未還餘額"} unit={unit} series={[{id:"balance",label:"來源報表餘額",color:"#68d3c2",kind:"line",points:rows.map(r=>({date:r.trade_date,value:quantityValue(r.ledger.balance)}))}]} frequency="1d"/><ChipChart syncGroup={syncGroup} chartId={`${id}-${kind}-flow-${selected}`} title={short?"當日借券賣出與還券":"當日借入與還券"} unit={unit} series={flows} frequency="1d"/></div>}
     <p className={styles.note}>來源未支援或資料庫尚無對應報表時顯示 Unavailable；不拿借券賣出替代借券未還。Quota 是監管配額，不代表實際借入、賣出或餘額。調整數保留原始符號，未知發布時間不推估。</p>
   </div>;
 }
 
-const TABS=[{id:"institutional",label:"三大法人",view:InstitutionalPanel},{id:"ownership",label:"集保持股",view:OwnershipPanel},{id:"margin",label:"融資融券",view:MarginPanel},{id:"lending",label:"借券賣出",view:LendingPanel}] as const;
+const TABS=[{id:"institutional",label:"三大法人",view:InstitutionalPanel},{id:"ownership",label:"集保持股",view:OwnershipPanel},{id:"margin",label:"融資融券",view:MarginPanel},{id:"lending",label:"借券賣出",view:LendingPanel},{id:"broker",label:"主力分點",view:BrokerFlowPanel}] as const;
 type Tab = typeof TABS[number]["id"];
 
-export function ChipDashboard({id,marketDate,currency}:{id:string;marketDate:string;currency:string}) {
+export function ChipDashboard({id,marketDate,currency,syncGroup}:{id:string;marketDate:string;currency:string;syncGroup?:string}) {
   const [active,setActive]=useState<Tab>("institutional");
   const [visited,setVisited]=useState<Set<Tab>>(()=>new Set(["institutional"]));
   const [range,setRange]=useState<ChipRange>(()=>chipRange(marketDate,90));
@@ -216,6 +217,6 @@ export function ChipDashboard({id,marketDate,currency}:{id:string;marketDate:str
       {error && <p role="alert" className={styles.amber}>{error}</p>}
     </div>
     <div className={styles.tabs} role="tablist" aria-label="籌碼分析">{TABS.map((tab,index)=><button key={tab.id} id={`chip-tab-${tab.id}`} role="tab" aria-selected={active===tab.id} aria-controls={`chip-panel-${tab.id}`} tabIndex={active===tab.id?0:-1} onClick={()=>choose(tab.id)} onKeyDown={e=>keyboard(e,index)}>{tab.label}</button>)}</div>
-    {TABS.map(tab=>{const View=tab.view;return <div key={tab.id} role="tabpanel" id={`chip-panel-${tab.id}`} aria-labelledby={`chip-tab-${tab.id}`} hidden={active!==tab.id}>{visited.has(tab.id)&&<View id={id} range={range} active={active===tab.id} currency={currency}/>}</div>;})}
+    {TABS.map(tab=>{const View=tab.view;return <div key={tab.id} role="tabpanel" id={`chip-panel-${tab.id}`} aria-labelledby={`chip-tab-${tab.id}`} hidden={active!==tab.id}>{visited.has(tab.id)&&<View id={id} range={range} active={active===tab.id} currency={currency} syncGroup={syncGroup}/>}</div>;})}
   </section>;
 }

@@ -28,6 +28,7 @@ import { analyzeHistoryGaps } from "../lib/history-gaps";
 import { IndicatorWorkspace } from "./indicator-workspace";
 import { StockSearch } from "./stock-search";
 import { ChipDashboard } from "./chip-dashboard";
+import { StockChipSubpanels } from "./stock-chip-subpanels";
 
 type Load<T> =
   | { status: "loading" }
@@ -512,6 +513,7 @@ export function StockDetail({ id }: { id: string }) {
             )}
             <IndicatorWorkspace
               instrumentId={id}
+              syncGroup={`stock-${id}`}
               timeframe={timeframe}
               bars={canRenderChart ? bars.data.bars : null}
               range={
@@ -543,6 +545,7 @@ export function StockDetail({ id }: { id: string }) {
                 ) : null
               }
             />
+            <StockChipSubpanels id={id} syncGroup={`stock-${id}`} range={canRenderChart?{from:bars.data.from,to:bars.data.to}:undefined}/>
             {validChart && (
               <>
                 <div className="chart-data-note">
@@ -568,7 +571,7 @@ export function StockDetail({ id }: { id: string }) {
             )}
           </section>
 
-          <ChipDashboard key={id} id={id} marketDate={data.freshness.market_local_date} currency={data.instrument.market.currency}/>
+          <ChipDashboard key={id} id={id} marketDate={data.freshness.market_local_date} currency={data.instrument.market.currency} syncGroup={`stock-${id}`}/>
 
           <section className="provenance-panel" aria-label="資料來源與限制">
             <div>

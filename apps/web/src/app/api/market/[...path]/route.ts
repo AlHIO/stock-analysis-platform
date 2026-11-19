@@ -37,6 +37,14 @@ const ERROR_CODES = new Set([
   "invalid_stored_ownership_data",
   "invalid_stored_margin_data",
   "invalid_stored_lending_data",
+  "invalid_stored_broker_data",
+  "broker_query_limit_exceeded",
+  "invalid_metric_parameters",
+  "invalid_query_as_of",
+  "invalid_session_count",
+  "conflicting_branch_filter",
+  "branch_broker_mismatch",
+  "unsupported_broker_filter_for_metric",
 ]);
 function failure(status: number, code: string): Response {
   const message =
@@ -83,6 +91,13 @@ function allowedQuery(path: string[]): readonly string[] | null {
       return ["from", "to", "balance_scope", "limit", "cursor", "order"];
     if (path[2] === "lending")
       return ["from", "to", "report_kind", "trade_scope", "lending_channel", "channel_family", "limit", "cursor", "order"];
+    if (path[2] === "broker-flow")
+      return ["from", "to", "timeframe", "trade_scope", "source", "broker", "branch", "limit", "cursor", "order"];
+  }
+  if (path.length === 4 && path[0] === "stocks" && UUID.test(path[1]) && path[2] === "broker-flow") {
+    if (path[3] === "latest") return ["trade_scope", "source", "broker", "branch"];
+    if (path[3] === "top-branches") return ["from", "to", "trade_scope", "source", "top_n", "side", "broker", "branch", "sessions"];
+    if (path[3] === "metrics") return ["algorithm", "algorithm_parameters", "from", "to", "timeframe", "trade_scope", "source", "broker", "branch", "query_as_of", "availability_policy"];
   }
   if (path.length === 4 && path[0] === "stocks" && UUID.test(path[1]) && path[3] === "metrics") {
     if (path[2] === "institutional") return ["from", "to", "trade_scope", "category", "period"];
@@ -90,6 +105,8 @@ function allowedQuery(path: string[]): readonly string[] | null {
   }
   if (path.length === 2 && path[0] === "data" && path[1] === "status")
     return ["limit"];
+  if (path.length === 2 && path[0] === "broker-flow" && path[1] === "status")
+    return ["source", "limit"];
   return null;
 }
 
@@ -103,7 +120,8 @@ export async function GET(
   if (!allowed) return failure(404, "route_not_found");
   const query = new URL(request.url).searchParams;
   if (
-    query.toString().length > 2048 ||
+    query.toString().length > (path[2] === "broker-flow" && path[3] === "metrics" ? 16384 : 2048) ||
+    (query.get("algorithm_parameters")?.length ?? 0) > 4096 ||
     [...query.keys()].some(
       (key) => !allowed.includes(key) || query.getAll(key).length !== 1,
     )

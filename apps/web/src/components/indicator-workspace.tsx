@@ -60,13 +60,16 @@ export function IndicatorWorkspace({
   timeframe,
   range,
   placeholder,
+  syncGroup,
 }: {
   instrumentId: string;
   bars: Bar[] | null;
   timeframe: Timeframe;
   range?: { from: string; to: string };
   placeholder?: ReactNode;
+  syncGroup?: string;
 }) {
+  const [showVolume, setShowVolume] = useState(true);
   const [enabled, setEnabled] = useState<Record<IndicatorName, boolean>>({
     sma: false,
     ema: false,
@@ -323,7 +326,11 @@ export function IndicatorWorkspace({
       {bars === null ? (
         placeholder
       ) : bars.length ? (
-        <StockChart bars={bars} timeframe={timeframe} indicators={responses} />
+        <>
+          <label className={styles.volumeToggle}><input type="checkbox" checked={showVolume}
+            onChange={event=>setShowVolume(event.target.checked)}/> 顯示成交量副圖</label>
+          <StockChart bars={bars} timeframe={timeframe} indicators={responses} syncGroup={syncGroup} showVolume={showVolume} />
+        </>
       ) : (
         <div role="status" className="empty-state">
           <span className="state-icon" aria-hidden="true">

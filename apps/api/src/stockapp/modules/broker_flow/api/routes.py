@@ -30,6 +30,14 @@ class BrokerTopN(IntEnum):
     THIRTY = 30
 
 
+class BrokerSessionCount(IntEnum):
+    ONE = 1
+    FIVE = 5
+    TEN = 10
+    TWENTY = 20
+    SIXTY = 60
+
+
 router = APIRouter(prefix="/api/v1", tags=["Broker flow"])
 Service = Annotated[object, Depends(get_broker_query_service)]
 ERRORS = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}}
@@ -81,13 +89,15 @@ def top_branches(id: UUID, service: Service,
     trade_scope: UUID | None = None,
     source: UUID | None = None,
     top_n: BrokerTopN = BrokerTopN.FIFTEEN,
+    sessions: BrokerSessionCount | None = None,
     side: Literal["net_buyers", "net_sellers"] = "net_buyers",
     broker: UUID | None = None,
     branch: UUID | None = None):
     """Aggregate the full compatible universe before ranking and output filtering."""
     return _validated(BrokerTopBranchesResponse, service.top_branches(id,
         start=start, end=end, trade_scope=trade_scope, source=source,
-        top_n=int(top_n), side=side, broker=broker, branch=branch))
+        top_n=int(top_n), side=side, broker=broker, branch=branch,
+        sessions=int(sessions) if sessions is not None else None))
 
 
 @router.get("/stocks/{id}/broker-flow/metrics", response_model=BrokerMetricsResponse,
